@@ -35,14 +35,5 @@
       "type": "image/svg+xml",
       "purpose": "any"
     }
-  ],
-  "screenshots": [
-    {
-      "src": "screenshot-mobile.png",
-      "sizes": "540x960",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Tavolo da gioco di Briscolatro"
-    }
   ]
 }

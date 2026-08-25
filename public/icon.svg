@@ -23,15 +23,19 @@
   <!-- Left Card (Spade/Sword) -->
   <g transform="translate(160, 260) rotate(-16)">
     <rect x="-70" y="-110" width="140" height="220" rx="16" fill="#1e293b" stroke="#38bdf8" stroke-width="6"/>
-    <text x="0" y="20" font-size="60" text-anchor="middle">⚔️</text>
-    <text x="-48" y="-70" font-size="28" font-family="monospace" font-weight="bold" fill="#38bdf8">1</text>
+    <!-- Sword SVG -->
+    <path d="M-10,30 L0,50 L10,30 L0,-30 Z" fill="#38bdf8" />
+    <path d="M-20,30 L20,30 L0,40 Z" fill="#bae6fd" />
+    <text x="-48" y="-70" font-size="28" font-family="sans-serif" font-weight="bold" fill="#38bdf8">1</text>
   </g>
 
   <!-- Right Card (Coppe/Cup) -->
   <g transform="translate(352, 260) rotate(16)">
     <rect x="-70" y="-110" width="140" height="220" rx="16" fill="#1e293b" stroke="#ef4444" stroke-width="6"/>
-    <text x="0" y="20" font-size="60" text-anchor="middle">🏆</text>
-    <text x="-48" y="-70" font-size="28" font-family="monospace" font-weight="bold" fill="#ef4444">3</text>
+    <!-- Cup SVG -->
+    <path d="M-20,-10 L20,-10 L10,20 L-10,20 Z" fill="#ef4444" />
+    <path d="M-5,20 L5,20 L5,40 L15,40 L15,50 L-15,50 L-15,40 L-5,40 Z" fill="#ef4444" />
+    <text x="-48" y="-70" font-size="28" font-family="sans-serif" font-weight="bold" fill="#ef4444">3</text>
   </g>
 
   <!-- Center Card (Asso di Denari - Gold) -->
@@ -42,19 +46,23 @@
     <circle cx="0" cy="-5" r="30" fill="none" stroke="#fef08a" stroke-width="4" stroke-dasharray="6 6"/>
     <text x="0" y="10" font-size="34" font-family="sans-serif" font-weight="bold" fill="#78350f" text-anchor="middle">★</text>
     <!-- Index Top Left & Bottom Right -->
-    <text x="-60" y="-88" font-size="32" font-family="monospace" font-weight="bold" fill="#0f172a">A</text>
-    <text x="-60" y="-62" font-size="22" text-anchor="middle">🪙</text>
-    <text x="60" y="104" font-size="32" font-family="monospace" font-weight="bold" fill="#0f172a" text-anchor="end">A</text>
+    <text x="-60" y="-88" font-size="32" font-family="sans-serif" font-weight="bold" fill="#0f172a">A</text>
+    <circle cx="-60" cy="-70" r="8" fill="#f59e0b"/>
+    <text x="60" y="104" font-size="32" font-family="sans-serif" font-weight="bold" fill="#0f172a" text-anchor="end">A</text>
   </g>
 
   <!-- Joker Hat / Badge Top -->
   <g transform="translate(256, 96)">
-    <text x="0" y="0" font-size="68" text-anchor="middle">🃏</text>
+    <!-- Simple Crown / Hat instead of Emoji -->
+    <path d="M-40,20 L-50,-20 L-20,0 L0,-30 L20,0 L50,-20 L40,20 Z" fill="#8b5cf6" stroke="#fef08a" stroke-width="3"/>
+    <circle cx="-50" cy="-20" r="6" fill="#fef08a"/>
+    <circle cx="0" cy="-30" r="6" fill="#fef08a"/>
+    <circle cx="50" cy="-20" r="6" fill="#fef08a"/>
   </g>
 
   <!-- Banner Title Bottom -->
   <g transform="translate(256, 430)">
     <rect x="-180" y="-30" width="360" height="56" rx="14" fill="#0f172a" stroke="#f59e0b" stroke-width="4"/>
-    <text x="0" y="8" font-family="monospace, 'Press Start 2P', sans-serif" font-size="22" font-weight="900" fill="#fbbf24" text-anchor="middle" letter-spacing="3">BRISCOLATRO</text>
+    <text x="0" y="8" font-family="sans-serif" font-size="26" font-weight="900" fill="#fbbf24" text-anchor="middle" letter-spacing="3">BRISCOLATRO</text>
   </g>
 </svg>
