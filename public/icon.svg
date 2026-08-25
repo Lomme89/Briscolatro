@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1e1b4b"/>
+      <stop offset="100%" stop-color="#090a14"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="50%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#fef3c7"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="512" height="512" rx="100" fill="url(#bg)"/>
+  <rect x="16" y="16" width="480" height="480" rx="88" fill="none" stroke="#f59e0b" stroke-width="8" stroke-dasharray="16 16"/>
+
+  <!-- Tilted Playing Cards -->
+  <!-- Left Card (Spade/Sword) -->
+  <g transform="translate(160, 260) rotate(-16)">
+    <rect x="-70" y="-110" width="140" height="220" rx="16" fill="#1e293b" stroke="#38bdf8" stroke-width="6"/>
+    <text x="0" y="20" font-size="60" text-anchor="middle">⚔️</text>
+    <text x="-48" y="-70" font-size="28" font-family="monospace" font-weight="bold" fill="#38bdf8">1</text>
+  </g>
+
+  <!-- Right Card (Coppe/Cup) -->
+  <g transform="translate(352, 260) rotate(16)">
+    <rect x="-70" y="-110" width="140" height="220" rx="16" fill="#1e293b" stroke="#ef4444" stroke-width="6"/>
+    <text x="0" y="20" font-size="60" text-anchor="middle">🏆</text>
+    <text x="-48" y="-70" font-size="28" font-family="monospace" font-weight="bold" fill="#ef4444">3</text>
+  </g>
+
+  <!-- Center Card (Asso di Denari - Gold) -->
+  <g transform="translate(256, 240)">
+    <rect x="-85" y="-130" width="170" height="260" rx="20" fill="url(#cardGrad)" stroke="#1e293b" stroke-width="8"/>
+    <!-- Gold Sun / Coin in Center -->
+    <circle cx="0" cy="-5" r="46" fill="url(#gold)" stroke="#78350f" stroke-width="5"/>
+    <circle cx="0" cy="-5" r="30" fill="none" stroke="#fef08a" stroke-width="4" stroke-dasharray="6 6"/>
+    <text x="0" y="10" font-size="34" font-family="sans-serif" font-weight="bold" fill="#78350f" text-anchor="middle">★</text>
+    <!-- Index Top Left & Bottom Right -->
+    <text x="-60" y="-88" font-size="32" font-family="monospace" font-weight="bold" fill="#0f172a">A</text>
+    <text x="-60" y="-62" font-size="22" text-anchor="middle">🪙</text>
+    <text x="60" y="104" font-size="32" font-family="monospace" font-weight="bold" fill="#0f172a" text-anchor="end">A</text>
+  </g>
+
+  <!-- Joker Hat / Badge Top -->
+  <g transform="translate(256, 96)">
+    <text x="0" y="0" font-size="68" text-anchor="middle">🃏</text>
+  </g>
+
+  <!-- Banner Title Bottom -->
+  <g transform="translate(256, 430)">
+    <rect x="-180" y="-30" width="360" height="56" rx="14" fill="#0f172a" stroke="#f59e0b" stroke-width="4"/>
+    <text x="0" y="8" font-family="monospace, 'Press Start 2P', sans-serif" font-size="22" font-weight="900" fill="#fbbf24" text-anchor="middle" letter-spacing="3">BRISCOLATRO</text>
+  </g>
+</svg>

@@ -1,0 +1,6 @@
+{
+  "name": "Briscolatro - Roguelike Briscola Pixel Art",
+  "description": "Un roguelike deckbuilder indie ispirato a Balatro basato sul gioco tradizionale della Briscola italiana con grafica pixel art ultra-dinamica, effetti sonori 8-bit, carte speciali, carte azione stile UNO, shop, abilità uniche e progressione di mazzi sbloccabili.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
