@@ -32,6 +32,27 @@ class SoundEngine {
     }
   }
 
+  public setMasterVolume(vol: number) {
+    this.setVolume(vol, this.musicVolume);
+  }
+
+  public setSfxVolume(sfx: number) {
+    this.sfxVolume = Math.max(0, Math.min(1, sfx));
+  }
+
+  public setMusicVolume(music: number) {
+    this.musicVolume = Math.max(0, Math.min(1, music));
+    if (this.musicGain && this.ctx) {
+      this.musicGain.gain.setValueAtTime(this.musicVolume * (this.isMuted ? 0 : 1), this.ctx.currentTime);
+    }
+  }
+
+  // Card Slam / Table Drop sound
+  public playCardSlam() {
+    this.playTrumpSlam();
+  }
+
+
   public setMuted(muted: boolean) {
     this.isMuted = muted;
     if (this.musicGain && this.ctx) {

@@ -1,13 +1,15 @@
-import {StrictMode} from 'react';
-import {createRoot} from 'react-dom/client';
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 
-// Register PWA Service Worker
-if ('serviceWorker' in navigator) {
+// Register PWA Service Worker in production
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch((err) => {
-      console.log('SW registration skipped:', err);
+    const baseUrl = import.meta.env.BASE_URL || './';
+    const swUrl = `${baseUrl.endsWith('/') ? baseUrl : baseUrl + '/'}sw.js`;
+    navigator.serviceWorker.register(swUrl, { scope: baseUrl }).catch((err) => {
+      console.warn('SW registration skipped:', err);
     });
   });
 }
@@ -17,4 +19,3 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 );
-
