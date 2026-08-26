@@ -232,8 +232,10 @@ export const PixelCard: React.FC<PixelCardProps> = ({
 
       {/* Briscola Badge Header */}
       {isBriscola && showBriscolaBadge && (
-        <div className={`absolute -top-2.5 left-1/2 -translate-x-1/2 font-pixel text-[6.5px] sm:text-[7.5px] px-1.5 py-0.5 rounded shadow pixel-box z-20 whitespace-nowrap ${styleDef.briscolaBadgeClass}`}>
-          ★ BRISCOLA ★
+        // No stars: with a large system font the ribbon grew wider than the card
+        // and collided with the neighbouring one.
+        <div className={`absolute -top-2.5 left-1/2 -translate-x-1/2 font-pixel text-[6.5px] sm:text-[7.5px] px-1 py-0.5 rounded shadow pixel-box z-20 whitespace-nowrap max-w-full ${styleDef.briscolaBadgeClass}`}>
+          BRISCOLA
         </div>
       )}
 

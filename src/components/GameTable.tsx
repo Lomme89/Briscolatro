@@ -112,6 +112,14 @@ export const GameTable: React.FC<GameTableProps> = ({
   // A tall phone has room for a proper clash: the middle of the felt used to be
   // dead space with two small cards floating in it.
   const roomyTable = useMediaQuery('(min-height: 720px) and (min-width: 380px)');
+  // A short screen (or a browser with its address bar showing) has to fit the
+  // whole table without scrolling: the hand shrinks a size rather than pushing
+  // the action buttons past the fold.
+  const shortScreen = useMediaQuery('(max-height: 700px)');
+  const handCardSize = shortScreen ? 'md' : 'lg';
+  const handRowMinHeight = shortScreen
+    ? 'min-h-[118px]'
+    : 'min-h-[148px] sm:min-h-[175px] md:min-h-[195px]';
   const trickCardSize = roomyTable ? 'lg' : 'md';
   const trickSlotClass = roomyTable
     ? 'w-[96px] sm:w-[114px] h-[138px] sm:h-[164px]'
@@ -295,24 +303,6 @@ export const GameTable: React.FC<GameTableProps> = ({
               <span className="font-bold truncate max-w-[120px]">{tableTheme.name}</span>
             </div>
 
-            {/* The score is the whole point of a blind, so it reads like it.
-                No truncation and no fixed widths: a phone with a large system
-                font used to clip the label and squash the number. */}
-            <div className="flex items-baseline gap-1.5 min-w-0">
-              <span className="font-pixel text-[8px] sm:text-[9px] text-slate-400 uppercase tracking-wide shrink-0">
-                Punti
-              </span>
-              <motion.span
-                key={currentRoundScore}
-                initial={{ scale: 1.3, color: '#fbbf24' }}
-                animate={{ scale: 1, color: reachedTarget ? '#34d399' : '#f8fafc' }}
-                transition={{ type: 'spring', damping: 12, stiffness: 320 }}
-                className="font-pixel text-sm sm:text-xl font-bold leading-none tabular-nums"
-              >
-                {currentRoundScore.toLocaleString('it-IT')}
-              </motion.span>
-            </div>
-
             {/* Briscola Suit Pill */}
             <div className="bg-slate-950 border border-orange-500/80 px-1.5 sm:px-2 py-0.5 rounded-full text-orange-400 font-pixel text-[8px] sm:text-[9px] font-bold flex items-center gap-1 shrink-0">
               <PixelSuitIcon suit={briscolaSuit} size={12} />
@@ -330,6 +320,16 @@ export const GameTable: React.FC<GameTableProps> = ({
             <div className="bg-slate-950 border border-cyan-500/60 px-1.5 sm:px-2 py-0.5 rounded text-cyan-300 font-pixel text-[8px] sm:text-[9.5px] font-bold flex items-center gap-0.5" title="Scarti rimasti">
               <span>🔄</span>
               <span>{discardsLeft}</span>
+            </div>
+
+            {/* Briscola points taken. It used to flank the table, where on a
+                narrow phone it hung off the right edge of the screen. */}
+            <div
+              className="bg-slate-950 border border-amber-500/50 px-1.5 sm:px-2 py-0.5 rounded text-amber-300 font-pixel text-[8px] sm:text-[9.5px] font-bold flex items-center gap-0.5 tabular-nums"
+              title="Punti Briscola presi su 120"
+            >
+              <span>🃏</span>
+              <span>{roundPointsTaken}</span>
             </div>
 
             {/* Extra Menu buttons */}
@@ -360,9 +360,22 @@ export const GameTable: React.FC<GameTableProps> = ({
           </div>
         </div>
 
-        {/* Target progress, full width so it never fights the buttons for room. */}
-        <div className="flex items-center gap-2 mt-1">
-          <div className="flex-1 bg-slate-950 h-2 sm:h-2.5 rounded-full border border-slate-700 overflow-hidden">
+        {/* Score and target on their own row: on a narrow phone they cannot share
+            a line with the money, the discards and the menu. */}
+        <div className="flex items-center gap-2 mt-1 min-w-0">
+          <div className="flex items-baseline gap-1 shrink-0">
+            <span className="font-pixel text-[7.5px] sm:text-[9px] text-slate-400 uppercase">Punti</span>
+            <motion.span
+              key={currentRoundScore}
+              initial={{ scale: 1.3, color: '#fbbf24' }}
+              animate={{ scale: 1, color: reachedTarget ? '#34d399' : '#f8fafc' }}
+              transition={{ type: 'spring', damping: 12, stiffness: 320 }}
+              className="font-pixel text-xs sm:text-lg font-bold leading-none tabular-nums"
+            >
+              {currentRoundScore.toLocaleString('it-IT')}
+            </motion.span>
+          </div>
+          <div className="flex-1 min-w-[40px] bg-slate-950 h-2 sm:h-2.5 rounded-full border border-slate-700 overflow-hidden">
             <motion.div
               className={`h-full rounded-full ${
                 reachedTarget
@@ -632,7 +645,7 @@ export const GameTable: React.FC<GameTableProps> = ({
         </div>
 
         {/* CENTER ARENA: DECK + TRICK CLASH (ENLARGED CARDS) */}
-        <div className="flex-1 min-h-0 my-1 py-1 flex items-center justify-between gap-1 sm:gap-4 z-10 relative px-1">
+        <div className="flex-1 min-h-0 my-1 py-1 flex items-center justify-center gap-1 sm:gap-4 z-10 relative px-1 min-w-0">
           {/* Left: Deck & Briscola Face-Up Card */}
           <div 
             className="flex flex-col items-center cursor-pointer group shrink-0"
@@ -682,7 +695,7 @@ export const GameTable: React.FC<GameTableProps> = ({
           </div>
 
           {/* Center: Trick Cards Clash Zone (LARGE IMPACT CARDS) */}
-          <div className="flex-1 max-w-[300px] sm:max-w-md flex items-center justify-center gap-1.5 sm:gap-4 p-2 bg-black/45 border border-dashed border-emerald-800/60 rounded-xl pixel-box relative shadow-xl mx-auto">
+          <div className="flex-1 min-w-0 max-w-[300px] sm:max-w-md flex items-center justify-center gap-1.5 sm:gap-4 p-2 bg-black/45 border border-dashed border-emerald-800/60 rounded-xl pixel-box relative shadow-xl mx-auto">
             {/* Opponent Card in Trick */}
             <div className="flex flex-col items-center relative">
               <span className="text-[7px] sm:text-[8px] font-pixel text-slate-400 mb-0.5">AVVERSARIO</span>
@@ -819,14 +832,6 @@ export const GameTable: React.FC<GameTableProps> = ({
             </div>
           </div>
 
-          {/* Right: Quick Briscola Score Indicator */}
-          <div className="flex flex-col items-center justify-center bg-slate-950/80 border border-amber-500/40 px-1.5 sm:px-2 py-1 rounded-xl pixel-box text-center shrink-0">
-            <span className="text-[6px] sm:text-[7px] font-pixel text-slate-400 leading-none">PUNTI</span>
-            <span className="text-[9px] sm:text-[11px] font-pixel text-amber-300 font-bold mt-0.5 leading-none">
-              {roundPointsTaken}pt
-            </span>
-            <span className="text-[5.5px] sm:text-[6.5px] font-pixel text-slate-500 mt-0.5">/120</span>
-          </div>
         </div>
 
         {/* 3. PLAYER HAND & ACTION CONTROLS (THE MAIN FOCUS) */}
@@ -870,7 +875,7 @@ export const GameTable: React.FC<GameTableProps> = ({
           </div>
 
           {/* The Player Hand Cards with Fan Spread and Gentle Floating Idle */}
-          <div className="relative flex items-center justify-center my-1.5 w-full max-w-md sm:max-w-lg px-2 min-h-[148px] sm:min-h-[175px] md:min-h-[195px]">
+          <div className={`relative flex items-center justify-center my-1.5 w-full max-w-md sm:max-w-lg px-2 ${handRowMinHeight}`}>
             {/* Cards overlap instead of spilling past the felt when an effect
                 leaves the player holding more than the usual three. */}
             <AnimatePresence mode="popLayout">
@@ -939,7 +944,7 @@ export const GameTable: React.FC<GameTableProps> = ({
                       selected={isSelected}
                       onClick={() => handleCardClick(card)}
                       isBriscola={card.suit === briscolaSuit}
-                      size="lg"
+                      size={handCardSize}
                     />
                   </motion.div>
                 );
