@@ -242,6 +242,17 @@ export function App() {
   const [isShaking, setIsShaking] = useState(false);
 
   // Timers cleanup ref
+  /**
+   * Every pause between tricks goes through here. A round is 20 tricks, so the
+   * pacing is most of the time spent in a run: "Partita Rapida" nearly halves it.
+   */
+  const settingsRef = useRef<GameSettings>(settings);
+  settingsRef.current = settings;
+  const beat = useCallback(
+    (ms: number) => (settingsRef.current.fastMode ? Math.round(ms * 0.45) : ms),
+    []
+  );
+
   const activeTimersRef = useRef<NodeJS.Timeout[]>([]);
   const scheduleAction = useCallback((fn: () => void, delayMs: number) => {
     const timer = setTimeout(fn, delayMs);
@@ -488,7 +499,7 @@ export function App() {
     // Proceed to trick resolution
     scheduleAction(() => {
       resolveCurrentClash(playerCardPlayed, chosenCard, true);
-    }, 550);
+    }, beat(550));
   };
 
   // --- Resolve Trick Clash ---
@@ -850,7 +861,7 @@ export function App() {
         // Opponent's turn to lead - pass the freshly dealt hand and suit directly!
         scheduleAction(() => {
           triggerOpponentLead(newOpponentHand, nextBriscolaSuit);
-        }, 700);
+        }, beat(700));
       }
     }
   };
@@ -885,14 +896,14 @@ export function App() {
 
       scheduleAction(() => {
         triggerOpponentFollow(card, opponentHandRef.current);
-      }, 600);
+      }, beat(600));
     } else {
       // Player responded to opponent's lead
       setTrickPhase('resolving');
 
       scheduleAction(() => {
         resolveCurrentClash(card, opponentTrickCard, false);
-      }, 550);
+      }, beat(550));
     }
   };
 
@@ -1307,6 +1318,7 @@ export function App() {
             trickPoints={tallyData.trickPoints}
             playerWon={tallyData.playerWon}
             multReasons={tallyData.scoreResult?.baseMultReasons}
+            fastMode={settings.fastMode}
             onComplete={handleTallyComplete}
             targetScore={targetScore}
             currentTotalScore={currentRoundScore}

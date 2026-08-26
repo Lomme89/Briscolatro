@@ -89,7 +89,12 @@ export const GameTable: React.FC<GameTableProps> = ({
 }) => {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [activeUnoToApply, setActiveUnoToApply] = useState<UnoCard | null>(null);
-  const [showItemsDrawer, setShowItemsDrawer] = useState<boolean>(false);
+  // Which item of the build is open for reading. A tooltip anchored to the slot
+  // gets clipped by the rail's own scroll container and by the top of the
+  // screen, so the details render as a panel underneath instead.
+  const [inspected, setInspected] = useState<
+    { kind: 'joker'; index: number } | { kind: 'uno'; index: number } | null
+  >(null);
 
   const selectedCard = playerHand.find((c) => c.id === selectedCardId);
 
@@ -131,7 +136,6 @@ export const GameTable: React.FC<GameTableProps> = ({
         setActiveUnoToApply(null);
       } else {
         setActiveUnoToApply(unoCard);
-        setShowItemsDrawer(false); // Close drawer to let player see cards!
       }
     } else {
       onUseUnoCard(unoCard);
@@ -140,6 +144,7 @@ export const GameTable: React.FC<GameTableProps> = ({
 
   // Calculate score progress percentage
   const scoreProgress = Math.min(100, Math.round((currentRoundScore / targetScore) * 100));
+  const reachedTarget = currentRoundScore >= targetScore;
 
   // Does player have vision of opponent's hand?
   const hasVision = activeJokers.some(
@@ -178,6 +183,58 @@ export const GameTable: React.FC<GameTableProps> = ({
     opponentEmotion = 'thinking';
   }
 
+  /**
+   * When the opponent has already led, the outcome of the selected card is fully
+   * determined - so show it. Balatro never hides what a play is worth once the
+   * inputs are known, and the base-Mult rule is only learnable if you can see it
+   * before committing.
+   */
+  const followPreview = (() => {
+    if (!opponentTrickCard || playerTrickCard || !selectedCard) return null;
+    const clash = resolveTrick(
+      opponentTrickCard,
+      selectedCard,
+      briscolaSuit,
+      false,
+      bossDebuffNeutralized ? undefined : currentBoss?.debuffType
+    );
+    const captured = clash.playerWon ? [selectedCard, opponentTrickCard] : [];
+    const carichi = captured.filter((c) => c.rank === 1 || c.rank === 3).length;
+    const figure = captured.filter((c) => c.rank >= 8 && c.rank <= 10).length;
+    const baseMult =
+      1 + carichi + (figure > 0 ? 1 : 0) + (clash.playerWon && clash.playerIsBriscola ? 1 : 0);
+    return { wins: clash.playerWon, points: clash.points, baseMult };
+  })();
+
+  const inspectedItem = (() => {
+    if (!inspected) return null;
+    if (inspected.kind === 'joker') {
+      const joker = activeJokers[inspected.index];
+      if (!joker) return null;
+      const badges: string[] = [joker.rarity.toUpperCase()];
+      if (joker.stats?.accumulatedMult) badges.push(`+${joker.stats.accumulatedMult} Mult accumulati`);
+      if (joker.stats?.accumulatedChips) badges.push(`+${joker.stats.accumulatedChips} Chips accumulati`);
+      return {
+        icon: joker.icon,
+        name: joker.name,
+        description: joker.description,
+        badges,
+        sellValue: joker.sellValue,
+        onSell: () => onSellJoker(inspected.index),
+      };
+    }
+    const unoCard = consumables[inspected.index];
+    if (!unoCard) return null;
+    return {
+      icon: unoCard.icon,
+      name: unoCard.name,
+      description: unoCard.description,
+      badges: ['CARTA UNO'],
+      sellValue: 1,
+      onSell: () => onSellUnoCard(inspected.index),
+    };
+  })();
+
   const tableTheme = getTableThemeForAnte(ante);
 
   // Particle burst condition: Player plays or wins with Asso (1, 11pt) or Tre (3, 10pt)
@@ -214,17 +271,37 @@ export const GameTable: React.FC<GameTableProps> = ({
               <span className="font-bold truncate max-w-[120px]">{tableTheme.name}</span>
             </div>
 
-            {/* Target Score Bar */}
-            <div className="flex-1 max-w-[180px] sm:max-w-xs">
-              <div className="flex justify-between items-center text-[7.5px] sm:text-[9px] font-pixel text-slate-300 mb-0.5 leading-none">
-                <span className="truncate">🎯 {targetScore.toLocaleString()}</span>
-                <span className="text-emerald-400 font-bold ml-1">{currentRoundScore.toLocaleString()}</span>
+            {/* The score is the whole point of a blind, so it reads like it. */}
+            <div className="flex-1 min-w-0 flex items-center gap-2">
+              <div className="min-w-0">
+                <div className="font-pixel text-[6.5px] sm:text-[7.5px] text-slate-400 uppercase tracking-wide leading-none">
+                  Punteggio
+                </div>
+                <motion.div
+                  key={currentRoundScore}
+                  initial={{ scale: 1.35, color: '#fbbf24' }}
+                  animate={{ scale: 1, color: reachedTarget ? '#34d399' : '#f8fafc' }}
+                  transition={{ type: 'spring', damping: 12, stiffness: 320 }}
+                  className="font-pixel text-sm sm:text-xl font-bold leading-none tabular-nums"
+                >
+                  {currentRoundScore.toLocaleString('it-IT')}
+                </motion.div>
               </div>
-              <div className="w-full bg-slate-950 h-1.5 sm:h-2 rounded-full border border-slate-700 overflow-hidden relative">
-                <div
-                  className="h-full bg-gradient-to-r from-amber-500 to-emerald-400 transition-all duration-300 rounded-full"
-                  style={{ width: `${scoreProgress}%` }}
-                />
+              <div className="flex-1 min-w-[52px]">
+                <div className="w-full bg-slate-950 h-2 sm:h-2.5 rounded-full border border-slate-700 overflow-hidden relative">
+                  <motion.div
+                    className={`h-full rounded-full ${
+                      reachedTarget
+                        ? 'bg-gradient-to-r from-emerald-500 to-emerald-300'
+                        : 'bg-gradient-to-r from-amber-500 to-yellow-300'
+                    }`}
+                    animate={{ width: `${scoreProgress}%` }}
+                    transition={{ type: 'spring', damping: 20, stiffness: 120 }}
+                  />
+                </div>
+                <div className="font-pixel text-[6.5px] sm:text-[8px] text-slate-400 leading-none mt-0.5 tabular-nums">
+                  {reachedTarget ? '✓ OBIETTIVO RAGGIUNTO' : `🎯 ${targetScore.toLocaleString('it-IT')}`}
+                </div>
               </div>
             </div>
 
@@ -246,24 +323,6 @@ export const GameTable: React.FC<GameTableProps> = ({
               <span>🔄</span>
               <span>{discardsLeft}</span>
             </div>
-
-            {/* Jolly & Uno Drawer Toggle Button */}
-            <button
-              type="button"
-              onClick={() => setShowItemsDrawer((prev) => !prev)}
-              className={`font-pixel text-[8px] sm:text-[9px] px-1.5 sm:px-2 py-1 rounded pixel-box flex items-center gap-1 cursor-pointer transition-colors ${
-                showItemsDrawer
-                  ? 'bg-amber-500 text-slate-950 font-bold'
-                  : 'bg-slate-800 hover:bg-slate-700 text-amber-300'
-              }`}
-              title="Apri inventario Jolly e Carte UNO"
-            >
-              <span>🃏</span>
-              <span>{activeJokers.length}/{maxJokers}</span>
-              {consumables.length > 0 && (
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-              )}
-            </button>
 
             {/* Extra Menu buttons */}
             <button
@@ -293,56 +352,101 @@ export const GameTable: React.FC<GameTableProps> = ({
           </div>
         </div>
 
-        {/* Expandable Jokers & UNO Drawer Shelf */}
-        <AnimatePresence>
-          {showItemsDrawer && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              /* Floats over the felt instead of pushing the table down: on a
-                 phone the extra height used to shove the hand off-screen. */
-              className="overflow-hidden absolute left-0 right-0 top-full mt-1 z-40 bg-slate-950/97 border-2 border-slate-700/80 rounded-xl px-2 shadow-2xl backdrop-blur-sm"
-            >
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 overflow-x-auto py-2 custom-scrollbar">
-                {/* Jokers */}
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="text-[7.5px] sm:text-[8.5px] font-pixel text-slate-400 shrink-0">
-                    JOLLY ({activeJokers.length}/{maxJokers}):
-                  </span>
-                  <div className="flex gap-1">
-                    {Array.from({ length: maxJokers }).map((_, i) => (
-                      <JokerSlot
-                        key={i}
-                        joker={activeJokers[i] || null}
-                        onSell={() => onSellJoker(i)}
-                        isTriggering={activeJokers[i]?.id === triggeringJokerId}
-                        showSellButton={true}
-                        size="sm"
-                      />
-                    ))}
-                  </div>
-                </div>
+        {/* The build, always on screen. It used to live behind a toggle, which
+            hid the one thing that decides whether the blind is beatable. */}
+        {(activeJokers.length > 0 || consumables.length > 0) && (
+          <div className="flex items-center gap-2 mt-1.5 pt-1.5 border-t border-slate-800 overflow-x-auto no-scrollbar">
+            <div className="flex items-center gap-1 shrink-0">
+              {activeJokers.map((joker, i) => (
+                <JokerSlot
+                  key={`${joker.id}-${i}`}
+                  joker={joker}
+                  onClick={() =>
+                    setInspected((prev) =>
+                      prev && prev.kind === 'joker' && prev.index === i ? null : { kind: 'joker', index: i }
+                    )
+                  }
+                  isTriggering={joker.id === triggeringJokerId}
+                  showSellButton={false}
+                  size="sm"
+                />
+              ))}
+              {activeJokers.length < maxJokers && (
+                <span className="font-pixel text-[7px] sm:text-[8px] text-slate-600 px-1 shrink-0">
+                  {activeJokers.length}/{maxJokers}
+                </span>
+              )}
+            </div>
 
-                {/* UNO Action Cards */}
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="text-[7.5px] sm:text-[8.5px] font-pixel text-red-400 shrink-0 flex items-center gap-1">
-                    <span className="bg-red-600 text-white px-0.5 rounded text-[6.5px] font-bold">UNO</span>
-                    AZIONI ({consumables.length}/{maxConsumables}):
-                  </span>
-                  <div className="flex gap-1">
-                    {Array.from({ length: maxConsumables }).map((_, i) => (
-                      <UnoCardSlot
-                        key={i}
-                        unoCard={consumables[i] || null}
-                        onUse={() => consumables[i] && handleUnoCardClick(consumables[i])}
-                        onSell={() => onSellUnoCard(i)}
-                        canUse={true}
-                        isSelected={activeUnoToApply?.id === consumables[i]?.id}
-                        size="sm"
-                      />
+            {consumables.length > 0 && (
+              <div className="flex items-center gap-1 shrink-0 pl-2 border-l border-slate-800">
+                {consumables.map((unoCard, i) => (
+                  <UnoCardSlot
+                    key={`${unoCard.id}-${i}`}
+                    unoCard={unoCard}
+                    onUse={() => handleUnoCardClick(unoCard)}
+                    onSell={() => onSellUnoCard(i)}
+                    canUse={true}
+                    isSelected={activeUnoToApply?.id === unoCard.id}
+                    size="sm"
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Details of whatever you tapped in the rail. */}
+        <AnimatePresence>
+          {inspectedItem && (
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              // Floats over the felt: pushing the table down would shove the
+              // hand and its buttons off a phone screen.
+              className="absolute left-0 right-0 top-full mt-1 z-40 px-1"
+            >
+              <div className="bg-slate-950/97 backdrop-blur-sm border-2 border-amber-500/70 rounded-lg px-2.5 py-2 flex items-start gap-2.5 shadow-2xl">
+                <span className="text-lg shrink-0 leading-none mt-0.5">{inspectedItem.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-pixel text-[9px] sm:text-[11px] text-amber-300 font-bold truncate">
+                      {inspectedItem.name}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setInspected(null)}
+                      className="font-pixel text-[8px] text-slate-400 hover:text-white px-1 cursor-pointer shrink-0"
+                      aria-label="Chiudi dettagli"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <p className="font-retro text-[11px] sm:text-xs text-slate-200 leading-snug mt-0.5">
+                    {inspectedItem.description}
+                  </p>
+                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                    {inspectedItem.badges.map((badge) => (
+                      <span
+                        key={badge}
+                        className="bg-slate-900 border border-slate-600 text-slate-200 font-pixel text-[7.5px] sm:text-[8.5px] px-1.5 py-0.5 rounded"
+                      >
+                        {badge}
+                      </span>
                     ))}
+                    {inspectedItem.onSell && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          inspectedItem.onSell?.();
+                          setInspected(null);
+                        }}
+                        className="bg-red-800 hover:bg-red-700 text-white font-pixel text-[7.5px] sm:text-[8.5px] px-2 py-0.5 rounded pixel-box cursor-pointer"
+                      >
+                        VENDI +${inspectedItem.sellValue}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -560,7 +664,15 @@ export const GameTable: React.FC<GameTableProps> = ({
                         rotate: 0,
                         opacity: 1 
                       }}
-                      exit={{ scale: 0.8, opacity: 0, transition: { duration: 0.15 } }}
+                      // The trick is swept to whoever took it: the cards leave
+                      // toward the winner's side instead of fading in place.
+                      exit={{
+                        y: playerWonTrick ? 160 : -160,
+                        scale: 0.55,
+                        opacity: 0,
+                        rotate: playerWonTrick ? 12 : -12,
+                        transition: { duration: 0.32, ease: 'easeIn' },
+                      }}
                       transition={{ type: 'spring', damping: 18, stiffness: 300 }}
                     >
                       <PixelCard
@@ -626,7 +738,13 @@ export const GameTable: React.FC<GameTableProps> = ({
                         rotate: 0,
                         opacity: 1 
                       }}
-                      exit={{ scale: 0.8, opacity: 0, transition: { duration: 0.15 } }}
+                      exit={{
+                        y: playerWonTrick ? 160 : -160,
+                        scale: 0.55,
+                        opacity: 0,
+                        rotate: playerWonTrick ? -12 : 12,
+                        transition: { duration: 0.32, ease: 'easeIn' },
+                      }}
                       transition={{ type: 'spring', damping: 18, stiffness: 300 }}
                     >
                       <PixelCard
@@ -661,7 +779,7 @@ export const GameTable: React.FC<GameTableProps> = ({
 
           {/* Right: Quick Briscola Score Indicator */}
           <div className="flex flex-col items-center justify-center bg-slate-950/80 border border-amber-500/40 px-1.5 sm:px-2 py-1 rounded-xl pixel-box text-center shrink-0">
-            <span className="text-[6px] sm:text-[7px] font-pixel text-slate-400 leading-none">PRESE</span>
+            <span className="text-[6px] sm:text-[7px] font-pixel text-slate-400 leading-none">PUNTI</span>
             <span className="text-[9px] sm:text-[11px] font-pixel text-amber-300 font-bold mt-0.5 leading-none">
               {roundPointsTaken}pt
             </span>
@@ -671,20 +789,42 @@ export const GameTable: React.FC<GameTableProps> = ({
 
         {/* 3. PLAYER HAND & ACTION CONTROLS (THE MAIN FOCUS) */}
         <div className={`z-10 flex flex-col items-center shrink-0 border-t ${tableTheme.dividerBorder} pt-1 pb-0.5`}>
-          {/* Turn Prompt */}
-          <div className="mb-0.5 flex items-center gap-1.5 leading-none">
-            <span
-              className={`w-1.5 h-1.5 rounded-full ${
-                isDealing ? 'bg-slate-400' : isPlayerTurn ? 'bg-emerald-400 animate-ping' : 'bg-amber-500'
-              }`}
-            />
-            <span className="font-pixel text-[7.5px] sm:text-[9px] text-amber-300 font-bold uppercase">
-              {isDealing
-                ? 'Si distribuiscono le carte...'
-                : isPlayerTurn
-                  ? 'Tocca una carta per giocare'
-                  : 'L\'avversario sta giocando...'}
-            </span>
+          {/* One line, one job: what happens if you commit. When the opponent has
+              already led the outcome is known, so it replaces the generic prompt. */}
+          <div className="mb-0.5 flex items-center justify-center gap-1.5 leading-none min-h-[16px]">
+            {followPreview ? (
+              <motion.div
+                key={`${followPreview.wins}-${followPreview.points}-${followPreview.baseMult}`}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className={`px-2 py-0.5 rounded-md border-2 flex items-center gap-1.5 font-pixel text-[8px] sm:text-[9.5px] font-bold ${
+                  followPreview.wins
+                    ? 'bg-emerald-950/95 border-emerald-500 text-emerald-200'
+                    : 'bg-red-950/95 border-red-500/80 text-red-200'
+                }`}
+              >
+                <span>{followPreview.wins ? '✔ PRENDI' : '✘ PERDI'}</span>
+                <span className="text-slate-300">{followPreview.points} pt</span>
+                {followPreview.wins && followPreview.baseMult > 1 && (
+                  <span className="text-red-300">MULT ×{followPreview.baseMult}</span>
+                )}
+              </motion.div>
+            ) : (
+              <>
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    isDealing ? 'bg-slate-400' : isPlayerTurn ? 'bg-emerald-400 animate-ping' : 'bg-amber-500'
+                  }`}
+                />
+                <span className="font-pixel text-[7.5px] sm:text-[9px] text-amber-300 font-bold uppercase">
+                  {isDealing
+                    ? 'Si distribuiscono le carte...'
+                    : isPlayerTurn
+                      ? 'Tocca una carta per giocare'
+                      : 'L\'avversario sta giocando...'}
+                </span>
+              </>
+            )}
           </div>
 
           {/* The Player Hand Cards with Fan Spread and Gentle Floating Idle */}

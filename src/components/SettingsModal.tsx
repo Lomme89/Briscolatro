@@ -411,6 +411,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
             <div className="flex items-center justify-between">
               <div>
+                <div className="font-pixel text-[10px] sm:text-[11px] text-slate-300">Partita Rapida</div>
+                <div className="text-[10px] text-slate-400 font-retro">Dimezza le pause tra una presa e l'altra</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => onUpdateSettings({ fastMode: !settings.fastMode })}
+                className={`font-pixel text-[9px] sm:text-[10px] px-3 py-1.5 rounded-lg pixel-box font-bold cursor-pointer transition-colors min-h-[34px] ${
+                  settings.fastMode ? 'bg-amber-500 hover:bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400'
+                }`}
+              >
+                {settings.fastMode ? 'ON' : 'OFF'}
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
                 <div className="font-pixel text-[10px] sm:text-[11px] text-slate-300">Scuotimento Schermo (Shake)</div>
                 <div className="text-[10px] text-slate-400 font-retro">Feedback cinetico su carichi e prese forti</div>
               </div>

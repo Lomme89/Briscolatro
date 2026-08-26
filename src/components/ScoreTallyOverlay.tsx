@@ -11,6 +11,8 @@ interface ScoreTallyProps {
   playerWon: boolean;
   /** Why the base Mult is what it is, e.g. "1 Carico +1", "Briscola +1". */
   multReasons?: string[];
+  /** Halves the count-up: the tally is played 20 times a round. */
+  fastMode?: boolean;
   onComplete: () => void;
   targetScore: number;
   currentTotalScore: number;
@@ -23,6 +25,7 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
   trickPoints,
   playerWon,
   multReasons = [],
+  fastMode = false,
   onComplete,
   targetScore,
   currentTotalScore,
@@ -31,6 +34,8 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
   const [displayMult, setDisplayMult] = useState(1);
   const [displayTotal, setDisplayTotal] = useState(0);
   const [phase, setPhase] = useState<'chips' | 'mult' | 'impact' | 'done'>('chips');
+
+  const pace = (ms: number) => (fastMode ? Math.round(ms * 0.45) : ms);
 
   const onCompleteRef = React.useRef(onComplete);
   onCompleteRef.current = onComplete;
@@ -48,7 +53,7 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
       sound.playTrickLose();
       const timer = setTimeout(() => {
         triggerCompletion();
-      }, 900);
+      }, pace(900));
       return () => clearTimeout(timer);
     }
 
@@ -64,7 +69,7 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
         clearInterval(chipsInterval);
         setPhase('mult');
       }
-    }, 45);
+    }, pace(45));
 
     return () => clearInterval(chipsInterval);
   }, [chips, playerWon, triggerCompletion]);
@@ -83,7 +88,7 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
         clearInterval(multInterval);
         setPhase('impact');
       }
-    }, 55);
+    }, pace(55));
 
     return () => clearInterval(multInterval);
   }, [phase, mult]);
@@ -107,7 +112,7 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
     const timer = setTimeout(() => {
       setPhase('done');
       triggerCompletion();
-    }, 700);
+    }, pace(700));
 
     return () => clearTimeout(timer);
   }, [phase, finalScore, currentTotalScore, targetScore, triggerCompletion]);

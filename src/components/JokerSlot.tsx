@@ -27,7 +27,12 @@ export const JokerSlot: React.FC<JokerSlotProps> = ({
   canAfford = true,
   size = 'md',
 }) => {
+  // Hover is a desktop luxury: on a phone the only way in is a tap, so the card
+  // toggles its own details. Without this you cannot read what your jokers do
+  // during a match, nor reach the sell button.
   const [showTooltip, setShowTooltip] = useState(false);
+  const [pinned, setPinned] = useState(false);
+  const isOpen = showTooltip || pinned;
 
   const isSmall = size === 'sm';
   const sizeClasses = isSmall 
@@ -76,7 +81,10 @@ export const JokerSlot: React.FC<JokerSlotProps> = ({
             : {}
         }
         transition={{ duration: 0.4 }}
-        onClick={onClick}
+        onClick={() => {
+          if (onClick) onClick();
+          else setPinned((prev) => !prev);
+        }}
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
         className={`
@@ -128,9 +136,12 @@ export const JokerSlot: React.FC<JokerSlotProps> = ({
         <button
           onClick={(e) => {
             e.stopPropagation();
+            setPinned(false);
             onSell();
           }}
-          className="opacity-0 group-hover:opacity-100 transition-opacity absolute -bottom-2.5 left-1/2 -translate-x-1/2 bg-red-600 hover:bg-red-500 text-white font-pixel text-[7px] px-2 py-0.5 rounded shadow pixel-box whitespace-nowrap z-30 cursor-pointer"
+          className={`transition-opacity absolute -bottom-2.5 left-1/2 -translate-x-1/2 bg-red-600 hover:bg-red-500 text-white font-pixel text-[7px] px-2 py-0.5 rounded shadow pixel-box whitespace-nowrap z-30 cursor-pointer ${
+            isOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+          }`}
         >
           VENDI +${joker.sellValue}
         </button>
@@ -156,12 +167,12 @@ export const JokerSlot: React.FC<JokerSlotProps> = ({
 
       {/* Tooltip Overlay */}
       <AnimatePresence>
-        {showTooltip && (
+        {isOpen && (
           <motion.div
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 5, scale: 0.95 }}
-            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2.5 bg-slate-900 border-2 border-amber-500 text-white rounded-lg pixel-box shadow-2xl z-50 pointer-events-none"
+            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2.5 bg-slate-900 border-2 border-amber-500 text-white rounded-lg pixel-box shadow-2xl z-50"
           >
             <div className="flex items-center justify-between border-b border-slate-700 pb-1 mb-1.5">
               <span className="font-pixel text-[9px] text-amber-400 font-bold">{joker.name}</span>
@@ -172,6 +183,20 @@ export const JokerSlot: React.FC<JokerSlotProps> = ({
             <p className="text-[10px] text-slate-200 leading-relaxed font-retro mb-2">
               {joker.description}
             </p>
+            {(joker.stats?.accumulatedMult || joker.stats?.accumulatedChips) && !isShopItem ? (
+              <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+                {joker.stats?.accumulatedMult ? (
+                  <span className="bg-red-950 border border-red-500/70 text-red-200 font-pixel text-[8px] px-1.5 py-0.5 rounded">
+                    +{joker.stats.accumulatedMult} Mult accumulati
+                  </span>
+                ) : null}
+                {joker.stats?.accumulatedChips ? (
+                  <span className="bg-blue-950 border border-blue-500/70 text-blue-200 font-pixel text-[8px] px-1.5 py-0.5 rounded">
+                    +{joker.stats.accumulatedChips} Chips accumulati
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
             <div className="flex items-center justify-between text-[8px] font-pixel text-slate-400 pt-1 border-t border-slate-800">
               <span>{joker.italianTitle}</span>
               {!isShopItem && <span className="text-amber-300">Vendi: ${joker.sellValue}</span>}

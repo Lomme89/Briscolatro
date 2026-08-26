@@ -158,8 +158,10 @@ export const PixelCard: React.FC<PixelCardProps> = ({
               </span>
             ))}
           </div>
+          {/* No "BRISCOLA" on the back: next to the real trump indicator it reads
+              as if every face-down card were a Briscola. */}
           <span className={`${styleDef.cardBackText} font-pixel text-[6px] sm:text-[7.5px] font-bold tracking-tight leading-none truncate max-w-full`}>
-            {activeStyleId === 'neo_noir' ? 'NOIR' : activeStyleId === 'neon_cyber' ? 'CYBER' : 'BRISCOLA'}
+            {activeStyleId === 'neo_noir' ? 'NOIR' : activeStyleId === 'neon_cyber' ? 'CYBER' : '★'}
           </span>
         </div>
       </motion.div>
