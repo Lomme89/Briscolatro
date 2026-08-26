@@ -27,6 +27,7 @@ import {
   RoundStateSnapshot,
 } from './game/gameState';
 import { resolveTrick } from './game/briscola';
+import { chooseOpponentFollow, chooseOpponentLead } from './game/ai';
 import { BOSS_RULES } from './game/bossRules';
 import { JOKER_EFFECTS } from './game/jokerEffects';
 import { calculateTrickScore, TrickScoreCalculation } from './game/scoring';
@@ -179,6 +180,8 @@ export function App() {
   const [playerTrickCard, setPlayerTrickCard] = useState<PlayingCard | null>(null);
   const [opponentTrickCard, setOpponentTrickCard] = useState<PlayingCard | null>(null);
   const [isPlayerTurn, setIsPlayerTurn] = useState<boolean>(true);
+  // Who opened the trick on the table: the lead suit decides who wins it.
+  const [trickLeadIsPlayer, setTrickLeadIsPlayer] = useState<boolean>(true);
   const [roundPointsTaken, setRoundPointsTaken] = useState<number>(0);
   const [opponentPointsTaken, setOpponentPointsTaken] = useState<number>(0);
   const [roundTricksWon, setRoundTricksWon] = useState<number>(0);
@@ -350,6 +353,7 @@ export function App() {
 
     setDisabledJokerIndex(BOSS_RULES.getDisabledJokerIndex(bossToSet, activeJokers.length));
     setIsPlayerTurn(true);
+    setTrickLeadIsPlayer(true);
     setTrickPhase('idle');
   };
 
@@ -409,25 +413,24 @@ export function App() {
     const currentHand = overrideHand || opponentHandRef.current;
     const currentSuit = overrideSuit || briscolaSuitRef.current;
 
-    if (currentHand.length === 0) {
-      // If opponent hand is empty, ensure player turn is restored
+    const chosenCard = chooseOpponentLead(currentHand, {
+      briscolaSuit: currentSuit,
+      bossDebuff: getActiveBossDebuff(),
+      isReverse: isReverseActiveRef.current,
+    });
+
+    if (!chosenCard) {
+      // No cards left to lead with: hand the table back to the player.
       setIsPlayerTurn(true);
       setTrickPhase('idle');
       return;
     }
 
-    // AI selects a smart lead card (prefers low point liscia of non-briscola)
-    let leadCandidates = currentHand.filter((c) => c.suit !== currentSuit);
-    if (leadCandidates.length === 0) leadCandidates = currentHand;
-
-    // Sort by lowest points then lowest power
-    leadCandidates.sort((a, b) => a.points - b.points || a.power - b.power);
-    const chosenCard = leadCandidates[0];
-
     const nextHand = currentHand.filter((c) => c.id !== chosenCard.id);
     opponentHandRef.current = nextHand;
     setOpponentHand(nextHand);
     setOpponentTrickCard(chosenCard);
+    setTrickLeadIsPlayer(false);
     sound.playCardSlam();
 
     setIsPlayerTurn(true);
@@ -437,59 +440,26 @@ export function App() {
   // --- Opponent Follow AI ---
   const triggerOpponentFollow = (playerCardPlayed: PlayingCard, overrideHand?: PlayingCard[]) => {
     const currentHand = overrideHand || opponentHandRef.current;
-    const currentSuit = briscolaSuitRef.current;
 
-    if (currentHand.length === 0) {
-      // Fallback: resolve clash immediately if opponent has no cards
-      resolveCurrentClash(playerCardPlayed, playerCardPlayed, true);
+    // Same resolver as the engine, so boss/wild/reverse modifiers can never make
+    // the AI's idea of the winner disagree with the actual clash.
+    const chosenCard = chooseOpponentFollow(currentHand, playerCardPlayed, {
+      briscolaSuit: briscolaSuitRef.current,
+      bossDebuff: getActiveBossDebuff(),
+      isReverse: isReverseActiveRef.current,
+    });
+
+    if (!chosenCard) {
+      // The opponent cannot answer: take the card back rather than inventing one
+      // for it (the old fallback resolved the trick against a copy of the
+      // player's own card).
+      const restoredHand = [...playerHandRef.current, playerCardPlayed];
+      playerHandRef.current = restoredHand;
+      setPlayerHand(restoredHand);
+      setPlayerTrickCard(null);
+      setIsPlayerTurn(true);
+      setTrickPhase('idle');
       return;
-    }
-
-    // Smart Briscola follow logic
-    const isPlayerBriscola = playerCardPlayed.suit === currentSuit;
-    let chosenCard: PlayingCard;
-
-    const sameSuitCards = currentHand.filter((c) => c.suit === playerCardPlayed.suit);
-    const briscolaCards = currentHand.filter((c) => c.suit === currentSuit);
-    const winningSameSuit = sameSuitCards.filter((c) => c.power > playerCardPlayed.power);
-
-    if (!isPlayerBriscola) {
-      if (winningSameSuit.length > 0) {
-        // Take with cheapest winning same-suit card
-        winningSameSuit.sort((a, b) => a.power - b.power);
-        chosenCard = winningSameSuit[0];
-      } else if (playerCardPlayed.points >= 10 && briscolaCards.length > 0) {
-        // High carico from player: cut with lowest briscola!
-        briscolaCards.sort((a, b) => a.power - b.power);
-        chosenCard = briscolaCards[0];
-      } else {
-        // Throw lowest liscia of different suit
-        const throwaways = currentHand.filter((c) => c.suit !== currentSuit);
-        if (throwaways.length > 0) {
-          throwaways.sort((a, b) => a.points - b.points || a.power - b.power);
-          chosenCard = throwaways[0];
-        } else {
-          const sorted = [...currentHand].sort((a, b) => a.power - b.power);
-          chosenCard = sorted[0];
-        }
-      }
-    } else {
-      // Player led with Briscola
-      const winningBriscola = briscolaCards.filter((c) => c.power > playerCardPlayed.power);
-      if (winningBriscola.length > 0) {
-        winningBriscola.sort((a, b) => a.power - b.power);
-        chosenCard = winningBriscola[0];
-      } else {
-        // Throw lowest non-briscola
-        const nonBriscola = currentHand.filter((c) => c.suit !== currentSuit);
-        if (nonBriscola.length > 0) {
-          nonBriscola.sort((a, b) => a.points - b.points || a.power - b.power);
-          chosenCard = nonBriscola[0];
-        } else {
-          const sorted = [...currentHand].sort((a, b) => a.power - b.power);
-          chosenCard = sorted[0];
-        }
-      }
     }
 
     const nextHand = currentHand.filter((c) => c.id !== chosenCard.id);
@@ -864,6 +834,7 @@ export function App() {
 
     if (opponentTrickCard === null) {
       // Player led first
+      setTrickLeadIsPlayer(true);
       setIsPlayerTurn(false);
       setTrickPhase('resolving');
 
@@ -1167,6 +1138,7 @@ export function App() {
             playerTrickCard={playerTrickCard}
             opponentTrickCard={opponentTrickCard}
             isPlayerTurn={isPlayerTurn && trickPhase !== 'resolving' && trickPhase !== 'tally'}
+            trickLeadIsPlayer={trickLeadIsPlayer}
             activeJokers={activeJokers}
             consumables={consumables}
             maxJokers={maxJokers}

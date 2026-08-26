@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Joker, UnoCard, BoosterPack, Voucher, PlayingCard } from '../types/game';
 import { ALL_BOOSTER_PACKS, ALL_VOUCHERS, ALL_UNO_CARDS } from '../data/unoCards';
 import { getRandomJokers } from '../data/jokers';
-import { createStandardDeck } from '../data/cards';
+import { createStandardDeck } from '../game/briscola';
 import { JokerSlot } from './JokerSlot';
 import { UnoCardSlot } from './UnoCardSlot';
 import { PixelCard } from './PixelCard';

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { CardStyle, PlayingCard } from '../types/game';
-import { RANK_INFO } from '../data/cards';
+import { RANK_INFO } from '../game/briscola';
 import { PixelSuitIcon } from './PixelSuitIcon';
 import { NeapolitanCardIllustration } from './NeapolitanCardIllustration';
 import { PixelCardSprite, useSpritesheet } from './PixelCardSprite';

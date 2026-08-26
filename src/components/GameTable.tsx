@@ -5,7 +5,7 @@ import { PixelCard } from './PixelCard';
 import { PixelSuitIcon } from './PixelSuitIcon';
 import { PixelAvatar, OpponentEmotion } from './PixelAvatar';
 import { CaricoParticles } from './CaricoParticles';
-import { resolveTrick } from '../data/cards';
+import { resolveTrick } from '../game/briscola';
 import { JokerSlot } from './JokerSlot';
 import { UnoCardSlot } from './UnoCardSlot';
 import { sound } from '../services/soundEngine';
@@ -28,6 +28,8 @@ interface GameTableProps {
   playerTrickCard: PlayingCard | null;
   opponentTrickCard: PlayingCard | null;
   isPlayerTurn: boolean;
+  /** True when the player opened the trick currently on the table. */
+  trickLeadIsPlayer: boolean;
   activeJokers: Joker[];
   consumables: UnoCard[];
   maxJokers: number;
@@ -63,6 +65,7 @@ export const GameTable: React.FC<GameTableProps> = ({
   playerTrickCard,
   opponentTrickCard,
   isPlayerTurn,
+  trickLeadIsPlayer,
   activeJokers,
   consumables,
   maxJokers,
@@ -144,12 +147,14 @@ export const GameTable: React.FC<GameTableProps> = ({
   let opponentEmotion: OpponentEmotion = 'idle';
   let playerWonTrick = false;
   if (opponentTrickCard && playerTrickCard) {
+    // The lead card decides the trick, so the real leader has to be passed in:
+    // assuming the player always opened flipped the outcome on opponent leads.
     const res = resolveTrick(
-      playerTrickCard,
-      opponentTrickCard,
+      trickLeadIsPlayer ? playerTrickCard : opponentTrickCard,
+      trickLeadIsPlayer ? opponentTrickCard : playerTrickCard,
       briscolaSuit,
-      true,
-      currentBoss?.debuffType
+      trickLeadIsPlayer,
+      bossDebuffNeutralized ? undefined : currentBoss?.debuffType
     );
     playerWonTrick = res.playerWon;
 
