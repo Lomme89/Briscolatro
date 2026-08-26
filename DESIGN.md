@@ -86,10 +86,12 @@ per la stessa ragione le carte comprate ne *sostituiscono* una invece di aggiung
 `ANTE_BASE_TARGETS = [300, 900, 4000, 11000, 28000, 70000, 150000, 300000]`,
 moltiplicata ×1 / ×1.5 / ×2 per Piccolo / Grande / Boss.
 
-I rapporti tra ante calano (3.0x all'inizio, 1.7x alla fine) perché anche la crescita
-del giocatore rallenta quando gli slot jolly si riempiono: un moltiplicatore costante
-banalizzerebbe il centro partita o murerebbe il finale. È la stessa forma di Balatro
-(300 → 800 → 2800 → … → 50000, rapporti decrescenti).
+Il salto tra un ante e il successivo è più largo dove la run fa il suo scatto di
+potenza (x4.4 entrando nell'ante 3, quando il negozio ha finalmente armato una build)
+e si stringe a x2.0 alla fine, perché anche la crescita del giocatore rallenta quando
+gli slot jolly si riempiono: un moltiplicatore costante banalizzerebbe il centro
+partita o murerebbe il finale. È la stessa forma di Balatro (300 → 800 → 2800 → … →
+50000, rapporti decrescenti).
 
 L'ante 1 resta 300, il numero di sempre: è l'unico blind battibile senza un solo jolly.
 

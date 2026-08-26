@@ -45,8 +45,9 @@ export interface RoundOutcomeResult {
  *
  * These numbers are measured, not guessed: `src/game/__sim__` plays whole runs
  * with the real engine, AI and scoring, and each ante is set to roughly a third
- * to a half of what a reference build scores there. The ratio between antes
- * shrinks as the run goes on (3.0x early, 1.7x at the end) because the player's
+ * to a half of what a reference build scores there. The step between antes is
+ * widest where the run's power spikes (x4.4 into ante 3, when the shop has
+ * finally armed a build) and narrows to x2.0 at the end, because the player's
  * own scaling decelerates once the joker slots are full - a constant multiplier
  * would either trivialise the mid-game or wall the end of the run.
  *
