@@ -199,6 +199,7 @@ export function App() {
   const [disabledJokerIndex, setDisabledJokerIndex] = useState<number | null>(null);
   const [activeUnoMultiplier, setActiveUnoMultiplier] = useState<number>(1.0);
   const [isReverseActive, setIsReverseActive] = useState<boolean>(false);
+  const [bossDebuffNeutralized, setBossDebuffNeutralized] = useState<boolean>(false);
   const [tricksPlayedInRound, setTricksPlayedInRound] = useState<number>(0);
   const [consecutiveWinStreak, setConsecutiveWinStreak] = useState<number>(0);
   const [capturedDenariRanksThisRound, setCapturedDenariRanksThisRound] = useState<Set<number>>(
@@ -246,6 +247,17 @@ export function App() {
   activeBossRef.current = activeBoss;
   const isReverseActiveRef = useRef<boolean>(isReverseActive);
   isReverseActiveRef.current = isReverseActive;
+  const bossDebuffNeutralizedRef = useRef<boolean>(bossDebuffNeutralized);
+  bossDebuffNeutralizedRef.current = bossDebuffNeutralized;
+  // Set by "Salto Turno": the next trick is awarded to the player whatever falls.
+  const forcedTrickWinRef = useRef<boolean>(false);
+
+  /** Boss whose rules are in force, or null while the Scudo Protettivo is up. */
+  const getEnforcedBoss = (): BossBlind | null =>
+    bossDebuffNeutralizedRef.current ? null : activeBossRef.current;
+
+  /** Boss debuff currently in force, or undefined while the shield is up. */
+  const getActiveBossDebuff = (): string | undefined => getEnforcedBoss()?.debuffType;
 
   useEffect(() => {
     return () => {
@@ -280,6 +292,9 @@ export function App() {
     setActiveUnoMultiplier(1.0);
     setIsReverseActive(false);
     isReverseActiveRef.current = false;
+    setBossDebuffNeutralized(false);
+    bossDebuffNeutralizedRef.current = false;
+    forcedTrickWinRef.current = false;
     setTallyData(null);
 
     // Calculate Target Score for this round
@@ -497,31 +512,42 @@ export function App() {
   ) => {
     setTrickPhase('resolving');
 
-    const clash = resolveTrick(
+    // Refs, not state: this runs from a delayed callback, and the boss that
+    // rotates the Briscola changes these values between the play and the clash.
+    const bossDebuff = getActiveBossDebuff();
+    const scoringBoss = getEnforcedBoss();
+
+    const rawClash = resolveTrick(
       leadIsPlayer ? playerCard : oppCard,
       leadIsPlayer ? oppCard : playerCard,
-      briscolaSuit,
+      briscolaSuitRef.current,
       leadIsPlayer,
-      activeBoss?.debuffType,
-      isReverseActive
+      bossDebuff,
+      isReverseActiveRef.current
     );
+
+    // Salto Turno hands the trick to the player regardless of the cards.
+    const forcedWin = forcedTrickWinRef.current;
+    forcedTrickWinRef.current = false;
+    const clash = forcedWin ? { ...rawClash, playerWon: true } : rawClash;
 
     if (clash.playerWon) {
       sound.playTrickWin();
       triggerScreenShake();
 
       // Calculate score with Jokers and Boss debuffs
-      const remainingTricks = Math.floor(drawPile.length / 2) + playerHand.length;
+      const remainingTricks =
+        Math.floor(drawPileRef.current.length / 2) + playerHandRef.current.length;
       const scoreResult = calculateTrickScore(
         playerCard,
         oppCard,
         clash,
-        briscolaSuit,
+        briscolaSuitRef.current,
         activeJokers,
-        activeBoss,
+        scoringBoss,
         {
           money,
-          playerHand,
+          playerHand: playerHandRef.current,
           tricksWonThisRound: roundTricksWon,
           consecutiveWinStreak,
           totalTricksPlayedThisRound: tricksPlayedInRound,
@@ -666,7 +692,7 @@ export function App() {
 
     let nextBriscolaSuit = briscolaSuitRef.current;
     // Check boss rotating briscola
-    if (BOSS_RULES.shouldRotateBriscola(newTricksPlayed, activeBossRef.current)) {
+    if (BOSS_RULES.shouldRotateBriscola(newTricksPlayed, getEnforcedBoss())) {
       nextBriscolaSuit = BOSS_RULES.getRotatedBriscolaSuit(nextBriscolaSuit);
       briscolaSuitRef.current = nextBriscolaSuit;
       setBriscolaSuit(nextBriscolaSuit);
@@ -683,7 +709,7 @@ export function App() {
     isReverseActiveRef.current = false;
 
     // Pick new disabled joker if debuff active
-    setDisabledJokerIndex(BOSS_RULES.getDisabledJokerIndex(activeBossRef.current, activeJokers.length));
+    setDisabledJokerIndex(BOSS_RULES.getDisabledJokerIndex(getEnforcedBoss(), activeJokers.length));
 
     // 3. Check if Round Finished
     const roundEnded = isRoundFinished(newPlayerHand, newOpponentHand, newDrawPile, newTrumpCard);
@@ -821,7 +847,7 @@ export function App() {
 
     // Check Boss lead restriction (e.g. Alchimista Oscuro)
     if (opponentTrickCard === null) {
-      const bossCheck = BOSS_RULES.canPlayerLeadCard(card, activeBossRef.current);
+      const bossCheck = BOSS_RULES.canPlayerLeadCard(card, getEnforcedBoss());
       if (!bossCheck.allowed) {
         sound.playTrickLose();
         setOpponentSpeech(bossCheck.reason || 'Mossa non consentita!');
@@ -878,6 +904,17 @@ export function App() {
 
   // --- Use UNO Action Card ---
   const handleUseUnoCard = (unoCard: UnoCard, targetCard?: PlayingCard) => {
+    // UNO cards mutate hands and the stock, so they are only legal while the
+    // player is actually on turn: firing one mid-resolution races the timers
+    // that are already resolving the trick.
+    const canUseNow =
+      (trickPhase === 'idle' || trickPhase === 'waiting_player_follow') && isPlayerTurn;
+    if (!canUseNow) {
+      sound.playTrickLose();
+      setOpponentSpeech('Aspetta il tuo turno per giocare una carta UNO!');
+      return;
+    }
+
     sound.playBoosterRip();
 
     const ctx = {
@@ -916,6 +953,17 @@ export function App() {
     setActiveUnoMultiplier(res.newActiveUnoMultiplier);
     setIsReverseActive(res.newIsReverseActive);
     setOpponentSpeech(res.feedbackMessage);
+
+    // Scudo Protettivo: suspend the boss debuff for the rest of the round.
+    if (activeBossRef.current && !res.newBossDebuffActive) {
+      setBossDebuffNeutralized(true);
+      bossDebuffNeutralizedRef.current = true;
+    }
+
+    // Salto Turno: the current trick goes to the player no matter what falls.
+    if (res.forceWinCurrentTrick) {
+      forcedTrickWinRef.current = true;
+    }
 
     // Apply permanent upgrade to runDeck if applicable
     if (res.cardUpgradedInRunDeck) {
@@ -1124,6 +1172,7 @@ export function App() {
             maxJokers={maxJokers}
             maxConsumables={maxConsumables}
             currentBoss={activeBoss}
+            bossDebuffNeutralized={bossDebuffNeutralized}
             opponentSpeech={opponentSpeech}
             onPlayCard={handlePlayCard}
             onDiscardCard={handleDiscardCard}

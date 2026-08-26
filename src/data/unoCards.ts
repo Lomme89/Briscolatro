@@ -55,7 +55,7 @@ export const ALL_UNO_CARDS: UnoCard[] = [
     symbol: '🚫',
     unoColor: 'red',
     badgeText: 'SKIP',
-    description: 'L\'avversario salta la giocata: vinci automaticamente la presa attuale sul tavolo!',
+    description: 'La prossima presa è tua, qualunque carta cada sul tavolo, e vale +80 Chips!',
     cost: 4,
     icon: '🚫',
     color: '#ef4444',

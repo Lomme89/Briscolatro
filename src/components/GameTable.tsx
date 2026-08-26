@@ -33,6 +33,7 @@ interface GameTableProps {
   maxJokers: number;
   maxConsumables: number;
   currentBoss: BossBlind | null;
+  bossDebuffNeutralized: boolean;
   opponentSpeech: string;
   onPlayCard: (card: PlayingCard) => void;
   onDiscardCard: (card: PlayingCard) => void;
@@ -67,6 +68,7 @@ export const GameTable: React.FC<GameTableProps> = ({
   maxJokers,
   maxConsumables,
   currentBoss,
+  bossDebuffNeutralized,
   opponentSpeech,
   onPlayCard,
   onDiscardCard,
@@ -439,10 +441,19 @@ export const GameTable: React.FC<GameTableProps> = ({
                 💀
               </div>
               <div className="flex-1 min-w-0 text-left">
-                <div className="font-pixel text-[8px] sm:text-[9.5px] text-red-300 font-bold uppercase tracking-wide">
-                  MALUS DEL BOSS • {currentBoss.name}
+                <div className="font-pixel text-[8px] sm:text-[9.5px] text-red-300 font-bold uppercase tracking-wide flex items-center gap-1.5 flex-wrap">
+                  <span>MALUS DEL BOSS • {currentBoss.name}</span>
+                  {bossDebuffNeutralized && (
+                    <span className="bg-emerald-600 border border-emerald-300 text-white px-1 py-0.5 rounded text-[6.5px] sm:text-[7.5px]">
+                      🛡️ ANNULLATO
+                    </span>
+                  )}
                 </div>
-                <div className="font-retro text-[11px] sm:text-xs text-red-100 font-medium leading-tight mt-0.5">
+                <div
+                  className={`font-retro text-[11px] sm:text-xs font-medium leading-tight mt-0.5 ${
+                    bossDebuffNeutralized ? 'text-red-300/60 line-through' : 'text-red-100'
+                  }`}
+                >
                   {currentBoss.debuffDescription}
                 </div>
               </div>
