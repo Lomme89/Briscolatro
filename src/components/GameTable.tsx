@@ -190,9 +190,9 @@ export const GameTable: React.FC<GameTableProps> = ({
   );
 
   return (
-    <div className="flex-1 flex flex-col justify-between p-1.5 sm:p-3 max-w-6xl mx-auto w-full relative h-[100dvh] sm:h-auto select-none overflow-hidden sm:overflow-visible">
+    <div className="flex-1 flex flex-col justify-between p-1.5 sm:p-3 max-w-6xl mx-auto w-full relative min-h-[100dvh] sm:min-h-0 select-none overflow-x-hidden">
       {/* 1. TOP MINIMALIST HEADER */}
-      <div className="bg-slate-900/95 border-2 border-slate-700/80 px-2 sm:px-3 py-1.5 rounded-xl pixel-box shadow-lg shrink-0 z-30">
+      <div className="bg-slate-900/95 border-2 border-slate-700/80 px-2 sm:px-3 py-1.5 rounded-xl pixel-box shadow-lg shrink-0 z-30 relative">
         <div className="flex items-center justify-between gap-2">
           {/* Left: Ante/Round & Target Score */}
           <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
@@ -298,9 +298,11 @@ export const GameTable: React.FC<GameTableProps> = ({
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="overflow-hidden pt-2 mt-1.5 border-t border-slate-800"
+              /* Floats over the felt instead of pushing the table down: on a
+                 phone the extra height used to shove the hand off-screen. */
+              className="overflow-hidden absolute left-0 right-0 top-full mt-1 z-40 bg-slate-950/97 border-2 border-slate-700/80 rounded-xl px-2 shadow-2xl backdrop-blur-sm"
             >
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 overflow-x-auto pb-1 custom-scrollbar">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 overflow-x-auto py-2 custom-scrollbar">
                 {/* Jokers */}
                 <div className="flex items-center gap-1.5 shrink-0">
                   <span className="text-[7.5px] sm:text-[8.5px] font-pixel text-slate-400 shrink-0">
@@ -488,7 +490,7 @@ export const GameTable: React.FC<GameTableProps> = ({
             onClick={onOpenDeckViewer}
             title="Ispettore Mazzo (Tocca per vedere)"
           >
-            <div className="relative flex items-center justify-center min-w-[54px] sm:min-w-[62px]">
+            <div className="relative flex items-center justify-center min-w-[70px] sm:min-w-[80px]">
               {/* Deck top face-down card (in background) */}
               {deckCount > 0 ? (
                 <div className="relative z-10 mr-1">
@@ -509,10 +511,11 @@ export const GameTable: React.FC<GameTableProps> = ({
 
               {/* Briscola card face-up IN FRONT (foreground z-20) */}
               {trumpCard && (
-                <div className="relative -ml-5 sm:-ml-6 z-20 transform rotate-6 group-hover:rotate-0 transition-transform duration-200 shadow-xl drop-shadow-[0_4px_8px_rgba(0,0,0,0.6)]">
+                <div className="relative -ml-3 sm:-ml-4 z-20 transform rotate-6 group-hover:rotate-0 transition-transform duration-200 shadow-xl drop-shadow-[0_4px_8px_rgba(0,0,0,0.6)]">
                   <PixelCard
                     card={trumpCard}
                     isBriscola={true}
+                    showBriscolaBadge={false}
                     size="xs"
                     showPoints={true}
                   />
@@ -675,10 +678,14 @@ export const GameTable: React.FC<GameTableProps> = ({
 
           {/* The Player Hand Cards with Fan Spread and Gentle Floating Idle */}
           <div className="relative flex items-center justify-center my-1.5 w-full max-w-md sm:max-w-lg px-2 min-h-[148px] sm:min-h-[175px] md:min-h-[195px]">
+            {/* Cards overlap instead of spilling past the felt when an effect
+                leaves the player holding more than the usual three. */}
             <AnimatePresence mode="popLayout">
               {playerHand.map((card, i) => {
                 const isSelected = selectedCardId === card.id;
                 const total = playerHand.length;
+                const handSpacing =
+                  total > 4 ? '-mx-4 sm:-mx-2' : total > 3 ? '-mx-1 sm:mx-1' : 'mx-1 sm:mx-2';
                 const middle = (total - 1) / 2;
                 const offset = i - middle; // -1, 0, +1 for 3 cards
                 const fanRotate = offset * 4.5; // gentle fan angle
@@ -716,8 +723,16 @@ export const GameTable: React.FC<GameTableProps> = ({
                       zIndex: 35,
                       transition: { duration: 0.15 },
                     }}
-                    exit={{ y: -50, opacity: 0, scale: 0.5 }}
-                    className="flex flex-col items-center shrink-0 mx-1 sm:mx-2"
+                    exit={{
+                      y: -50,
+                      opacity: 0,
+                      scale: 0.5,
+                      // Explicit, finite exit: inheriting the infinite float
+                      // transition below leaves played cards in the DOM forever,
+                      // still taking layout space and pushing the hand off-centre.
+                      transition: { duration: 0.2, ease: 'easeIn' },
+                    }}
+                    className={`flex flex-col items-center shrink-0 ${handSpacing}`}
                   >
                     <PixelCard
                       card={card}

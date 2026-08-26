@@ -16,6 +16,8 @@ interface PixelCardProps {
   faceDown?: boolean;
   size?: 'xs' | 'sm' | 'md' | 'lg';
   isBriscola?: boolean;
+  /** The floating "BRISCOLA" ribbon overflows the card; hide it in tight spots. */
+  showBriscolaBadge?: boolean;
   showPoints?: boolean;
   className?: string;
   animateDeal?: boolean;
@@ -32,6 +34,7 @@ export const PixelCard: React.FC<PixelCardProps> = ({
   faceDown = false,
   size = 'md',
   isBriscola = false,
+  showBriscolaBadge = true,
   showPoints = true,
   className = '',
   animateDeal = false,
@@ -189,7 +192,7 @@ export const PixelCard: React.FC<PixelCardProps> = ({
       )}
 
       {/* Briscola Badge Header */}
-      {isBriscola && (
+      {isBriscola && showBriscolaBadge && (
         <div className={`absolute -top-2.5 left-1/2 -translate-x-1/2 font-pixel text-[6.5px] sm:text-[7.5px] px-1.5 py-0.5 rounded shadow pixel-box z-20 whitespace-nowrap ${styleDef.briscolaBadgeClass}`}>
           ★ BRISCOLA ★
         </div>
