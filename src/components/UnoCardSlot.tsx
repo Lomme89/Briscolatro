@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { UnoCard } from '../types/game';
 import { sound } from '../services/soundEngine';
+import { CardFaceArt, getUnoArtUrl } from './CardFaceArt';
 
 interface UnoCardSlotProps {
   unoCard: UnoCard | null;
@@ -101,6 +102,10 @@ export const UnoCardSlot: React.FC<UnoCardSlotProps> = ({
 
   const theme = getThemeStyles();
 
+  // The illustrated faces are already whole UNO cards - fondo, ovale e simbolo -
+  // so when one exists it replaces the drawn emblem instead of sitting inside it.
+  const artUrl = getUnoArtUrl(unoCard.id);
+
   return (
     <div className="relative group shrink-0" id={`uno-card-${unoCard.id}`}>
       <motion.div
@@ -121,8 +126,18 @@ export const UnoCardSlot: React.FC<UnoCardSlotProps> = ({
           isSelected ? 'ring-4 ring-yellow-300 animate-pulse' : ''
         }`}
       >
+        {/* Illustrated face */}
+        {artUrl && (
+          <>
+            <div className="absolute inset-0 pointer-events-none">
+              <CardFaceArt src={artUrl} alt={unoCard.name} />
+            </div>
+            <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-black/55 via-transparent to-black/70" />
+          </>
+        )}
+
         {/* Wild card quad color corners decorative indicator */}
-        {unoCard.unoColor === 'wild' && (
+        {!artUrl && unoCard.unoColor === 'wild' && (
           <div className="absolute inset-0 pointer-events-none opacity-40">
             <div className="absolute -top-6 -left-6 w-12 h-12 rounded-full bg-red-500 blur-xs" />
             <div className="absolute -top-6 -right-6 w-12 h-12 rounded-full bg-blue-500 blur-xs" />
@@ -136,11 +151,11 @@ export const UnoCardSlot: React.FC<UnoCardSlotProps> = ({
           <span className="font-pixel text-[7px] sm:text-[8px] font-black tracking-tighter drop-shadow-sm px-0.5 sm:px-1 py-0.2 rounded bg-black/40 border border-white/20">
             {unoCard.badgeText || unoCard.symbol}
           </span>
-          <span className="text-[9px] sm:text-[10px]">{unoCard.icon}</span>
+          {!artUrl && <span className="text-[9px] sm:text-[10px]">{unoCard.icon}</span>}
         </div>
 
         {/* Center: Iconic Oval Emblem */}
-        <div className="my-auto flex items-center justify-center z-10">
+        <div className={`my-auto flex items-center justify-center z-10 ${artUrl ? 'hidden' : ''}`}>
           <div className={`${isSmall ? 'w-8 sm:w-11 h-8 sm:h-12' : 'w-11 sm:w-13 h-12 sm:h-14'} bg-white/95 rounded-[50%/42%] shadow-inner border border-white/80 flex flex-col items-center justify-center transform -rotate-12 p-0.5`}>
             {unoCard.unoColor === 'wild' ? (
               <div className="flex flex-col items-center justify-center">

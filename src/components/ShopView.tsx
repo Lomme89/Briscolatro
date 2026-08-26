@@ -8,6 +8,7 @@ import { JokerSlot } from './JokerSlot';
 import { UnoCardSlot } from './UnoCardSlot';
 import { PixelCard } from './PixelCard';
 import { CardInspectorModal } from './CardInspectorModal';
+import { CardFaceArt, getJokerArtUrl, getUnoArtUrl } from './CardFaceArt';
 import { sound } from '../services/soundEngine';
 import confetti from 'canvas-confetti';
 
@@ -105,6 +106,14 @@ export const ShopView: React.FC<ShopViewProps> = ({
     cost?: number;
     inventoryIndex?: number;
   } | null>(null);
+
+  const inspectedArtUrl = !inspectedItem
+    ? undefined
+    : inspectedItem.type === 'joker'
+      ? getJokerArtUrl(inspectedItem.item.id)
+      : inspectedItem.type === 'uno'
+        ? getUnoArtUrl(inspectedItem.item.id)
+        : undefined;
 
   // Active opening booster pack state
   const [activeBooster, setActiveBooster] = useState<{
@@ -418,8 +427,12 @@ export const ShopView: React.FC<ShopViewProps> = ({
                         <span className="text-[9px] text-slate-400">ⓘ Info</span>
                       </div>
 
-                      <div className="w-12 h-14 sm:w-14 sm:h-16 rounded-lg bg-slate-900 border border-slate-700 flex flex-col items-center justify-center p-1 my-0.5">
-                        <span className="text-xl sm:text-2xl">{joker.icon}</span>
+                      <div className="w-12 h-14 sm:w-14 sm:h-16 rounded-lg bg-slate-900 border border-slate-700 flex flex-col items-center justify-center overflow-hidden my-0.5">
+                        {getJokerArtUrl(joker.id) ? (
+                          <CardFaceArt src={getJokerArtUrl(joker.id)!} alt={joker.name} />
+                        ) : (
+                          <span className="text-xl sm:text-2xl">{joker.icon}</span>
+                        )}
                       </div>
 
                       <div className="font-pixel text-[9px] sm:text-[10px] text-amber-300 font-bold leading-tight mt-0.5 line-clamp-2">
@@ -488,8 +501,12 @@ export const ShopView: React.FC<ShopViewProps> = ({
                         <span className="text-[9px] text-slate-400">ⓘ Info</span>
                       </div>
 
-                      <div className="w-12 h-14 sm:w-14 sm:h-16 rounded-lg bg-slate-900 border border-red-800 flex flex-col items-center justify-center p-1 my-0.5">
-                        <span className="text-xl sm:text-2xl">{unoCard.icon}</span>
+                      <div className="w-12 h-14 sm:w-14 sm:h-16 rounded-lg bg-slate-900 border border-red-800 flex flex-col items-center justify-center overflow-hidden my-0.5">
+                        {getUnoArtUrl(unoCard.id) ? (
+                          <CardFaceArt src={getUnoArtUrl(unoCard.id)!} alt={unoCard.name} />
+                        ) : (
+                          <span className="text-xl sm:text-2xl">{unoCard.icon}</span>
+                        )}
                       </div>
 
                       <div className="font-pixel text-[9px] sm:text-[10px] text-red-300 font-bold leading-tight mt-0.5 line-clamp-2">
@@ -658,7 +675,14 @@ export const ShopView: React.FC<ShopViewProps> = ({
               onClick={(e) => e.stopPropagation()}
               className="bg-slate-900 border-2 border-amber-400 rounded-2xl pixel-box p-4 max-w-xs w-full shadow-2xl flex flex-col items-center text-center"
             >
-              <span className="text-3xl mb-1">{inspectedItem.item.icon}</span>
+              {inspectedArtUrl ? (
+                // The one place with room for it: the full illustration, big.
+                <div className="w-28 h-38 mb-2 rounded-lg overflow-hidden border-2 border-amber-500/50 pixel-box">
+                  <CardFaceArt src={inspectedArtUrl} alt={inspectedItem.item.name} />
+                </div>
+              ) : (
+                <span className="text-3xl mb-1">{inspectedItem.item.icon}</span>
+              )}
               <h3 className="font-pixel text-xs sm:text-sm text-amber-300 font-bold mb-1">
                 {inspectedItem.item.name}
               </h3>

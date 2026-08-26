@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { sound } from '../services/soundEngine';
 import { Joker, DeckDefinition } from '../types/game';
+import { CardFaceArt, getJokerArtUrl } from './CardFaceArt';
 
 export interface GameOverSummaryData {
   won: boolean;
@@ -194,7 +195,13 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
                   key={`${joker.id}-${idx}`}
                   className="bg-slate-900 border border-slate-700/80 rounded-lg p-1.5 flex flex-col items-center text-center pixel-box"
                 >
-                  <span className="text-lg mb-0.5">{joker.icon}</span>
+                  {getJokerArtUrl(joker.id) ? (
+                    <div className="w-9 h-12 mb-1 rounded overflow-hidden border border-slate-700">
+                      <CardFaceArt src={getJokerArtUrl(joker.id)!} alt={joker.name} />
+                    </div>
+                  ) : (
+                    <span className="text-lg mb-0.5">{joker.icon}</span>
+                  )}
                   <span className="font-pixel text-[8px] text-amber-300 font-bold truncate max-w-full leading-tight">
                     {joker.name}
                   </span>

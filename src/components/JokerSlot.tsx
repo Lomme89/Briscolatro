@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Joker } from '../types/game';
+import { CardFaceArt, getJokerArtUrl } from './CardFaceArt';
 
 interface JokerSlotProps {
   joker: Joker | null;
@@ -64,6 +65,10 @@ export const JokerSlot: React.FC<JokerSlotProps> = ({
     legendary: 'bg-purple-600 text-amber-200',
   }[joker.rarity];
 
+  // The slot is 44px wide on a phone: an emoji-sized portrait would be invisible,
+  // so the illustration is the whole card face and the chrome sits on top of it.
+  const artUrl = getJokerArtUrl(joker.id);
+
   return (
     <div className="relative group shrink-0">
       <motion.div
@@ -93,31 +98,51 @@ export const JokerSlot: React.FC<JokerSlotProps> = ({
           transition-transform duration-150 hover:-translate-y-1 hover:shadow-lg
         `}
       >
-        {/* Glow backdrop */}
-        <div
-          className="absolute inset-0 opacity-20 pointer-events-none"
-          style={{ backgroundColor: joker.accentColor }}
-        />
+        {/* Portrait, or the accent glow it replaces */}
+        {artUrl ? (
+          <>
+            <div className="absolute inset-0 pointer-events-none">
+              <CardFaceArt src={artUrl} alt={joker.name} />
+            </div>
+            {/* Scrims: the badge and the name have to stay readable over the art. */}
+            <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-slate-950/80 via-transparent to-slate-950/85" />
+          </>
+        ) : (
+          <div
+            className="absolute inset-0 opacity-20 pointer-events-none"
+            style={{ backgroundColor: joker.accentColor }}
+          />
+        )}
 
         {/* Top bar: Rarity & Icon */}
         <div className="flex items-center justify-between z-10 leading-none">
           <span className={`text-[6px] sm:text-[7px] font-pixel px-0.5 sm:px-1 py-0.5 rounded font-bold uppercase ${rarityBadge}`}>
             {isSmall ? joker.rarity.slice(0, 3) : joker.rarity}
           </span>
-          <span className={`${isSmall ? 'text-xs' : 'text-sm'}`}>{joker.icon}</span>
+          {!artUrl && <span className={`${isSmall ? 'text-xs' : 'text-sm'}`}>{joker.icon}</span>}
         </div>
 
         {/* Center: Character Portrait / Emblem */}
-        <div className="my-auto flex flex-col items-center justify-center z-10 text-center">
-          <div className={`${isSmall ? 'text-base sm:text-xl' : 'text-xl sm:text-2xl'} drop-shadow filter`}>
-            {joker.icon}
-          </div>
-          {!isSmall && (
-            <span className="text-[7.5px] sm:text-[8px] font-pixel font-bold leading-tight mt-0.5 line-clamp-1 text-center text-amber-300">
+        {artUrl ? (
+          // The art already is the portrait, so the name hugs the bottom bar
+          // instead of sitting across the character's face.
+          !isSmall && (
+            <span className="z-10 mt-auto text-[7.5px] sm:text-[8px] font-pixel font-bold leading-tight line-clamp-1 text-center text-amber-300 [text-shadow:0_1px_2px_rgb(2_6_23)]">
               {joker.name}
             </span>
-          )}
-        </div>
+          )
+        ) : (
+          <div className="my-auto flex flex-col items-center justify-center z-10 text-center">
+            <div className={`${isSmall ? 'text-base sm:text-xl' : 'text-xl sm:text-2xl'} drop-shadow filter`}>
+              {joker.icon}
+            </div>
+            {!isSmall && (
+              <span className="text-[7.5px] sm:text-[8px] font-pixel font-bold leading-tight mt-0.5 line-clamp-1 text-center text-amber-300">
+                {joker.name}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Bottom Bar: Action / Trigger Indicator */}
         <div className="z-10 flex items-center justify-between text-[7px] sm:text-[8px] font-pixel pt-0.5 border-t border-slate-700/50">

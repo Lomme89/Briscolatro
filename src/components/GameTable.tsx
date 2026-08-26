@@ -12,6 +12,7 @@ import { UnoConfirmModal } from './UnoConfirmModal';
 import { sound } from '../services/soundEngine';
 import { getTableThemeForAnte } from '../data/tableThemes';
 import { TableFeltPattern } from './TableFeltPattern';
+import { CardFaceArt, getJokerArtUrl, getUnoArtUrl } from './CardFaceArt';
 
 interface GameTableProps {
   ante: number;
@@ -259,6 +260,7 @@ export const GameTable: React.FC<GameTableProps> = ({
       if (joker.stats?.accumulatedChips) badges.push(`+${joker.stats.accumulatedChips} Chips accumulati`);
       return {
         icon: joker.icon,
+        artUrl: getJokerArtUrl(joker.id),
         name: joker.name,
         description: joker.description,
         badges,
@@ -270,6 +272,7 @@ export const GameTable: React.FC<GameTableProps> = ({
     if (!unoCard) return null;
     return {
       icon: unoCard.icon,
+      artUrl: getUnoArtUrl(unoCard.id),
       name: unoCard.name,
       description: unoCard.description,
       badges: ['CARTA UNO'],
@@ -462,7 +465,13 @@ export const GameTable: React.FC<GameTableProps> = ({
               className="absolute left-0 right-0 top-full mt-1 z-40 px-1"
             >
               <div className="bg-slate-950/97 backdrop-blur-sm border-2 border-amber-500/70 rounded-lg px-2.5 py-2 flex items-start gap-2.5 shadow-2xl">
-                <span className="text-lg shrink-0 leading-none mt-0.5">{inspectedItem.icon}</span>
+                {inspectedItem.artUrl ? (
+                  <div className="w-9 h-12 shrink-0 rounded overflow-hidden border border-amber-500/40">
+                    <CardFaceArt src={inspectedItem.artUrl} alt={inspectedItem.name} />
+                  </div>
+                ) : (
+                  <span className="text-lg shrink-0 leading-none mt-0.5">{inspectedItem.icon}</span>
+                )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-pixel text-[9px] sm:text-[11px] text-amber-300 font-bold truncate">
