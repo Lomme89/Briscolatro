@@ -59,6 +59,15 @@ export const ANTE_BASE_TARGETS = [300, 900, 4000, 11000, 28000, 70000, 150000, 3
 /** Small blind, big blind, boss blind. */
 export const BLIND_TARGET_MULTIPLIERS: Record<number, number> = { 1: 1, 2: 1.5, 3: 2 };
 
+/**
+ * Cash a cleared blind pays, before interest and the Briscola bonus. The blind
+ * reveal screen shows this, so it has to be the same number calculateRoundOutcome
+ * actually pays out.
+ */
+export function getBlindBaseReward(ante: number): number {
+  return 4 + ante;
+}
+
 export function getBlindTargetScore(
   ante: number,
   round: number,
@@ -303,7 +312,7 @@ export function calculateRoundOutcome(
   const won = snapshot.currentRoundScore >= snapshot.targetScore;
   const briscolaMajority = snapshot.roundPointsTaken > 60;
   const briscolaBonus = briscolaMajority ? 4 : 0;
-  const baseReward = 4 + snapshot.ante;
+  const baseReward = getBlindBaseReward(snapshot.ante);
   const interestCap = snapshot.vouchers.some((voucher) => voucher.id === 'v_interessi' && voucher.bought) ? 10 : 5;
   const interest = Math.min(interestCap, Math.floor(snapshot.money / 5));
   const totalReward = won ? baseReward + interest + briscolaBonus : 0;

@@ -37,6 +37,7 @@ import { sound } from './services/soundEngine';
 
 import { GameTable } from './components/GameTable';
 import { ShopView } from './components/ShopView';
+import { BlindSelectView } from './components/BlindSelectView';
 import { ScoreTallyOverlay } from './components/ScoreTallyOverlay';
 import { RoundSummaryModal, RoundSummaryData } from './components/RoundSummaryModal';
 import { GameOverModal, GameOverSummaryData } from './components/GameOverModal';
@@ -188,6 +189,13 @@ export function App() {
   const [roundTricksWon, setRoundTricksWon] = useState<number>(0);
   const [roundTricksLost, setRoundTricksLost] = useState<number>(0);
   const [activeBoss, setActiveBoss] = useState<BossBlind | null>(null);
+  // The round the blind-select screen is announcing, dealt only once you sit down.
+  const [pendingRound, setPendingRound] = useState<{
+    ante: number;
+    round: number;
+    deck: DeckDefinition;
+    runDeck: PlayingCard[];
+  } | null>(null);
   const [opponentSpeech, setOpponentSpeech] = useState<string>('Che vinca il migliore al tavolo!');
 
   // --- Jokers, Consumables & Vouchers ---
@@ -308,7 +316,6 @@ export function App() {
       setActiveBoss(bossToSet);
       activeBossRef.current = bossToSet;
       setOpponentSpeech(bossToSet.bossQuote);
-      sound.playBossAlarm();
     } else {
       setActiveBoss(null);
       activeBossRef.current = null;
@@ -400,8 +407,8 @@ export function App() {
     const newRunDeck = createRunDeck(deck);
     setRunDeck(newRunDeck);
 
-    initRound(1, 1, deck, newRunDeck);
-    setPhase('playing');
+    setPendingRound({ ante: 1, round: 1, deck, runDeck: newRunDeck });
+    setPhase('blind_select');
     sound.playCardFlick();
   };
 
@@ -1034,14 +1041,19 @@ export function App() {
   };
 
   const handleNextRoundFromShop = () => {
-    if (round >= 3) {
-      setAnte((a) => a + 1);
-      setRound(1);
-      initRound(ante + 1, 1, selectedDeck, runDeck);
-    } else {
-      setRound((r) => r + 1);
-      initRound(ante, round + 1, selectedDeck, runDeck);
-    }
+    const nextAnte = round >= 3 ? ante + 1 : ante;
+    const nextRound = round >= 3 ? 1 : round + 1;
+    setAnte(nextAnte);
+    setRound(nextRound);
+    setPendingRound({ ante: nextAnte, round: nextRound, deck: selectedDeck, runDeck });
+    setPhase('blind_select');
+  };
+
+  /** Deals the round the reveal screen was announcing. */
+  const handleSitDown = () => {
+    if (!pendingRound) return;
+    initRound(pendingRound.ante, pendingRound.round, pendingRound.deck, pendingRound.runDeck);
+    setPendingRound(null);
     setPhase('playing');
   };
 
@@ -1143,6 +1155,19 @@ export function App() {
               </div>
             </motion.div>
           </div>
+        )}
+
+        {/* OPPONENT REVEAL, BEFORE THE DEAL */}
+        {phase === 'blind_select' && pendingRound && (
+          <BlindSelectView
+            ante={pendingRound.ante}
+            round={pendingRound.round}
+            money={money}
+            deckMultiplier={
+              pendingRound.deck.specialDeckPerk === 'high_stakes_vision' ? 1.25 : 1
+            }
+            onSitDown={handleSitDown}
+          />
         )}
 
         {/* ACTIVE MATCH VIEW */}
