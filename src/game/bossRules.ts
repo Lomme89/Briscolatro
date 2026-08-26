@@ -19,7 +19,7 @@ export const BOSS_RULES = {
     if (boss.debuffType === 'no_denari_first' && card.suit === 'denari') {
       return {
         allowed: false,
-        reason: "L'Alchimista Oscuro proibisce di aprire la presa con carte di Denari!",
+        reason: 'Il banco proibisce di aprire la presa con carte di Denari!',
       };
     }
     return { allowed: true };

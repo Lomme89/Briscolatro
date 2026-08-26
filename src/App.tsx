@@ -587,7 +587,7 @@ export function App() {
         setTimeout(() => setTriggeringJokerId(null), 1200);
       }
 
-      // If transmute triggered (Alchimista d'Oro), update a card in runDeck and playerHand
+      // If the forger's stamp triggered, update a card in runDeck and playerHand
       if (scoreResult.transmutedCard) {
         const trans = scoreResult.transmutedCard;
         setRunDeck((prev) => {
@@ -720,7 +720,7 @@ export function App() {
       nextBriscolaSuit = BOSS_RULES.getRotatedBriscolaSuit(nextBriscolaSuit);
       briscolaSuitRef.current = nextBriscolaSuit;
       setBriscolaSuit(nextBriscolaSuit);
-      setOpponentSpeech(`La Fattucchiera ha cambiato la Briscola in ${nextBriscolaSuit.toUpperCase()}!`);
+      setOpponentSpeech(`Il mazzo è stato rimescolato: Briscola ${nextBriscolaSuit.toUpperCase()}!`);
       sound.playBoosterRip();
     }
 
@@ -871,7 +871,7 @@ export function App() {
     if (trickPhase !== 'idle' && trickPhase !== 'waiting_player_follow') return;
     if (playerTrickCard !== null) return;
 
-    // Check Boss lead restriction (e.g. Alchimista Oscuro)
+    // Check Boss lead restriction (e.g. Il Cambiavalute)
     if (opponentTrickCard === null) {
       const bossCheck = BOSS_RULES.canPlayerLeadCard(card, getEnforcedBoss());
       if (!bossCheck.allowed) {

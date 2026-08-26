@@ -173,7 +173,7 @@ export const JOKER_EFFECTS = {
             break;
           }
 
-          case 'j_strega_vesuvio': {
+          case 'j_vesuvio': {
             // Grows for the whole RUN: without a source of permanent scaling the
             // player's power plateaus after two jokers while the target keeps
             // climbing, and the late antes become unreachable by arithmetic.
@@ -216,7 +216,7 @@ export const JOKER_EFFECTS = {
             break;
           }
 
-          case 'j_alchimista_oro':
+          case 'j_falsario':
             transmutedCard = { suit: 'denari', edition: 'foil' };
             didTrigger = true;
             break;

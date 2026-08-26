@@ -58,7 +58,7 @@ diventa impossibile per aritmetica, non per bravura.
 **Decisione:** più jolly, su rarità diverse, accumulano per tutta la run — è il
 motore che in Balatro fanno Ride the Bus, Green Joker, Obelisco:
 
-- *La Strega del Vesuvio* (non comune): +1 Mult permanente per ogni presa con Briscola.
+- *Il Vesuvio* (non comune): +1 Mult permanente per ogni presa con Briscola.
 - *Il Barone di Briscola* (non comune): +10 Chips permanenti per ogni presa incatenata.
 - *Il Duellante Finale* (rara): +x0.1 permanenti per ogni finale di round vinto.
 - *La Napola Cosmica* (rara): la combo cresce di x0.05 ogni volta che scatta.

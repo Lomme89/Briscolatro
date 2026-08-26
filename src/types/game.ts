@@ -20,7 +20,7 @@ export type Edition = 'standard' | 'foil' | 'holo' | 'polychrome' | 'gold';
 
 export type Seal = 'none' | 'red' | 'blue' | 'gold' | 'purple';
 // red: Re-trigger card score once
-// blue: 20% chance to spawn a Tarot when won
+// blue: 20% chance to spawn a UNO card when won
 // gold: +$2 when captured
 // purple: create a free discard
 
@@ -126,9 +126,6 @@ export interface UnoCard {
   targetType: 'card_in_hand' | 'instant_run' | 'deck_random' | 'joker_create';
 }
 
-// Backward compatibility alias during refactoring
-export type TarotCard = UnoCard;
-
 export interface Voucher {
   id: string;
   name: string;
@@ -200,7 +197,7 @@ export interface BoosterPack {
   name: string;
   subtitle: string;
   cost: number;
-  type: 'uno' | 'tarot' | 'cards' | 'joker' | 'celeste';
+  type: 'uno' | 'cards' | 'joker' | 'celeste';
   packSize: number;
   selectCount: number;
   color: string;

@@ -118,32 +118,39 @@ export const PixelAvatar: React.FC<PixelAvatarProps> = ({
           </svg>
         );
 
-      // 3. LA FATTUCCHIERA DEL VICOLO (Witch Hood, Glowing Violet Eyes, Crystal Magic)
+      // 3. ROSA LA MESCOLATRICE (Variety-hall croupier: updo, stage make-up, fanned cards)
       case 'boss_ante_3':
-      case 'fattucchiera':
+      case 'mescolatrice':
         return (
           <svg viewBox="0 0 24 24" width={size} height={size} className="pixelated" fill="none">
-            {/* Pointed Purple Cowl/Hood */}
-            <rect x="10" y="1" width="4" height="3" fill="#581c87" />
-            <rect x="7" y="4" width="10" height="4" fill="#6b21a8" />
-            <rect x="4" y="8" width="16" height="6" fill="#7e22ce" />
-            {/* Inner Hood Shadow */}
-            <rect x="6" y="8" width="12" height="9" fill="#3b0764" />
-            {/* Face in darkness */}
-            <rect x="7" y="10" width="10" height="7" fill="#fcd34d" opacity="0.4" />
-            {/* Glowing Arcane Amethyst Eyes */}
-            <rect x="8" y="11" width="2" height="2" fill="#f43f5e" />
-            <rect x="14" y="11" width="2" height="2" fill="#f43f5e" />
-            <rect x="9" y="11" width="1" height="1" fill="#ffffff" />
-            <rect x="15" y="11" width="1" height="1" fill="#ffffff" />
-            {/* Mystical Nose / Lips */}
-            <rect x="11" y="13" width="2" height="1" fill="#c084fc" />
-            <rect x="10" y="15" width="4" height="1" fill="#ec4899" />
-            {/* Robe and Glowing Crystal Orb Pendant */}
-            <rect x="5" y="17" width="14" height="7" fill="#4c1d95" />
-            <rect x="10" y="19" width="4" height="4" fill="#a855f7" />
-            <rect x="11" y="20" width="2" height="2" fill="#38bdf8" />
-            <rect x="11" y="20" width="1" height="1" fill="#ffffff" />
+            {/* Tall raven updo with a brass hairpin */}
+            <rect x="8" y="0" width="8" height="3" fill="#1e1b2e" />
+            <rect x="6" y="2" width="12" height="5" fill="#2e2a44" />
+            <rect x="15" y="1" width="3" height="1" fill="#eab308" />
+            <rect x="17" y="1" width="1" height="3" fill="#eab308" />
+            {/* Face */}
+            <rect x="6" y="7" width="12" height="10" fill="#fcd9b6" />
+            {/* Side curls */}
+            <rect x="5" y="7" width="1" height="6" fill="#2e2a44" />
+            <rect x="18" y="7" width="1" height="6" fill="#2e2a44" />
+            {/* Stage eyeliner and eyes */}
+            <rect x="7" y="9" width="4" height="1" fill="#1e1b2e" />
+            <rect x="13" y="9" width="4" height="1" fill="#1e1b2e" />
+            <rect x="8" y="10" width="2" height="2" fill="#78350f" />
+            <rect x="14" y="10" width="2" height="2" fill="#78350f" />
+            <rect x="8" y="10" width="1" height="1" fill="#ffffff" />
+            <rect x="14" y="10" width="1" height="1" fill="#ffffff" />
+            {/* Nose and crimson lipstick */}
+            <rect x="11" y="12" width="2" height="1" fill="#e8b48c" />
+            <rect x="10" y="14" width="4" height="2" fill="#be123c" />
+            {/* Velvet dress with brass buttons */}
+            <rect x="4" y="17" width="16" height="7" fill="#4a0f2a" />
+            <rect x="9" y="17" width="6" height="3" fill="#7a1a44" />
+            <rect x="11" y="19" width="2" height="1" fill="#eab308" />
+            {/* A fan of cards held up on the left */}
+            <rect x="2" y="15" width="4" height="6" fill="#f5f4e8" />
+            <rect x="3" y="14" width="4" height="6" fill="#ffffff" />
+            <rect x="4" y="16" width="2" height="2" fill="#be123c" />
           </svg>
         );
 
@@ -242,28 +249,37 @@ export const PixelAvatar: React.FC<PixelAvatarProps> = ({
           </svg>
         );
 
-      // 7. L'ALCHIMISTA OSCURO (Plague Mask / Arcane Hood, Neon Toxic Lenses)
+      // 7. IL CAMBIAVALUTE (Pawnbroker: green eyeshade, jeweller's loupe, coin stacks)
       case 'boss_ante_7':
-      case 'alchimista':
+      case 'cambiavalute':
         return (
           <svg viewBox="0 0 24 24" width={size} height={size} className="pixelated" fill="none">
-            {/* Dark Alchemist Hood */}
-            <rect x="6" y="1" width="12" height="6" fill="#134e4a" />
-            <rect x="4" y="6" width="16" height="6" fill="#042f2e" />
-            {/* Glowing Neon Green Goggles */}
-            <rect x="6" y="8" width="4" height="4" fill="#22c55e" />
-            <rect x="14" y="8" width="4" height="4" fill="#22c55e" />
-            <rect x="7" y="9" width="2" height="2" fill="#a7f3d0" />
-            <rect x="15" y="9" width="2" height="2" fill="#a7f3d0" />
-            <rect x="10" y="9" width="4" height="2" fill="#0f172a" />
-            {/* Plague Doctor Beak / Mask */}
-            <rect x="10" y="12" width="4" height="4" fill="#e2e8f0" />
-            <rect x="11" y="16" width="2" height="4" fill="#cbd5e1" />
-            <rect x="11" y="19" width="2" height="2" fill="#94a3b8" />
-            {/* Alchemist Flask with bubbling potion in collar */}
-            <rect x="4" y="16" width="16" height="8" fill="#0f172a" />
-            <rect x="18" y="18" width="3" height="4" fill="#10b981" />
-            <rect x="19" y="17" width="1" height="1" fill="#a7f3d0" />
+            {/* Balding pate with grey side hair */}
+            <rect x="7" y="3" width="10" height="3" fill="#e2b98a" />
+            <rect x="4" y="4" width="3" height="5" fill="#9aa5b1" />
+            <rect x="17" y="4" width="3" height="5" fill="#9aa5b1" />
+            {/* Accountant's green eyeshade visor */}
+            <rect x="5" y="6" width="14" height="2" fill="#14532d" />
+            <rect x="4" y="8" width="16" height="2" fill="#166534" />
+            <rect x="4" y="10" width="16" height="1" fill="#22c55e" opacity="0.5" />
+            {/* Face */}
+            <rect x="6" y="10" width="12" height="8" fill="#e2b98a" />
+            {/* Narrow eyes, one behind a jeweller's loupe */}
+            <rect x="8" y="12" width="2" height="1" fill="#1f2937" />
+            <rect x="13" y="11" width="4" height="4" fill="#0f172a" />
+            <rect x="14" y="12" width="2" height="2" fill="#7dd3fc" />
+            <rect x="14" y="12" width="1" height="1" fill="#ffffff" />
+            {/* Nose and a thin, unimpressed mouth */}
+            <rect x="11" y="14" width="1" height="1" fill="#c99b6d" />
+            <rect x="9" y="16" width="5" height="1" fill="#7c2d12" />
+            {/* Waistcoat with watch chain */}
+            <rect x="4" y="18" width="16" height="6" fill="#1f2937" />
+            <rect x="10" y="18" width="4" height="6" fill="#374151" />
+            <rect x="8" y="20" width="4" height="1" fill="#eab308" />
+            {/* Stack of coins on the counter */}
+            <rect x="17" y="21" width="4" height="1" fill="#facc15" />
+            <rect x="17" y="22" width="4" height="1" fill="#eab308" />
+            <rect x="17" y="23" width="4" height="1" fill="#ca8a04" />
           </svg>
         );
 

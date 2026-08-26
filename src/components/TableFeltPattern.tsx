@@ -34,30 +34,30 @@ export const TableFeltPattern: React.FC<TableFeltPatternProps> = ({ theme }) => 
         </div>
       );
 
-    case 'runes':
+    case 'stage_stars':
       return (
         <div className="absolute inset-0 pointer-events-none opacity-[0.08] overflow-hidden">
           <svg width="100%" height="100%">
             <defs>
               <pattern
-                id="felt-pattern-runes"
+                id="felt-pattern-stage-stars"
                 width="48"
                 height="48"
                 patternUnits="userSpaceOnUse"
               >
-                {/* Arcane 8-pointed star & constellation lines */}
+                {/* Marquee stars & footlight bulbs */}
                 <polygon
                   points="24,6 28,18 40,24 28,30 24,42 20,30 8,24 20,18"
                   fill="none"
-                  stroke="#c084fc"
+                  stroke="#e9d5a1"
                   strokeWidth="1"
                 />
-                <circle cx="24" cy="24" r="5" fill="none" stroke="#c084fc" strokeWidth="0.8" />
-                <circle cx="6" cy="6" r="1.5" fill="#e879f9" />
-                <circle cx="42" cy="42" r="1.5" fill="#e879f9" />
+                <circle cx="24" cy="24" r="5" fill="none" stroke="#e9d5a1" strokeWidth="0.8" />
+                <circle cx="6" cy="6" r="1.5" fill="#facc15" />
+                <circle cx="42" cy="42" r="1.5" fill="#facc15" />
               </pattern>
             </defs>
-            <rect width="100%" height="100%" fill="url(#felt-pattern-runes)" />
+            <rect width="100%" height="100%" fill="url(#felt-pattern-stage-stars)" />
           </svg>
         </div>
       );
@@ -137,18 +137,18 @@ export const TableFeltPattern: React.FC<TableFeltPatternProps> = ({ theme }) => 
         </div>
       );
 
-    case 'alchemy':
+    case 'ledger':
       return (
         <div className="absolute inset-0 pointer-events-none opacity-[0.08] overflow-hidden">
           <svg width="100%" height="100%">
             <defs>
               <pattern
-                id="felt-pattern-alchemy"
+                id="felt-pattern-ledger"
                 width="44"
                 height="44"
                 patternUnits="userSpaceOnUse"
               >
-                {/* Alchemical transmutation circle & triangles */}
+                {/* Coin stamp & scale pans of the money changer */}
                 <circle cx="22" cy="22" r="14" fill="none" stroke="#2dd4bf" strokeWidth="1" />
                 <polygon
                   points="22,8 34,29 10,29"
@@ -164,7 +164,7 @@ export const TableFeltPattern: React.FC<TableFeltPatternProps> = ({ theme }) => 
                 />
               </pattern>
             </defs>
-            <rect width="100%" height="100%" fill="url(#felt-pattern-alchemy)" />
+            <rect width="100%" height="100%" fill="url(#felt-pattern-ledger)" />
           </svg>
         </div>
       );

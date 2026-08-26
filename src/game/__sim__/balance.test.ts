@@ -17,8 +17,8 @@ it('ante 1 is beatable without any joker, later antes are not', () => {
   const scenarios: [string, string[]][] = [
     ['naked', []],
     ['2 common', ['j_carrettiere', 'j_briscola_folle']],
-    ['3 mixed', ['j_carrettiere', 'j_briscola_folle', 'j_strega_vesuvio']],
-    ['5 strong', ['j_carrettiere', 'j_spadaccino', 'j_strega_vesuvio', 'j_cacciatore_carichi', 'j_duellante']],
+    ['3 mixed', ['j_carrettiere', 'j_briscola_folle', 'j_vesuvio']],
+    ['5 strong', ['j_carrettiere', 'j_spadaccino', 'j_vesuvio', 'j_cacciatore_carichi', 'j_duellante']],
   ];
   const measured: Record<string, ReturnType<typeof stats>> = {};
   for (const [label, ids] of scenarios) {
@@ -44,12 +44,12 @@ it('the curve tracks what a real build can actually score', () => {
   const TRIALS = 30;
 
   const builds: [string, string[], number][] = [
-    ['reference', ['j_carrettiere', 'j_strega_vesuvio', 'j_briscola_folle', 'j_barone_briscola', 'j_cacciatore_carichi'], 1],
+    ['reference', ['j_carrettiere', 'j_vesuvio', 'j_briscola_folle', 'j_barone_briscola', 'j_cacciatore_carichi'], 1],
     ['no growth joker', ['j_cantina', 'j_orafo', 'j_re_mida', 'j_cavaliere_nero', 'j_accusa_reale'], 1],
-    ['3 jokers only', ['j_carrettiere', 'j_strega_vesuvio', 'j_briscola_folle'], 1],
+    ['3 jokers only', ['j_carrettiere', 'j_vesuvio', 'j_briscola_folle'], 1],
     ['xmult rares', ['j_duellante', 'j_cacciatore_carichi', 'j_superstizione', 'j_napola_cosmica', 'j_scopa_galattica'], 1],
     ['legendary carry', ['j_carrettiere', 'j_sovrano_briscolatro', 'j_cantina', 'j_orafo', 'j_re_mida'], 1],
-    ['deck build (2 jokers)', ['j_carrettiere', 'j_strega_vesuvio'], 3],
+    ['deck build (2 jokers)', ['j_carrettiere', 'j_vesuvio'], 3],
   ];
 
   const passRates: Record<string, Record<string, number>> = {};

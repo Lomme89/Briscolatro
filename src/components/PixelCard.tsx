@@ -254,7 +254,7 @@ export const PixelCard: React.FC<PixelCardProps> = ({
           )}
           {card.seal === 'blue' && (
             <span className="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[8px] font-pixel shadow border border-blue-300">
-              🔮
+              🎴
             </span>
           )}
           {card.seal === 'purple' && (

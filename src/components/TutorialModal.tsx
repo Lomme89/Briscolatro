@@ -259,7 +259,7 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ isOpen, onClose })
                   <li className="flex items-start gap-2 bg-slate-900 p-2 rounded-lg border border-slate-800">
                     <span className="text-lg shrink-0">🎁</span>
                     <div>
-                      <strong className="text-cyan-300 font-pixel text-[10px]">Bustine & Tarocchi:</strong>
+                      <strong className="text-cyan-300 font-pixel text-[10px]">Bustine & Carte UNO:</strong>
                       <p className="text-xs text-slate-300 mt-0.5">Apri pacchetti speciali per trovare Carte Azione, modificatori e Jolly leggendari.</p>
                     </div>
                   </li>

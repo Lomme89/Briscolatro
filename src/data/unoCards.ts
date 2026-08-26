@@ -195,9 +195,6 @@ export const ALL_UNO_CARDS: UnoCard[] = [
   },
 ];
 
-// Alias for backward compatibility
-export const ALL_TAROTS = ALL_UNO_CARDS;
-
 export const ALL_BOOSTER_PACKS: BoosterPack[] = [
   {
     id: 'b_uno',

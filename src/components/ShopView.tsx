@@ -141,7 +141,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
       cards = fullDeck.slice(0, pack.packSize).map(c => upgradeBoosterCard(c));
     }
 
-    if (pack.type === 'uno' || pack.type === 'tarot' || pack.type === 'celeste') {
+    if (pack.type === 'uno' || pack.type === 'celeste') {
       const shuffled = [...ALL_UNO_CARDS].sort(() => Math.random() - 0.5);
       unoCards = shuffled.slice(0, pack.packSize);
     }

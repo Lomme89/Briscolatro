@@ -19,11 +19,11 @@ export interface TableTheme {
   patternType:
     | 'felt_grain'
     | 'diamonds'
-    | 'runes'
+    | 'stage_stars'
     | 'cigar_smoke'
     | 'swords'
     | 'wood_leaves'
-    | 'alchemy'
+    | 'ledger'
     | 'royal_damask';
 }
 
@@ -69,11 +69,11 @@ export const TABLE_THEMES: TableTheme[] = [
     patternType: 'diamonds',
   },
   {
-    id: 'theme_witch_den',
+    id: 'theme_variety_theatre',
     ante: 3,
-    name: 'Antro della Fattucchiera',
-    subtitle: 'Velluto Notte, Ametista & Rune Astrali',
-    icon: '🔮',
+    name: 'Teatro di Varietà',
+    subtitle: 'Velluto Notte, Ottone & Luci di Sipario',
+    icon: '🎭',
     feltGradient: 'from-[#221038] via-[#170a27] to-[#0d0418]',
     feltBorder: 'border-purple-900/80',
     feltOuterRing: 'ring-1 ring-purple-600/40',
@@ -86,7 +86,7 @@ export const TABLE_THEMES: TableTheme[] = [
       border: 'border-purple-400/70',
       text: 'text-purple-300',
     },
-    patternType: 'runes',
+    patternType: 'stage_stars',
   },
   {
     id: 'theme_clandestine_den',
@@ -149,11 +149,11 @@ export const TABLE_THEMES: TableTheme[] = [
     patternType: 'wood_leaves',
   },
   {
-    id: 'theme_alchemy_vault',
+    id: 'theme_pawn_shop',
     ante: 7,
-    name: 'Laboratorio Alchemico',
-    subtitle: 'Feltro Giada, Rune Dorate & Pozioni',
-    icon: '🧪',
+    name: 'Banco dei Pegni',
+    subtitle: 'Feltro Giada, Ottone Lucido & Registri',
+    icon: '💰',
     feltGradient: 'from-[#0a2b22] via-[#051c16] to-[#020e0a]',
     feltBorder: 'border-emerald-800/80',
     feltOuterRing: 'ring-1 ring-teal-500/50',
@@ -166,7 +166,7 @@ export const TABLE_THEMES: TableTheme[] = [
       border: 'border-teal-400/70',
       text: 'text-teal-300',
     },
-    patternType: 'alchemy',
+    patternType: 'ledger',
   },
   {
     id: 'theme_royal_casino',

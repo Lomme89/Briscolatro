@@ -28,8 +28,8 @@ const GENNARO_LINES: Record<number, [string, string]> = {
     'Hanno smesso tutti di guardare le bocce per guardare noi due.',
   ],
   3: [
-    'A me queste candele non piacciono. Ma il tavolo è un tavolo.',
-    'Non guardare le carte troppo a lungo: qui cambiano idea da sole.',
+    'Troppe luci, troppo velluto. Ma il tavolo resta un tavolo.',
+    'Non fissare la Briscola: qui te la cambiano mentre guardi altrove.',
   ],
   4: [
     'Parla piano. Qui dentro anche i muri contano i punti.',
@@ -44,8 +44,8 @@ const GENNARO_LINES: Record<number, [string, string]> = {
     'Un bastone, una carta. La differenza la fa il polso.',
   ],
   7: [
-    'Non bere niente di quello che ti offrono qui.',
-    'Le sue pozioni non mi fanno paura. Le tue Briscole un po’ sì.',
+    'Qui dentro impegnano pure la fede nuziale. Occhio al portafogli.',
+    'I suoi registri non mi fanno paura. Le tue Briscole un po’ sì.',
   ],
   8: [
     'Siamo arrivati fin qui insieme. Ma solo uno entra dal Sovrano.',
