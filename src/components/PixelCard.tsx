@@ -265,10 +265,12 @@ export const PixelCard: React.FC<PixelCardProps> = ({
         </div>
       )}
 
-      {/* Enhancement badge: a card you built has to be readable at a glance. */}
+      {/* Enhancement badge: a card you built has to be readable at a glance.
+          Bottom-right, because the rank chip owns the top-left and the seal pin
+          the top-right. */}
       {card.enhancement !== 'none' && (
         <div
-          className={`absolute -top-1.5 -left-1.5 z-20 px-1 py-0.5 rounded font-pixel text-[6px] sm:text-[7px] font-bold shadow border ${ENHANCEMENT_BADGES[card.enhancement].className}`}
+          className={`absolute -bottom-1.5 -right-1.5 z-20 px-1 py-0.5 rounded font-pixel text-[6px] sm:text-[7px] font-bold shadow border ${ENHANCEMENT_BADGES[card.enhancement].className}`}
           title={ENHANCEMENT_BADGES[card.enhancement].title}
         >
           {ENHANCEMENT_BADGES[card.enhancement].label}
@@ -342,12 +344,6 @@ export const PixelCard: React.FC<PixelCardProps> = ({
         </div>
       </div>
 
-      {/* Card Enhancement Ribbon / Label */}
-      {card.enhancement !== 'none' && (
-        <div className="absolute bottom-0 left-0 right-0 bg-slate-900/90 text-[6.5px] sm:text-[7.5px] font-pixel text-center py-0.5 text-cyan-300 rounded-b-md">
-          {card.enhancement.toUpperCase()}
-        </div>
-      )}
     </motion.div>
   );
 };

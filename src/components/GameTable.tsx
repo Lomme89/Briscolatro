@@ -8,6 +8,7 @@ import { CaricoParticles } from './CaricoParticles';
 import { resolveTrick } from '../game/briscola';
 import { JokerSlot } from './JokerSlot';
 import { UnoCardSlot } from './UnoCardSlot';
+import { UnoConfirmModal } from './UnoConfirmModal';
 import { sound } from '../services/soundEngine';
 import { getTableThemeForAnte } from '../data/tableThemes';
 import { TableFeltPattern } from './TableFeltPattern';
@@ -106,6 +107,8 @@ export const GameTable: React.FC<GameTableProps> = ({
 }) => {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [activeUnoToApply, setActiveUnoToApply] = useState<UnoCard | null>(null);
+  // A UNO card is consumed on use, so it asks before firing.
+  const [unoPendingConfirm, setUnoPendingConfirm] = useState<UnoCard | null>(null);
   // Which item of the build is open for reading. A tooltip anchored to the slot
   // gets clipped by the rail's own scroll container and by the top of the
   // screen, so the details render as a panel underneath instead.
@@ -164,12 +167,20 @@ export const GameTable: React.FC<GameTableProps> = ({
   };
 
   const handleUnoCardClick = (unoCard: UnoCard) => {
+    // Tapping the one already armed for targeting disarms it.
+    if (activeUnoToApply?.id === unoCard.id) {
+      setActiveUnoToApply(null);
+      return;
+    }
+    setUnoPendingConfirm(unoCard);
+  };
+
+  const confirmUnoCard = () => {
+    const unoCard = unoPendingConfirm;
+    if (!unoCard) return;
+    setUnoPendingConfirm(null);
     if (unoCard.targetType === 'card_in_hand') {
-      if (activeUnoToApply?.id === unoCard.id) {
-        setActiveUnoToApply(null);
-      } else {
-        setActiveUnoToApply(unoCard);
-      }
+      setActiveUnoToApply(unoCard);
     } else {
       onUseUnoCard(unoCard);
     }
@@ -984,6 +995,12 @@ export const GameTable: React.FC<GameTableProps> = ({
           </div>
         </div>
       </div>
+
+      <UnoConfirmModal
+        unoCard={unoPendingConfirm}
+        onCancel={() => setUnoPendingConfirm(null)}
+        onConfirm={confirmUnoCard}
+      />
     </div>
   );
 };

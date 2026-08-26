@@ -7,6 +7,7 @@ import { createStandardDeck } from '../game/briscola';
 import { JokerSlot } from './JokerSlot';
 import { UnoCardSlot } from './UnoCardSlot';
 import { PixelCard } from './PixelCard';
+import { CardInspectorModal } from './CardInspectorModal';
 import { sound } from '../services/soundEngine';
 import confetti from 'canvas-confetti';
 
@@ -91,6 +92,9 @@ export const ShopView: React.FC<ShopViewProps> = ({
     return shuffled.slice(0, 2);
   });
   const [rerollCost, setRerollCost] = useState(5 - discount);
+  // A booster card is picked at thumbnail size, so it opens in the inspector
+  // first: the artwork at a readable size and every power written out.
+  const [inspectedCard, setInspectedCard] = useState<PlayingCard | null>(null);
   const [mobileTab, setMobileTab] = useState<'cards' | 'packs'>('cards');
 
   // Selected item inspection modal on mobile
@@ -728,7 +732,14 @@ export const ShopView: React.FC<ShopViewProps> = ({
               <div className="flex gap-2.5 sm:gap-4 flex-wrap justify-center mb-5 max-h-[50vh] overflow-y-auto p-1">
                 {activeBooster.cards.map((card) => (
                   <div key={card.id} className="flex flex-col items-center">
-                    <PixelCard card={card} size="sm" />
+                    <PixelCard
+                      card={card}
+                      size="sm"
+                      onClick={() => {
+                        sound.playCardSelect();
+                        setInspectedCard(card);
+                      }}
+                    />
                     <button
                       onClick={() => handleSelectBoosterCard(card)}
                       className="mt-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-pixel text-[8px] sm:text-[9px] font-bold px-2.5 py-1.5 rounded-lg pixel-box shadow cursor-pointer"
@@ -773,6 +784,19 @@ export const ShopView: React.FC<ShopViewProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Card inspector, opened by tapping a booster card */}
+      <CardInspectorModal
+        card={inspectedCard}
+        onClose={() => setInspectedCard(null)}
+        onConfirm={() => {
+          if (!inspectedCard) return;
+          const card = inspectedCard;
+          setInspectedCard(null);
+          handleSelectBoosterCard(card);
+        }}
+        confirmLabel="SCEGLI QUESTA"
+      />
     </div>
   );
 };

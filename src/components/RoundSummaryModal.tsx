@@ -57,7 +57,7 @@ export const RoundSummaryModal: React.FC<RoundSummaryModalProps> = ({
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.9, opacity: 0, y: 15 }}
         transition={{ type: 'spring', damping: 24, stiffness: 320 }}
-        className={`rounded-2xl border-3 pixel-box max-w-lg w-full p-4 sm:p-5 shadow-2xl flex flex-col text-slate-100 max-h-[92vh] overflow-y-auto custom-scrollbar ${
+        className={`rounded-2xl border-3 pixel-box max-w-lg w-full p-4 sm:p-5 shadow-2xl flex flex-col text-slate-100 max-h-[94dvh] overflow-y-auto custom-scrollbar ${
           data.won
             ? 'bg-slate-900 border-amber-400/90 shadow-amber-500/10'
             : 'bg-slate-900 border-red-500/90 shadow-red-500/10'
@@ -94,127 +94,82 @@ export const RoundSummaryModal: React.FC<RoundSummaryModalProps> = ({
         </div>
 
         {/* 1. SCORE COMPARISON HERO CARD */}
-        <div className="bg-slate-950/90 rounded-xl p-3 sm:p-3.5 border border-slate-800 pixel-box mb-3 space-y-2.5">
-          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[10px] font-pixel text-slate-400">
-            <span>CHIPS × MULT</span>
-            <span className={scoreExceeded ? 'text-emerald-400 font-bold' : 'text-slate-300'}>
-              {scoreExceeded ? '✓ OBIETTIVO RAGGIUNTO' : '✗ SOTTO OBIETTIVO'}
+        <div className="bg-slate-950/90 rounded-xl p-2.5 border border-slate-800 pixel-box mb-2 space-y-1.5">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 text-[9px] font-pixel">
+            <span className="text-slate-400">CHIPS × MULT</span>
+            <span className={scoreExceeded ? 'text-emerald-400 font-bold' : 'text-red-300 font-bold'}>
+              {scoreExceeded ? '✓ SUPERATO' : '✗ NON SUPERATO'}
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 text-center">
-            <div className="bg-slate-900 border border-slate-700/80 rounded-lg p-2 flex flex-col items-center">
-              <span className="text-[9px] font-pixel text-slate-400 uppercase">Target Richiesto</span>
-              <span className="text-lg sm:text-xl font-pixel text-amber-300 font-bold mt-0.5">
-                {data.targetScore.toLocaleString()}
-              </span>
-            </div>
-            <div
-              className={`rounded-lg p-2 border flex flex-col items-center ${
-                scoreExceeded
-                  ? 'bg-emerald-950/60 border-emerald-500/80 text-emerald-200'
-                  : 'bg-red-950/60 border-red-500/80 text-red-200'
-              }`}
-            >
-              <span className="text-[9px] font-pixel uppercase">Punteggio Ottenuto</span>
-              <span
-                className={`text-lg sm:text-xl font-pixel font-bold mt-0.5 ${
+          <div className="flex items-end justify-between gap-2">
+            <div className="min-w-0">
+              <div className="text-[8.5px] font-pixel text-slate-500 uppercase leading-none">Fatti</div>
+              <div
+                className={`font-pixel text-xl sm:text-2xl font-bold leading-none mt-1 tabular-nums ${
                   scoreExceeded ? 'text-emerald-300' : 'text-red-300'
                 }`}
               >
-                {data.achievedScore.toLocaleString()}
-              </span>
+                {data.achievedScore.toLocaleString('it-IT')}
+              </div>
+            </div>
+            <div className="text-right min-w-0">
+              <div className="text-[8.5px] font-pixel text-slate-500 uppercase leading-none">Richiesti</div>
+              <div className="font-pixel text-sm sm:text-base text-amber-300 font-bold leading-none mt-1 tabular-nums">
+                {data.targetScore.toLocaleString('it-IT')}
+              </div>
             </div>
           </div>
 
-          {/* Target Progress Bar */}
-          <div className="space-y-1">
-            <div className="w-full bg-slate-900 h-2 rounded-full border border-slate-800 overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${
-                  scoreExceeded
-                    ? 'bg-gradient-to-r from-amber-500 to-emerald-400'
-                    : 'bg-gradient-to-r from-red-600 to-amber-500'
-                }`}
-                style={{
-                  width: `${Math.min(100, Math.round((data.achievedScore / Math.max(1, data.targetScore)) * 100))}%`,
-                }}
-              />
-            </div>
-            <div className="flex justify-between text-[8px] font-pixel text-slate-400">
-              <span>0</span>
-              <span>
-                {Math.round((data.achievedScore / Math.max(1, data.targetScore)) * 100)}% del Target
-              </span>
-              <span>{data.targetScore.toLocaleString()}</span>
-            </div>
+          <div className="w-full bg-slate-900 h-2 rounded-full border border-slate-800 overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${
+                scoreExceeded
+                  ? 'bg-gradient-to-r from-amber-500 to-emerald-400'
+                  : 'bg-gradient-to-r from-red-600 to-amber-500'
+              }`}
+              style={{
+                width: `${Math.min(100, Math.round((data.achievedScore / Math.max(1, data.targetScore)) * 100))}%`,
+              }}
+            />
           </div>
         </div>
 
         {/* 2. BRISCOLA TRADITIONAL POINT BREAKDOWN (60/120 PT) */}
-        <div className="bg-slate-950/90 rounded-xl p-3 sm:p-3.5 border border-slate-800 pixel-box mb-3 space-y-2">
-          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[10px] font-pixel">
-            <span className="text-amber-400 font-bold flex items-center gap-1">
-              <span>🃏</span> PUNTI BRISCOLA
+        <div className="bg-slate-950/90 rounded-xl p-2.5 border border-slate-800 pixel-box mb-2 space-y-1.5">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-2 text-[9px] font-pixel">
+            <span className="text-amber-400 font-bold">🃏 PUNTI BRISCOLA</span>
+            <span className="text-slate-400 font-retro text-[9px]">Maggioranza (61+): +$4</span>
+          </div>
+
+          <div className="flex items-baseline justify-between gap-2 font-pixel">
+            <span className="text-blue-300 text-[10px] sm:text-xs">
+              TU <strong className="text-blue-200 text-sm sm:text-base tabular-nums">{data.playerTrickPoints}</strong>
+              <span className="text-[8.5px] text-blue-300/70"> · {data.playerTricksWon} prese</span>
             </span>
-            <span className="text-[9px] text-slate-400 font-retro">Maggioranza (61+): +$4</span>
+            <span className="text-red-300 text-[10px] sm:text-xs text-right">
+              <span className="text-[8.5px] text-red-300/70">{data.opponentTricksWon} prese · </span>
+              <strong className="text-red-200 text-sm sm:text-base tabular-nums">{data.opponentTrickPoints}</strong> LUI
+            </span>
           </div>
 
-          {/* Dual VS Bar */}
-          <div className="grid grid-cols-2 gap-2 text-xs font-pixel">
-            {/* Player Points Box */}
-            <div className="bg-blue-950/50 border border-blue-500/50 rounded-lg p-2">
-              <div className="flex flex-wrap items-baseline justify-between gap-x-1.5 mb-1">
-                <span className="text-blue-300 font-bold">TU</span>
-                <span className="text-blue-200 font-bold">{data.playerTrickPoints} pt</span>
-              </div>
-              <div className="text-[9px] font-retro text-blue-300/80">
-                {data.playerTricksWon} {data.playerTricksWon === 1 ? 'presa vinta' : 'prese vinte'}
-              </div>
-              {isBriscolaMajority && (
-                <div className="mt-1 font-pixel text-[8px] text-emerald-400 font-bold">
-                  ★ Maggioranza Prese (&gt;60)
-                </div>
-              )}
-            </div>
-
-            {/* Opponent Points Box */}
-            <div className="bg-red-950/50 border border-red-500/50 rounded-lg p-2">
-              <div className="flex flex-wrap items-baseline justify-between gap-x-1.5 mb-1">
-                <span className="text-red-300 font-bold">AVVERSARIO</span>
-                <span className="text-red-200 font-bold">{data.opponentTrickPoints} pt</span>
-              </div>
-              <div className="text-[9px] font-retro text-red-300/80">
-                {data.opponentTricksWon} {data.opponentTricksWon === 1 ? 'presa vinta' : 'prese vinte'}
-              </div>
-              {data.opponentTrickPoints >= 61 && (
-                <div className="mt-1 font-pixel text-[8px] text-red-400 font-bold">
-                  ★ Maggioranza Avversario
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Visual Briscola Points Tug-of-War Bar */}
-          <div className="w-full bg-red-950 h-3 rounded-full border border-slate-700 flex overflow-hidden">
+          {/* Tug-of-war: the two shares of the 120 points on the table */}
+          <div className="w-full bg-slate-900 h-2.5 rounded-full border border-slate-700 flex overflow-hidden">
             <div
-              className="bg-blue-500 h-full transition-all duration-500 flex items-center justify-center text-[7.5px] font-pixel text-slate-950 font-bold"
+              className="bg-blue-500 h-full transition-all duration-500"
               style={{ width: `${Math.round((data.playerTrickPoints / 120) * 100)}%` }}
-            >
-              {data.playerTrickPoints > 15 ? `${data.playerTrickPoints} pt` : ''}
-            </div>
+            />
             <div
-              className="bg-red-500 h-full transition-all duration-500 flex items-center justify-center text-[7.5px] font-pixel text-slate-950 font-bold"
+              className="bg-red-500 h-full transition-all duration-500"
               style={{ width: `${Math.round((data.opponentTrickPoints / 120) * 100)}%` }}
-            >
-              {data.opponentTrickPoints > 15 ? `${data.opponentTrickPoints} pt` : ''}
+            />
+          </div>
+
+          {isBriscolaMajority && (
+            <div className="font-pixel text-[8.5px] text-emerald-400 font-bold">
+              ★ Maggioranza tua: bonus incassato
             </div>
-          </div>
-          <div className="flex justify-between text-[7.5px] font-pixel text-slate-400 px-1">
-            <span>Tu: {data.playerTrickPoints}/120</span>
-            <span className="text-amber-400">Bonus a 61 pt</span>
-            <span>Avversario: {data.opponentTrickPoints}/120</span>
-          </div>
+          )}
         </div>
 
         {/* 3. REWARDS & PRIZE MONEY (IF WON) */}
@@ -246,12 +201,13 @@ export const RoundSummaryModal: React.FC<RoundSummaryModalProps> = ({
           </div>
         )}
 
-        {/* 4. SUMMARY MOTIVATION FOOTER */}
-        <div className="text-center font-retro text-xs text-slate-300 mb-3 px-2">
-          {data.won
-            ? 'Ottima giocata! Preparati per il Negozio dove potrai comprare nuovi Jolly, carte UNO e potenziamenti per il mazzo!'
-            : 'Non hai superato la manche. Il tuo punteggio totale o le prese non sono bastate a soddisfare la richiesta.'}
-        </div>
+        {/* The pep talk said nothing the numbers above do not, and it was the
+            difference between fitting on a phone screen and scrolling. */}
+        {!data.won && (
+          <div className="text-center font-retro text-[11px] text-red-200 mb-2 px-1">
+            Il punteggio non è bastato: servivano {data.targetScore.toLocaleString('it-IT')} punti.
+          </div>
+        )}
 
         {/* Action button */}
         <button
