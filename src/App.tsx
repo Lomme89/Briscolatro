@@ -1095,7 +1095,9 @@ export function App() {
   return (
     <CardStyleProvider style={settings.cardStyle || 'classic'}>
       <div
-        className={`min-h-screen w-full bg-[#0b0f19] text-amber-50 flex flex-col justify-between overflow-x-hidden relative ${
+        // overflow-x-hidden would force overflow-y to `auto`, turning this into a
+        // scroll box that clips the table instead of letting the page grow.
+        className={`min-h-screen w-full bg-[#0b0f19] text-amber-50 flex flex-col justify-between overflow-x-clip relative ${
           settings.crtScanlines ? 'crt-overlay' : ''
         } ${settings.screenShake && isShaking ? 'animate-bounce' : ''}`}
       >
@@ -1265,6 +1267,10 @@ export function App() {
             opponentTrickCard={opponentTrickCard}
             isPlayerTurn={isPlayerTurn && trickPhase !== 'resolving' && trickPhase !== 'tally' && !isDealing}
             isDealing={isDealing}
+            visionActive={
+              tricksPlayedInRound === 0 &&
+              activeJokers.some((joker) => joker.id === 'j_specchietto_baro')
+            }
             trickLeadIsPlayer={trickLeadIsPlayer}
             activeJokers={activeJokers}
             consumables={consumables}

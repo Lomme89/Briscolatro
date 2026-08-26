@@ -77,8 +77,8 @@ export const ALL_DECKS: DeckDefinition[] = [
   {
     id: 'deck_baro',
     name: 'Mazzo del Gran Baro',
-    subtitle: 'Tutto Sotto Controllo',
-    description: 'Inizia con il Jolly "Lo Specchietto del Baro" (vedi sempre le carte avversarie), ma ogni Ante richiede +25% di punti.',
+    subtitle: 'Una Sbirciata e Via',
+    description: 'Inizia con il Jolly "Lo Specchietto del Baro" (sbirci la mano avversaria nella prima presa di ogni round), ma ogni Ante richiede +25% di punti.',
     icon: '🕶️',
     color: '#f43f5e',
     unlocked: false,

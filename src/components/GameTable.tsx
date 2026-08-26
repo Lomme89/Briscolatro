@@ -32,6 +32,8 @@ interface GameTableProps {
   trickLeadIsPlayer: boolean;
   /** True while the opening hand is being dealt, so cards fly in one by one. */
   isDealing: boolean;
+  /** The Baro's mirror is live: the opponent's hand is face up this trick. */
+  visionActive: boolean;
   activeJokers: Joker[];
   consumables: UnoCard[];
   maxJokers: number;
@@ -52,6 +54,20 @@ interface GameTableProps {
   totalPointsDeck: number;
 }
 
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia(query).matches
+  );
+  React.useEffect(() => {
+    const media = window.matchMedia(query);
+    const update = () => setMatches(media.matches);
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, [query]);
+  return matches;
+}
+
 export const GameTable: React.FC<GameTableProps> = ({
   ante,
   round,
@@ -69,6 +85,7 @@ export const GameTable: React.FC<GameTableProps> = ({
   isPlayerTurn,
   trickLeadIsPlayer,
   isDealing,
+  visionActive,
   activeJokers,
   consumables,
   maxJokers,
@@ -92,6 +109,14 @@ export const GameTable: React.FC<GameTableProps> = ({
   // Which item of the build is open for reading. A tooltip anchored to the slot
   // gets clipped by the rail's own scroll container and by the top of the
   // screen, so the details render as a panel underneath instead.
+  // A tall phone has room for a proper clash: the middle of the felt used to be
+  // dead space with two small cards floating in it.
+  const roomyTable = useMediaQuery('(min-height: 720px) and (min-width: 380px)');
+  const trickCardSize = roomyTable ? 'lg' : 'md';
+  const trickSlotClass = roomyTable
+    ? 'w-[96px] sm:w-[114px] h-[138px] sm:h-[164px]'
+    : 'w-20 sm:w-24 md:w-26 h-28 sm:h-34 md:h-38';
+
   const [inspected, setInspected] = useState<
     { kind: 'joker'; index: number } | { kind: 'uno'; index: number } | null
   >(null);
@@ -146,10 +171,9 @@ export const GameTable: React.FC<GameTableProps> = ({
   const scoreProgress = Math.min(100, Math.round((currentRoundScore / targetScore) * 100));
   const reachedTarget = currentRoundScore >= targetScore;
 
-  // Does player have vision of opponent's hand?
-  const hasVision = activeJokers.some(
-    (j) => j.id === 'j_specchietto_baro' || j.id === 'j_occhio_veggente'
-  );
+  // Vision is granted by App, and only for the first trick of a round: a
+  // permanent x-ray on the opponent's hand removes the whole guessing game.
+  const hasVision = visionActive;
 
   // Dynamic emotion for Opponent Pixel Avatar
   let opponentEmotion: OpponentEmotion = 'idle';
@@ -250,7 +274,7 @@ export const GameTable: React.FC<GameTableProps> = ({
   );
 
   return (
-    <div className="flex-1 flex flex-col justify-between p-1.5 sm:p-3 max-w-6xl mx-auto w-full relative min-h-[100dvh] sm:min-h-0 select-none overflow-x-hidden">
+    <div className="flex-1 flex flex-col justify-between p-1.5 sm:p-3 max-w-6xl mx-auto w-full relative min-h-[100dvh] sm:min-h-0 select-none">
       {/* 1. TOP MINIMALIST HEADER */}
       <div className="bg-slate-900/95 border-2 border-slate-700/80 px-2 sm:px-3 py-1.5 rounded-xl pixel-box shadow-lg shrink-0 z-30 relative">
         <div className="flex items-center justify-between gap-2">
@@ -271,38 +295,22 @@ export const GameTable: React.FC<GameTableProps> = ({
               <span className="font-bold truncate max-w-[120px]">{tableTheme.name}</span>
             </div>
 
-            {/* The score is the whole point of a blind, so it reads like it. */}
-            <div className="flex-1 min-w-0 flex items-center gap-2">
-              <div className="min-w-0">
-                <div className="font-pixel text-[6.5px] sm:text-[7.5px] text-slate-400 uppercase tracking-wide leading-none">
-                  Punteggio
-                </div>
-                <motion.div
-                  key={currentRoundScore}
-                  initial={{ scale: 1.35, color: '#fbbf24' }}
-                  animate={{ scale: 1, color: reachedTarget ? '#34d399' : '#f8fafc' }}
-                  transition={{ type: 'spring', damping: 12, stiffness: 320 }}
-                  className="font-pixel text-sm sm:text-xl font-bold leading-none tabular-nums"
-                >
-                  {currentRoundScore.toLocaleString('it-IT')}
-                </motion.div>
-              </div>
-              <div className="flex-1 min-w-[52px]">
-                <div className="w-full bg-slate-950 h-2 sm:h-2.5 rounded-full border border-slate-700 overflow-hidden relative">
-                  <motion.div
-                    className={`h-full rounded-full ${
-                      reachedTarget
-                        ? 'bg-gradient-to-r from-emerald-500 to-emerald-300'
-                        : 'bg-gradient-to-r from-amber-500 to-yellow-300'
-                    }`}
-                    animate={{ width: `${scoreProgress}%` }}
-                    transition={{ type: 'spring', damping: 20, stiffness: 120 }}
-                  />
-                </div>
-                <div className="font-pixel text-[6.5px] sm:text-[8px] text-slate-400 leading-none mt-0.5 tabular-nums">
-                  {reachedTarget ? '✓ OBIETTIVO RAGGIUNTO' : `🎯 ${targetScore.toLocaleString('it-IT')}`}
-                </div>
-              </div>
+            {/* The score is the whole point of a blind, so it reads like it.
+                No truncation and no fixed widths: a phone with a large system
+                font used to clip the label and squash the number. */}
+            <div className="flex items-baseline gap-1.5 min-w-0">
+              <span className="font-pixel text-[8px] sm:text-[9px] text-slate-400 uppercase tracking-wide shrink-0">
+                Punti
+              </span>
+              <motion.span
+                key={currentRoundScore}
+                initial={{ scale: 1.3, color: '#fbbf24' }}
+                animate={{ scale: 1, color: reachedTarget ? '#34d399' : '#f8fafc' }}
+                transition={{ type: 'spring', damping: 12, stiffness: 320 }}
+                className="font-pixel text-sm sm:text-xl font-bold leading-none tabular-nums"
+              >
+                {currentRoundScore.toLocaleString('it-IT')}
+              </motion.span>
             </div>
 
             {/* Briscola Suit Pill */}
@@ -350,6 +358,28 @@ export const GameTable: React.FC<GameTableProps> = ({
               ⚙️
             </button>
           </div>
+        </div>
+
+        {/* Target progress, full width so it never fights the buttons for room. */}
+        <div className="flex items-center gap-2 mt-1">
+          <div className="flex-1 bg-slate-950 h-2 sm:h-2.5 rounded-full border border-slate-700 overflow-hidden">
+            <motion.div
+              className={`h-full rounded-full ${
+                reachedTarget
+                  ? 'bg-gradient-to-r from-emerald-500 to-emerald-300'
+                  : 'bg-gradient-to-r from-amber-500 to-yellow-300'
+              }`}
+              animate={{ width: `${scoreProgress}%` }}
+              transition={{ type: 'spring', damping: 20, stiffness: 120 }}
+            />
+          </div>
+          <span
+            className={`font-pixel text-[8px] sm:text-[9.5px] tabular-nums shrink-0 ${
+              reachedTarget ? 'text-emerald-300' : 'text-slate-400'
+            }`}
+          >
+            {reachedTarget ? '✓ FATTO' : `🎯 ${targetScore.toLocaleString('it-IT')}`}
+          </span>
         </div>
 
         {/* The build, always on screen. It used to live behind a toggle, which
@@ -483,18 +513,20 @@ export const GameTable: React.FC<GameTableProps> = ({
 
       {/* 2. THE FELT CARD TABLE (THEMED BY CURRENT ANTE PROGRESSION) */}
       <div
-        className={`my-1 flex-1 flex flex-col justify-between bg-gradient-to-b ${tableTheme.feltGradient} border-2 sm:border-3 ${tableTheme.feltBorder} ${tableTheme.feltOuterRing} rounded-2xl pixel-box p-2 sm:p-3 relative shadow-2xl overflow-hidden min-h-0 transition-colors duration-500`}
+        className={`my-1 flex-1 flex flex-col justify-between bg-gradient-to-b ${tableTheme.feltGradient} border-2 sm:border-3 ${tableTheme.feltBorder} ${tableTheme.feltOuterRing} rounded-2xl pixel-box p-2 sm:p-3 relative shadow-2xl min-h-0 transition-colors duration-500`}
       >
-        {/* Procedural Pixel Texture Pattern */}
-        <TableFeltPattern theme={tableTheme} />
-
-        {/* Subtle Ambient Radial Lighting */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: `radial-gradient(circle at 50% 45%, ${tableTheme.ambientGlow} 0%, rgba(0,0,0,0.6) 100%)`,
-          }}
-        />
+        {/* Only the decoration is clipped. The felt itself must grow with its
+            content: clipping it cut the hand and the action buttons off the
+            bottom on phones with a large system font. */}
+        <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
+          <TableFeltPattern theme={tableTheme} />
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `radial-gradient(circle at 50% 45%, ${tableTheme.ambientGlow} 0%, rgba(0,0,0,0.6) 100%)`,
+            }}
+          />
+        </div>
 
         {/* Felt Watermark Venue Stamp (Top-Right) */}
         <div
@@ -530,13 +562,23 @@ export const GameTable: React.FC<GameTableProps> = ({
             </div>
 
             {/* Opponent Face-down Cards */}
-            <div className="flex gap-1 sm:gap-1.5 shrink-0">
+            <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+              {hasVision && (
+                <motion.span
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="bg-sky-950/90 border border-sky-400 text-sky-200 font-pixel text-[6.5px] sm:text-[7.5px] px-1 py-0.5 rounded uppercase whitespace-nowrap"
+                  title="Lo Specchietto del Baro: solo per questa presa"
+                >
+                  🪞 1ª presa
+                </motion.span>
+              )}
               {opponentHand.map((card, i) => (
                 <PixelCard
                   key={card.id || i}
                   card={card}
                   faceDown={!hasVision}
-                  size="xs"
+                  size={roomyTable ? 'sm' : 'xs'}
                   animateDeal={true}
                   dealDelay={isDealing ? 0.06 + i * 0.26 : i * 0.06}
                 />
@@ -590,7 +632,7 @@ export const GameTable: React.FC<GameTableProps> = ({
         </div>
 
         {/* CENTER ARENA: DECK + TRICK CLASH (ENLARGED CARDS) */}
-        <div className="my-auto py-1 flex items-center justify-between gap-1 sm:gap-4 z-10 relative px-1">
+        <div className="flex-1 min-h-0 my-1 py-1 flex items-center justify-between gap-1 sm:gap-4 z-10 relative px-1">
           {/* Left: Deck & Briscola Face-Up Card */}
           <div 
             className="flex flex-col items-center cursor-pointer group shrink-0"
@@ -640,7 +682,7 @@ export const GameTable: React.FC<GameTableProps> = ({
           </div>
 
           {/* Center: Trick Cards Clash Zone (LARGE IMPACT CARDS) */}
-          <div className="flex-1 max-w-[280px] sm:max-w-xs flex items-center justify-center gap-2 sm:gap-4 p-2 bg-black/45 border border-dashed border-emerald-800/60 rounded-xl pixel-box relative shadow-xl mx-auto">
+          <div className="flex-1 max-w-[300px] sm:max-w-md flex items-center justify-center gap-1.5 sm:gap-4 p-2 bg-black/45 border border-dashed border-emerald-800/60 rounded-xl pixel-box relative shadow-xl mx-auto">
             {/* Opponent Card in Trick */}
             <div className="flex flex-col items-center relative">
               <span className="text-[7px] sm:text-[8px] font-pixel text-slate-400 mb-0.5">AVVERSARIO</span>
@@ -677,7 +719,7 @@ export const GameTable: React.FC<GameTableProps> = ({
                     >
                       <PixelCard
                         card={opponentTrickCard}
-                        size="md"
+                        size={trickCardSize}
                         isBriscola={opponentTrickCard.suit === briscolaSuit}
                         className="shadow-xl"
                       />
@@ -693,7 +735,7 @@ export const GameTable: React.FC<GameTableProps> = ({
                     )}
                   </div>
                 ) : (
-                  <div className={`w-20 sm:w-24 md:w-26 h-28 sm:h-34 md:h-38 border border-dashed ${tableTheme.cardSlotBorder} ${tableTheme.cardSlotBg} rounded-lg flex items-center justify-center text-slate-500 font-pixel text-[7.5px] text-center p-1`}>
+                  <div className={`${trickSlotClass} border border-dashed ${tableTheme.cardSlotBorder} ${tableTheme.cardSlotBg} rounded-lg flex items-center justify-center text-slate-500 font-pixel text-[7.5px] text-center p-1`}>
                     ...
                   </div>
                 )}
@@ -749,7 +791,7 @@ export const GameTable: React.FC<GameTableProps> = ({
                     >
                       <PixelCard
                         card={playerTrickCard}
-                        size="md"
+                        size={trickCardSize}
                         isBriscola={playerTrickCard.suit === briscolaSuit}
                         className={`shadow-xl ${
                           playerTrickCard.suit === briscolaSuit
@@ -769,7 +811,7 @@ export const GameTable: React.FC<GameTableProps> = ({
                     )}
                   </div>
                 ) : (
-                  <div className={`w-20 sm:w-24 md:w-26 h-28 sm:h-34 md:h-38 border border-dashed ${tableTheme.cardSlotBorder} ${tableTheme.cardSlotBg} rounded-lg flex items-center justify-center text-slate-400 font-pixel text-[7.5px] text-center p-1`}>
+                  <div className={`${trickSlotClass} border border-dashed ${tableTheme.cardSlotBorder} ${tableTheme.cardSlotBg} rounded-lg flex items-center justify-center text-slate-400 font-pixel text-[7.5px] text-center p-1`}>
                     {isPlayerTurn ? 'SCEGLI' : '...'}
                   </div>
                 )}

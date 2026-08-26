@@ -63,42 +63,40 @@ export const RoundSummaryModal: React.FC<RoundSummaryModalProps> = ({
             : 'bg-slate-900 border-red-500/90 shadow-red-500/10'
         }`}
       >
-        {/* Header Badge */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl sm:text-3xl">{data.won ? '🏆' : '💀'}</span>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2
-                  className={`font-pixel text-xs sm:text-sm font-bold uppercase tracking-wider ${
-                    data.won ? 'text-amber-400' : 'text-red-400'
-                  }`}
-                >
-                  {data.won ? 'MANCHE SUPERATA!' : 'MANCHE FALLITA'}
-                </h2>
-                <span className="font-pixel text-[8.5px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
-                  ANTE {data.ante} • ROUND {data.round}/3
-                </span>
-              </div>
-              <p className="font-retro text-[11px] text-slate-400">{roundTypeName}</p>
+        {/* Header. Everything wraps: on a phone with a large system font the
+            title, the ante badge and the verdict cannot share one line. */}
+        <div className="border-b border-slate-800 pb-3 mb-3">
+          <div className="flex items-start gap-2">
+            <span className="text-2xl sm:text-3xl shrink-0 leading-none">{data.won ? '🏆' : '💀'}</span>
+            <div className="min-w-0 flex-1">
+              <h2
+                className={`font-pixel text-xs sm:text-sm font-bold uppercase tracking-wider ${
+                  data.won ? 'text-amber-400' : 'text-red-400'
+                }`}
+              >
+                {data.won ? 'MANCHE SUPERATA!' : 'MANCHE FALLITA'}
+              </h2>
+              <p className="font-retro text-[11px] text-slate-400 mt-0.5">{roundTypeName}</p>
+            </div>
+            <div
+              className={`font-pixel text-[10px] sm:text-xs px-2 py-1 rounded-lg border font-bold shrink-0 ${
+                data.won
+                  ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300'
+                  : 'bg-red-950/80 border-red-500 text-red-300'
+              }`}
+            >
+              {data.won ? 'VITTORIA' : 'SCONFITTA'}
             </div>
           </div>
-
-          <div
-            className={`font-pixel text-xs px-2.5 py-1 rounded-lg border font-bold flex items-center gap-1 ${
-              data.won
-                ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300'
-                : 'bg-red-950/80 border-red-500 text-red-300'
-            }`}
-          >
-            {data.won ? 'VITTORIA' : 'SCONFITTA'}
-          </div>
+          <span className="inline-block mt-2 font-pixel text-[8.5px] sm:text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+            ANTE {data.ante} • ROUND {data.round}/3
+          </span>
         </div>
 
         {/* 1. SCORE COMPARISON HERO CARD */}
         <div className="bg-slate-950/90 rounded-xl p-3 sm:p-3.5 border border-slate-800 pixel-box mb-3 space-y-2.5">
-          <div className="flex items-center justify-between text-[10px] font-pixel text-slate-400">
-            <span>OBIETTIVO PUNTEGGIO (CHIPS × MULT)</span>
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[10px] font-pixel text-slate-400">
+            <span>CHIPS × MULT</span>
             <span className={scoreExceeded ? 'text-emerald-400 font-bold' : 'text-slate-300'}>
               {scoreExceeded ? '✓ OBIETTIVO RAGGIUNTO' : '✗ SOTTO OBIETTIVO'}
             </span>
@@ -155,23 +153,23 @@ export const RoundSummaryModal: React.FC<RoundSummaryModalProps> = ({
 
         {/* 2. BRISCOLA TRADITIONAL POINT BREAKDOWN (60/120 PT) */}
         <div className="bg-slate-950/90 rounded-xl p-3 sm:p-3.5 border border-slate-800 pixel-box mb-3 space-y-2">
-          <div className="flex items-center justify-between text-[10px] font-pixel">
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[10px] font-pixel">
             <span className="text-amber-400 font-bold flex items-center gap-1">
-              <span>🃏</span> PUNTI MAZZO BRISCOLA (120 TOTALI)
+              <span>🃏</span> PUNTI BRISCOLA
             </span>
-            <span className="text-[9px] text-slate-400 font-retro">Maggioranza a 61 pt: bonus +$4</span>
+            <span className="text-[9px] text-slate-400 font-retro">Maggioranza (61+): +$4</span>
           </div>
 
           {/* Dual VS Bar */}
           <div className="grid grid-cols-2 gap-2 text-xs font-pixel">
             {/* Player Points Box */}
             <div className="bg-blue-950/50 border border-blue-500/50 rounded-lg p-2">
-              <div className="flex items-center justify-between mb-1">
+              <div className="flex flex-wrap items-baseline justify-between gap-x-1.5 mb-1">
                 <span className="text-blue-300 font-bold">TU</span>
                 <span className="text-blue-200 font-bold">{data.playerTrickPoints} pt</span>
               </div>
               <div className="text-[9px] font-retro text-blue-300/80">
-                {data.playerTricksWon} prese vinte
+                {data.playerTricksWon} {data.playerTricksWon === 1 ? 'presa vinta' : 'prese vinte'}
               </div>
               {isBriscolaMajority && (
                 <div className="mt-1 font-pixel text-[8px] text-emerald-400 font-bold">
@@ -182,12 +180,12 @@ export const RoundSummaryModal: React.FC<RoundSummaryModalProps> = ({
 
             {/* Opponent Points Box */}
             <div className="bg-red-950/50 border border-red-500/50 rounded-lg p-2">
-              <div className="flex items-center justify-between mb-1">
+              <div className="flex flex-wrap items-baseline justify-between gap-x-1.5 mb-1">
                 <span className="text-red-300 font-bold">AVVERSARIO</span>
                 <span className="text-red-200 font-bold">{data.opponentTrickPoints} pt</span>
               </div>
               <div className="text-[9px] font-retro text-red-300/80">
-                {data.opponentTricksWon} prese vinte
+                {data.opponentTricksWon} {data.opponentTricksWon === 1 ? 'presa vinta' : 'prese vinte'}
               </div>
               {data.opponentTrickPoints >= 61 && (
                 <div className="mt-1 font-pixel text-[8px] text-red-400 font-bold">

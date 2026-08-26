@@ -14,7 +14,9 @@
     color: #f3f4f6;
     user-select: none;
     -webkit-user-select: none;
-    overflow-x: hidden;
+    /* clip, not hidden: `overflow-x: hidden` computes overflow-y to `auto`,
+       which turns the body into a scroll box that clips tall layouts. */
+    overflow-x: clip;
   }
 }
 

@@ -81,7 +81,7 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
 
   return (
     <div
-      className="flex-1 flex flex-col min-h-[100dvh] w-full relative overflow-x-hidden"
+      className="flex-1 flex flex-col min-h-[100dvh] w-full relative overflow-x-clip"
       onClick={skipIntro}
     >
       {/* The venue itself: the felt of this Ante, so arriving somewhere new looks like it. */}

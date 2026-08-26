@@ -225,7 +225,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
             <h2 className="font-pixel text-[11px] sm:text-sm text-amber-400 font-bold uppercase truncate leading-tight">
               BAR SPORT
             </h2>
-            <p className="font-retro text-[9px] sm:text-xs text-slate-300 truncate">
+            <p className="font-retro text-[9px] sm:text-xs text-slate-300">
               Ante {ante} • Round {round}
             </p>
           </div>
@@ -418,10 +418,10 @@ export const ShopView: React.FC<ShopViewProps> = ({
                         <span className="text-xl sm:text-2xl">{joker.icon}</span>
                       </div>
 
-                      <div className="font-pixel text-[9px] sm:text-[10px] text-amber-300 font-bold leading-tight mt-0.5 line-clamp-1">
+                      <div className="font-pixel text-[9px] sm:text-[10px] text-amber-300 font-bold leading-tight mt-0.5 line-clamp-2">
                         {joker.name}
                       </div>
-                      <div className="text-[8px] sm:text-[9px] text-slate-300 line-clamp-2 leading-tight mt-0.5 font-retro">
+                      <div className="text-[8px] sm:text-[9px] text-slate-300 line-clamp-3 leading-tight mt-0.5 font-retro">
                         {joker.description}
                       </div>
                     </div>
@@ -488,10 +488,10 @@ export const ShopView: React.FC<ShopViewProps> = ({
                         <span className="text-xl sm:text-2xl">{unoCard.icon}</span>
                       </div>
 
-                      <div className="font-pixel text-[9px] sm:text-[10px] text-red-300 font-bold leading-tight mt-0.5 line-clamp-1">
+                      <div className="font-pixel text-[9px] sm:text-[10px] text-red-300 font-bold leading-tight mt-0.5 line-clamp-2">
                         {unoCard.name}
                       </div>
-                      <div className="text-[8px] sm:text-[9px] text-slate-300 line-clamp-2 leading-tight mt-0.5 font-retro">
+                      <div className="text-[8px] sm:text-[9px] text-slate-300 line-clamp-3 leading-tight mt-0.5 font-retro">
                         {unoCard.description}
                       </div>
                     </div>
@@ -552,7 +552,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="text-xl sm:text-2xl shrink-0">{pack.icon}</span>
                       <div className="min-w-0">
-                        <div className="font-pixel text-[9px] sm:text-[10px] text-purple-200 font-bold truncate">
+                        <div className="font-pixel text-[9px] sm:text-[10px] text-purple-200 font-bold line-clamp-2">
                           {pack.name}
                         </div>
                         <div className="font-retro text-[8px] sm:text-[9px] text-slate-400 truncate">
@@ -599,7 +599,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-base sm:text-lg shrink-0">{voucher.icon}</span>
                         <div className="min-w-0">
-                          <div className="font-pixel text-[8.5px] sm:text-[9px] font-bold truncate">
+                          <div className="font-pixel text-[8.5px] sm:text-[9px] font-bold line-clamp-2">
                             {voucher.name}
                           </div>
                           <div className="text-[8px] sm:text-[8.5px] text-slate-400 leading-tight truncate font-retro">

@@ -192,7 +192,7 @@ export const ALL_JOKERS: Joker[] = [
     id: 'j_specchietto_baro',
     name: 'Lo Specchietto del Baro',
     italianTitle: 'Riflesso Sleale',
-    description: 'Grazie a un minuscolo specchio celato tra le dita da vero baro, vedi sempre le carte dell\'avversario!',
+    description: 'Uno specchietto nascosto tra le dita: vedi la mano dell\'avversario solo nella PRIMA presa di ogni round.',
     rarity: 'uncommon',
     cost: 7,
     sellValue: 4,

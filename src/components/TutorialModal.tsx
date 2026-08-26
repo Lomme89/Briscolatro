@@ -57,10 +57,10 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ isOpen, onClose })
         {/* Navigation Tabs */}
         <div className="grid grid-cols-4 gap-1.5 mb-3 shrink-0">
           {[
-            { id: 'briscola', label: '1. BRISCOLA', icon: '🎴' },
-            { id: 'points', label: '2. VALORE CARTE', icon: '⭐' },
-            { id: 'roguelike', label: '3. VITTORIA & REGOLE', icon: '🏆' },
-            { id: 'jokers', label: '4. JOLLY & UNO', icon: '🃏' },
+            { id: 'briscola', label: 'BRISCOLA', icon: '🎴' },
+            { id: 'points', label: 'PUNTI', icon: '⭐' },
+            { id: 'roguelike', label: 'VITTORIA', icon: '🏆' },
+            { id: 'jokers', label: 'JOLLY', icon: '🃏' },
           ].map((t) => (
             <button
               type="button"
@@ -73,7 +73,7 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ isOpen, onClose })
               }`}
             >
               <span className="text-xs sm:text-sm">{t.icon}</span>
-              <span className="truncate max-w-full">{t.label}</span>
+              <span className="leading-tight text-center break-words">{t.label}</span>
             </button>
           ))}
         </div>
