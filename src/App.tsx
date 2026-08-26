@@ -230,6 +230,22 @@ export function App() {
     return timer;
   }, []);
 
+  // Synchronized state refs to eliminate asynchronous closure staleness
+  const playerHandRef = useRef<PlayingCard[]>(playerHand);
+  playerHandRef.current = playerHand;
+  const opponentHandRef = useRef<PlayingCard[]>(opponentHand);
+  opponentHandRef.current = opponentHand;
+  const drawPileRef = useRef<PlayingCard[]>(drawPile);
+  drawPileRef.current = drawPile;
+  const trumpCardRef = useRef<PlayingCard | null>(trumpCard);
+  trumpCardRef.current = trumpCard;
+  const briscolaSuitRef = useRef<Suit>(briscolaSuit);
+  briscolaSuitRef.current = briscolaSuit;
+  const activeBossRef = useRef<BossBlind | null>(activeBoss);
+  activeBossRef.current = activeBoss;
+  const isReverseActiveRef = useRef<boolean>(isReverseActive);
+  isReverseActiveRef.current = isReverseActive;
+
   useEffect(() => {
     return () => {
       activeTimersRef.current.forEach(clearTimeout);
@@ -262,6 +278,7 @@ export function App() {
     setCapturedDenariRanksThisRound(new Set());
     setActiveUnoMultiplier(1.0);
     setIsReverseActive(false);
+    isReverseActiveRef.current = false;
     setTallyData(null);
 
     // Calculate Target Score for this round
@@ -276,10 +293,12 @@ export function App() {
       bossToSet = ALL_BOSS_BLINDS.find((b) => b.ante === currentAnte) || ALL_BOSS_BLINDS[0];
       baseTarget *= BOSS_RULES.getTargetScoreMultiplier(bossToSet);
       setActiveBoss(bossToSet);
+      activeBossRef.current = bossToSet;
       setOpponentSpeech(bossToSet.bossQuote);
       sound.playBossAlarm();
     } else {
       setActiveBoss(null);
+      activeBossRef.current = null;
       const normalQuotes = [
         'Vediamo cosa sai fare con queste carte!',
         'Sul tavolo del Bar Sport non si fanno sconti.',
@@ -300,6 +319,12 @@ export function App() {
     // Prepare Round Deal from persistent runDeck
     const { roundDrawPile, trumpCard: dealTrump, briscolaSuit: dealSuit, playerHand: pHand, opponentHand: oHand } =
       prepareRoundDeck(currentRunDeck);
+
+    playerHandRef.current = pHand;
+    opponentHandRef.current = oHand;
+    drawPileRef.current = roundDrawPile;
+    trumpCardRef.current = dealTrump;
+    briscolaSuitRef.current = dealSuit;
 
     setDrawPile(roundDrawPile);
     setTrumpCard(dealTrump);
@@ -364,90 +389,104 @@ export function App() {
   };
 
   // --- Opponent Lead AI ---
-  const triggerOpponentLead = useCallback(() => {
-    if (opponentHand.length === 0) return;
+  const triggerOpponentLead = (overrideHand?: PlayingCard[], overrideSuit?: Suit) => {
+    const currentHand = overrideHand || opponentHandRef.current;
+    const currentSuit = overrideSuit || briscolaSuitRef.current;
+
+    if (currentHand.length === 0) {
+      // If opponent hand is empty, ensure player turn is restored
+      setIsPlayerTurn(true);
+      setTrickPhase('idle');
+      return;
+    }
 
     // AI selects a smart lead card (prefers low point liscia of non-briscola)
-    let leadCandidates = opponentHand.filter((c) => c.suit !== briscolaSuit);
-    if (leadCandidates.length === 0) leadCandidates = opponentHand;
+    let leadCandidates = currentHand.filter((c) => c.suit !== currentSuit);
+    if (leadCandidates.length === 0) leadCandidates = currentHand;
 
     // Sort by lowest points then lowest power
     leadCandidates.sort((a, b) => a.points - b.points || a.power - b.power);
     const chosenCard = leadCandidates[0];
 
-    const nextHand = opponentHand.filter((c) => c.id !== chosenCard.id);
+    const nextHand = currentHand.filter((c) => c.id !== chosenCard.id);
+    opponentHandRef.current = nextHand;
     setOpponentHand(nextHand);
     setOpponentTrickCard(chosenCard);
     sound.playCardSlam();
 
     setIsPlayerTurn(true);
     setTrickPhase('waiting_player_follow');
-  }, [opponentHand, briscolaSuit]);
+  };
 
   // --- Opponent Follow AI ---
-  const triggerOpponentFollow = useCallback(
-    (playerCardPlayed: PlayingCard) => {
-      if (opponentHand.length === 0) return;
+  const triggerOpponentFollow = (playerCardPlayed: PlayingCard, overrideHand?: PlayingCard[]) => {
+    const currentHand = overrideHand || opponentHandRef.current;
+    const currentSuit = briscolaSuitRef.current;
 
-      // Smart Briscola follow logic
-      const isPlayerBriscola = playerCardPlayed.suit === briscolaSuit;
-      let chosenCard: PlayingCard;
+    if (currentHand.length === 0) {
+      // Fallback: resolve clash immediately if opponent has no cards
+      resolveCurrentClash(playerCardPlayed, playerCardPlayed, true);
+      return;
+    }
 
-      const sameSuitCards = opponentHand.filter((c) => c.suit === playerCardPlayed.suit);
-      const briscolaCards = opponentHand.filter((c) => c.suit === briscolaSuit);
-      const winningSameSuit = sameSuitCards.filter((c) => c.power > playerCardPlayed.power);
+    // Smart Briscola follow logic
+    const isPlayerBriscola = playerCardPlayed.suit === currentSuit;
+    let chosenCard: PlayingCard;
 
-      if (!isPlayerBriscola) {
-        if (winningSameSuit.length > 0) {
-          // Take with cheapest winning same-suit card
-          winningSameSuit.sort((a, b) => a.power - b.power);
-          chosenCard = winningSameSuit[0];
-        } else if (playerCardPlayed.points >= 10 && briscolaCards.length > 0) {
-          // High carico from player: cut with lowest briscola!
-          briscolaCards.sort((a, b) => a.power - b.power);
-          chosenCard = briscolaCards[0];
-        } else {
-          // Throw lowest liscia of different suit
-          const throwaways = opponentHand.filter((c) => c.suit !== briscolaSuit);
-          if (throwaways.length > 0) {
-            throwaways.sort((a, b) => a.points - b.points || a.power - b.power);
-            chosenCard = throwaways[0];
-          } else {
-            const sorted = [...opponentHand].sort((a, b) => a.power - b.power);
-            chosenCard = sorted[0];
-          }
-        }
+    const sameSuitCards = currentHand.filter((c) => c.suit === playerCardPlayed.suit);
+    const briscolaCards = currentHand.filter((c) => c.suit === currentSuit);
+    const winningSameSuit = sameSuitCards.filter((c) => c.power > playerCardPlayed.power);
+
+    if (!isPlayerBriscola) {
+      if (winningSameSuit.length > 0) {
+        // Take with cheapest winning same-suit card
+        winningSameSuit.sort((a, b) => a.power - b.power);
+        chosenCard = winningSameSuit[0];
+      } else if (playerCardPlayed.points >= 10 && briscolaCards.length > 0) {
+        // High carico from player: cut with lowest briscola!
+        briscolaCards.sort((a, b) => a.power - b.power);
+        chosenCard = briscolaCards[0];
       } else {
-        // Player led with Briscola
-        const winningBriscola = briscolaCards.filter((c) => c.power > playerCardPlayed.power);
-        if (winningBriscola.length > 0) {
-          winningBriscola.sort((a, b) => a.power - b.power);
-          chosenCard = winningBriscola[0];
+        // Throw lowest liscia of different suit
+        const throwaways = currentHand.filter((c) => c.suit !== currentSuit);
+        if (throwaways.length > 0) {
+          throwaways.sort((a, b) => a.points - b.points || a.power - b.power);
+          chosenCard = throwaways[0];
         } else {
-          // Throw lowest non-briscola
-          const nonBriscola = opponentHand.filter((c) => c.suit !== briscolaSuit);
-          if (nonBriscola.length > 0) {
-            nonBriscola.sort((a, b) => a.points - b.points || a.power - b.power);
-            chosenCard = nonBriscola[0];
-          } else {
-            const sorted = [...opponentHand].sort((a, b) => a.power - b.power);
-            chosenCard = sorted[0];
-          }
+          const sorted = [...currentHand].sort((a, b) => a.power - b.power);
+          chosenCard = sorted[0];
         }
       }
+    } else {
+      // Player led with Briscola
+      const winningBriscola = briscolaCards.filter((c) => c.power > playerCardPlayed.power);
+      if (winningBriscola.length > 0) {
+        winningBriscola.sort((a, b) => a.power - b.power);
+        chosenCard = winningBriscola[0];
+      } else {
+        // Throw lowest non-briscola
+        const nonBriscola = currentHand.filter((c) => c.suit !== currentSuit);
+        if (nonBriscola.length > 0) {
+          nonBriscola.sort((a, b) => a.points - b.points || a.power - b.power);
+          chosenCard = nonBriscola[0];
+        } else {
+          const sorted = [...currentHand].sort((a, b) => a.power - b.power);
+          chosenCard = sorted[0];
+        }
+      }
+    }
 
-      const nextHand = opponentHand.filter((c) => c.id !== chosenCard.id);
-      setOpponentHand(nextHand);
-      setOpponentTrickCard(chosenCard);
-      sound.playCardSlam();
+    const nextHand = currentHand.filter((c) => c.id !== chosenCard.id);
+    opponentHandRef.current = nextHand;
+    setOpponentHand(nextHand);
+    setOpponentTrickCard(chosenCard);
+    sound.playCardSlam();
 
-      // Proceed to trick resolution
-      scheduleAction(() => {
-        resolveCurrentClash(playerCardPlayed, chosenCard, true);
-      }, 550);
-    },
-    [opponentHand, briscolaSuit, scheduleAction]
-  );
+    // Proceed to trick resolution
+    scheduleAction(() => {
+      resolveCurrentClash(playerCardPlayed, chosenCard, true);
+    }, 550);
+  };
 
   // --- Resolve Trick Clash ---
   const resolveCurrentClash = (
@@ -605,25 +644,32 @@ export function App() {
     const newTricksPlayed = tricksPlayedInRound + 1;
     setTricksPlayedInRound(newTricksPlayed);
 
-    // 2. Deal next cards
+    // 2. Deal next cards using latest refs
     const { newPlayerHand, newOpponentHand, newDrawPile, newTrumpCard } = drawNextTrickCards(
       playerWon,
-      drawPile,
-      trumpCard,
-      playerHand,
-      opponentHand
+      drawPileRef.current,
+      trumpCardRef.current,
+      playerHandRef.current,
+      opponentHandRef.current
     );
+
+    playerHandRef.current = newPlayerHand;
+    opponentHandRef.current = newOpponentHand;
+    drawPileRef.current = newDrawPile;
+    trumpCardRef.current = newTrumpCard;
 
     setPlayerHand(newPlayerHand);
     setOpponentHand(newOpponentHand);
     setDrawPile(newDrawPile);
     setTrumpCard(newTrumpCard);
 
+    let nextBriscolaSuit = briscolaSuitRef.current;
     // Check boss rotating briscola
-    if (BOSS_RULES.shouldRotateBriscola(newTricksPlayed, activeBoss)) {
-      const newSuit = BOSS_RULES.getRotatedBriscolaSuit(briscolaSuit);
-      setBriscolaSuit(newSuit);
-      setOpponentSpeech(`La Fattucchiera ha cambiato la Briscola in ${newSuit.toUpperCase()}!`);
+    if (BOSS_RULES.shouldRotateBriscola(newTricksPlayed, activeBossRef.current)) {
+      nextBriscolaSuit = BOSS_RULES.getRotatedBriscolaSuit(nextBriscolaSuit);
+      briscolaSuitRef.current = nextBriscolaSuit;
+      setBriscolaSuit(nextBriscolaSuit);
+      setOpponentSpeech(`La Fattucchiera ha cambiato la Briscola in ${nextBriscolaSuit.toUpperCase()}!`);
       sound.playBoosterRip();
     }
 
@@ -633,9 +679,10 @@ export function App() {
     setTallyData(null);
     setActiveUnoMultiplier(1.0);
     setIsReverseActive(false);
+    isReverseActiveRef.current = false;
 
     // Pick new disabled joker if debuff active
-    setDisabledJokerIndex(BOSS_RULES.getDisabledJokerIndex(activeBoss, activeJokers.length));
+    setDisabledJokerIndex(BOSS_RULES.getDisabledJokerIndex(activeBossRef.current, activeJokers.length));
 
     // 3. Check if Round Finished
     const roundEnded = isRoundFinished(newPlayerHand, newOpponentHand, newDrawPile, newTrumpCard);
@@ -758,10 +805,10 @@ export function App() {
       setTrickPhase('idle');
 
       if (!playerWon) {
-        // Opponent's turn to lead
+        // Opponent's turn to lead - pass the freshly dealt hand and suit directly!
         scheduleAction(() => {
-          triggerOpponentLead();
-        }, 750);
+          triggerOpponentLead(newOpponentHand, nextBriscolaSuit);
+        }, 700);
       }
     }
   };
@@ -773,7 +820,7 @@ export function App() {
 
     // Check Boss lead restriction (e.g. Alchimista Oscuro)
     if (opponentTrickCard === null) {
-      const bossCheck = BOSS_RULES.canPlayerLeadCard(card, activeBoss);
+      const bossCheck = BOSS_RULES.canPlayerLeadCard(card, activeBossRef.current);
       if (!bossCheck.allowed) {
         sound.playTrickLose();
         setOpponentSpeech(bossCheck.reason || 'Mossa non consentita!');
@@ -783,7 +830,8 @@ export function App() {
 
     sound.playCardSlam();
 
-    const nextPlayerHand = playerHand.filter((c) => c.id !== card.id);
+    const nextPlayerHand = playerHandRef.current.filter((c) => c.id !== card.id);
+    playerHandRef.current = nextPlayerHand;
     setPlayerHand(nextPlayerHand);
     setPlayerTrickCard(card);
 
@@ -793,8 +841,8 @@ export function App() {
       setTrickPhase('resolving');
 
       scheduleAction(() => {
-        triggerOpponentFollow(card);
-      }, 650);
+        triggerOpponentFollow(card, opponentHandRef.current);
+      }, 600);
     } else {
       // Player responded to opponent's lead
       setTrickPhase('resolving');
@@ -809,9 +857,17 @@ export function App() {
   const handleDiscardCard = (card: PlayingCard) => {
     if (discardsLeft <= 0 || trickPhase !== 'idle' || !isPlayerTurn) return;
 
-    const res = performExchangeDiscard(card, playerHand, drawPile, trumpCard);
+    const res = performExchangeDiscard(
+      card,
+      playerHandRef.current,
+      drawPileRef.current,
+      trumpCardRef.current
+    );
     if (res.success) {
       sound.playCardSelect();
+      playerHandRef.current = res.newPlayerHand;
+      drawPileRef.current = res.newDrawPile;
+      trumpCardRef.current = res.newTrumpCard;
       setPlayerHand(res.newPlayerHand);
       setDrawPile(res.newDrawPile);
       setTrumpCard(res.newTrumpCard);
@@ -826,21 +882,27 @@ export function App() {
     const ctx = {
       unoCard,
       targetCard,
-      drawPile,
-      playerHand,
-      opponentHand,
-      briscolaSuit,
+      drawPile: drawPileRef.current,
+      playerHand: playerHandRef.current,
+      opponentHand: opponentHandRef.current,
+      briscolaSuit: briscolaSuitRef.current,
       money,
       discardsLeft,
       activeJokers,
       maxJokers,
       currentRoundScore,
-      bossDebuffActive: activeBoss !== null,
+      bossDebuffActive: activeBossRef.current !== null,
       activeUnoMultiplier,
-      isReverseActive,
+      isReverseActive: isReverseActiveRef.current,
     };
 
     const res = executeUnoCard(ctx);
+
+    playerHandRef.current = res.newPlayerHand;
+    opponentHandRef.current = res.newOpponentHand;
+    drawPileRef.current = res.newDrawPile;
+    briscolaSuitRef.current = res.newBriscolaSuit;
+    isReverseActiveRef.current = res.newIsReverseActive;
 
     setDrawPile(res.newDrawPile);
     setPlayerHand(res.newPlayerHand);

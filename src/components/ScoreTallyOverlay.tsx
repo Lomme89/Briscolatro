@@ -29,12 +29,23 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
   const [displayTotal, setDisplayTotal] = useState(0);
   const [phase, setPhase] = useState<'chips' | 'mult' | 'impact' | 'done'>('chips');
 
+  const onCompleteRef = React.useRef(onComplete);
+  onCompleteRef.current = onComplete;
+  const completedRef = React.useRef(false);
+
+  const triggerCompletion = React.useCallback(() => {
+    if (!completedRef.current) {
+      completedRef.current = true;
+      onCompleteRef.current();
+    }
+  }, []);
+
   useEffect(() => {
     if (!playerWon) {
       sound.playTrickLose();
       const timer = setTimeout(() => {
-        onComplete();
-      }, 1000);
+        triggerCompletion();
+      }, 900);
       return () => clearTimeout(timer);
     }
 
@@ -53,7 +64,7 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
     }, 45);
 
     return () => clearInterval(chipsInterval);
-  }, [chips, mult, finalScore, playerWon, onComplete]);
+  }, [chips, playerWon, triggerCompletion]);
 
   useEffect(() => {
     if (phase !== 'mult') return;
@@ -92,11 +103,11 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
 
     const timer = setTimeout(() => {
       setPhase('done');
-      onComplete();
-    }, 750);
+      triggerCompletion();
+    }, 700);
 
     return () => clearTimeout(timer);
-  }, [phase, finalScore, currentTotalScore, targetScore, onComplete]);
+  }, [phase, finalScore, currentTotalScore, targetScore, triggerCompletion]);
 
   if (!playerWon) {
     return (
