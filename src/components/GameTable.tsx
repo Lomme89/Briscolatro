@@ -495,7 +495,7 @@ export const GameTable: React.FC<GameTableProps> = ({
               {deckCount > 0 ? (
                 <div className="relative z-10 mr-1">
                   <PixelCard
-                    card={playerHand[0] || trumpCard!}
+                    card={trumpCard ?? playerHand[0] ?? null}
                     faceDown={true}
                     size="xs"
                   />

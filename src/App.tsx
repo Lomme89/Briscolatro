@@ -1266,9 +1266,13 @@ export function App() {
             setOpponentSpeech(boss.bossQuote);
           }}
           onJumpToEndgame={() => {
-            // Leave only 2 cards in deck to test endgame
-            if (drawPile.length > 2) {
-              setDrawPile((prev) => prev.slice(0, 2));
+            // Leave an EVEN number of drawable cards (stock + face-up trump), or
+            // the two hands end the round with different sizes.
+            const target = trumpCard ? 3 : 4;
+            if (drawPile.length > target) {
+              const trimmed = drawPile.slice(0, target);
+              drawPileRef.current = trimmed;
+              setDrawPile(trimmed);
             }
           }}
           onWinRound={() => {

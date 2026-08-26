@@ -9,7 +9,7 @@ import { useCardStyle } from '../context/CardStyleContext';
 import { getCardStyleDefinition } from '../data/cardStyles';
 
 interface PixelCardProps {
-  card: PlayingCard;
+  card: PlayingCard | null | undefined;
   onClick?: () => void;
   selected?: boolean;
   disabled?: boolean;
@@ -49,6 +49,10 @@ export const PixelCard: React.FC<PixelCardProps> = ({
   const { hasCustomDeck } = useSpritesheet();
   const activeStyleId = style || globalStyle || 'classic';
   const styleDef = getCardStyleDefinition(activeStyleId);
+
+  // A missing card used to crash the whole table: the face-down deck stack was
+  // rendered from playerHand[0], which is empty once the last cards are played.
+  if (!card) return null;
 
   const info = RANK_INFO[card.rank] || {
     name: `Carta ${card.rank}`,
