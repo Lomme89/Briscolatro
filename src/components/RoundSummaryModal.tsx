@@ -21,6 +21,8 @@ export interface RoundSummaryData {
   bossAvatar?: string;
   cashEarned: number;
   interestEarned: number;
+  /** Cash bonus for taking more than 60 of the 120 Briscola points. */
+  briscolaBonus: number;
   capturedCarichi: { rank: number; suit: string; points: number }[];
   activeJokersCount: number;
 }
@@ -157,7 +159,7 @@ export const RoundSummaryModal: React.FC<RoundSummaryModalProps> = ({
             <span className="text-amber-400 font-bold flex items-center gap-1">
               <span>🃏</span> PUNTI MAZZO BRISCOLA (120 TOTALI)
             </span>
-            <span className="text-[9px] text-slate-400 font-retro">Quota vittoria classica: 61 pt</span>
+            <span className="text-[9px] text-slate-400 font-retro">Maggioranza a 61 pt: bonus +$4</span>
           </div>
 
           {/* Dual VS Bar */}
@@ -212,7 +214,7 @@ export const RoundSummaryModal: React.FC<RoundSummaryModalProps> = ({
           </div>
           <div className="flex justify-between text-[7.5px] font-pixel text-slate-400 px-1">
             <span>Tu: {data.playerTrickPoints}/120</span>
-            <span className="text-amber-400">Soglia: 61 pt</span>
+            <span className="text-amber-400">Bonus a 61 pt</span>
             <span>Avversario: {data.opponentTrickPoints}/120</span>
           </div>
         </div>
@@ -233,9 +235,15 @@ export const RoundSummaryModal: React.FC<RoundSummaryModalProps> = ({
                 <span className="text-green-400 font-bold">+${data.interestEarned}</span>
               </div>
             )}
+            {data.briscolaBonus > 0 && (
+              <div className="flex justify-between text-orange-200 text-[10px]">
+                <span>🎴 Maggioranza Briscola (&gt;60):</span>
+                <span className="text-green-400 font-bold">+${data.briscolaBonus}</span>
+              </div>
+            )}
             <div className="pt-1 border-t border-amber-500/30 flex justify-between font-bold text-xs text-amber-200">
               <span>Incasso Totale:</span>
-              <span className="text-green-300">+${data.cashEarned + data.interestEarned}</span>
+              <span className="text-green-300">+${data.cashEarned + data.interestEarned + data.briscolaBonus}</span>
             </div>
           </div>
         )}

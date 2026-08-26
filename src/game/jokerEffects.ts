@@ -16,6 +16,13 @@ export interface JokerScoringContext {
   disabledJokerIndex: number | null;
 }
 
+/** Permanent growth a joker earned this trick, kept for the rest of the run. */
+export interface JokerStatGrowth {
+  jokerId: string;
+  addMult?: number;
+  addChips?: number;
+}
+
 export interface JokerScoringModifier {
   chipsToAdd: number;
   multToAdd: number;
@@ -23,6 +30,7 @@ export interface JokerScoringModifier {
   dollarsToAdd: number;
   triggeredJokerIds: string[];
   transmutedCard?: { suit: Suit; edition: 'foil' };
+  statGrowth: JokerStatGrowth[];
 }
 
 export const JOKER_EFFECTS = {
@@ -38,6 +46,7 @@ export const JOKER_EFFECTS = {
     let xMultToMultiply = 1.0;
     let dollarsToAdd = 0;
     const triggeredJokerIds: string[] = [];
+    const statGrowth: JokerStatGrowth[] = [];
     let transmutedCard: { suit: Suit; edition: 'foil' } | undefined = undefined;
 
     const {
@@ -84,8 +93,10 @@ export const JOKER_EFFECTS = {
       }
 
       if (joker.id === 'j_sovrano_briscolatro') {
-        chipsToAdd += 100;
+        // A legendary should be an engine by itself, not a slightly bigger common.
+        chipsToAdd += 100 + (joker.stats?.accumulatedChips || 0);
         xMultToMultiply *= 1.5;
+        if (clashResult.playerWon) statGrowth.push({ jokerId: joker.id, addChips: 25 });
         didTrigger = true;
       }
 
@@ -162,27 +173,44 @@ export const JOKER_EFFECTS = {
             break;
           }
 
-          case 'j_strega_vesuvio':
-            // Accumulates +1 Mult for each trick won during this round (at least 1)
-            multToAdd += Math.max(1, tricksWonThisRound + 1);
-            didTrigger = true;
-            break;
-
-          case 'j_barone_briscola':
-            // +30 Chips per streak count
-            if (consecutiveWinStreak > 0) {
-              chipsToAdd += (consecutiveWinStreak + 1) * 30;
-              didTrigger = true;
+          case 'j_strega_vesuvio': {
+            // Grows for the whole RUN: without a source of permanent scaling the
+            // player's power plateaus after two jokers while the target keeps
+            // climbing, and the late antes become unreachable by arithmetic.
+            // Conditional on purpose - unconditional growth outruns any curve.
+            const banked = joker.stats?.accumulatedMult || 0;
+            multToAdd += banked;
+            const tookBriscola =
+              clashResult.playerIsBriscola || clashResult.opponentIsBriscola;
+            if (tookBriscola) {
+              multToAdd += 1;
+              statGrowth.push({ jokerId: joker.id, addMult: 1 });
             }
+            didTrigger = banked > 0 || tookBriscola;
             break;
+          }
+
+          case 'j_barone_briscola': {
+            // Permanent chip growth, earned by taking tricks back to back.
+            const banked = joker.stats?.accumulatedChips || 0;
+            chipsToAdd += banked;
+            if (consecutiveWinStreak > 0) {
+              chipsToAdd += 30;
+              statGrowth.push({ jokerId: joker.id, addChips: 10 });
+            }
+            didTrigger = banked > 0 || consecutiveWinStreak > 0;
+            break;
+          }
 
           case 'j_napola_cosmica': {
             // Check if player has captured or played 1, 2, and 3 of Denari this round
             const has1 = capturedDenariRanksThisRound.has(1) || (playerCard.suit === 'denari' && playerCard.rank === 1) || (opponentCard.suit === 'denari' && opponentCard.rank === 1);
             const has2 = capturedDenariRanksThisRound.has(2) || (playerCard.suit === 'denari' && playerCard.rank === 2) || (opponentCard.suit === 'denari' && opponentCard.rank === 2);
             const has3 = capturedDenariRanksThisRound.has(3) || (playerCard.suit === 'denari' && playerCard.rank === 3) || (opponentCard.suit === 'denari' && opponentCard.rank === 3);
+            const grownNapola = 1 + (joker.stats?.accumulatedMult || 0) / 20;
             if (has1 && has2 && has3) {
-              xMultToMultiply *= joker.xMultBonus || 3.0;
+              xMultToMultiply *= (joker.xMultBonus || 3.0) * grownNapola;
+              statGrowth.push({ jokerId: joker.id, addMult: 1 });
               didTrigger = true;
             }
             break;
@@ -193,13 +221,21 @@ export const JOKER_EFFECTS = {
             didTrigger = true;
             break;
 
-          case 'j_duellante':
-            // Last 3 tricks of the match
+          case 'j_duellante': {
+            // A rare that BUILDS: every endgame trick it takes is worth a
+            // permanent sliver of xMult. Multiplicative growth is the only thing
+            // that keeps pace with the late blinds.
+            const grown = 1 + (joker.stats?.accumulatedMult || 0) / 10;
             if (remainingTricksCount <= 3) {
-              xMultToMultiply *= joker.xMultBonus || 2.5;
+              xMultToMultiply *= (joker.xMultBonus || 2.5) * grown;
+              statGrowth.push({ jokerId: joker.id, addMult: 1 });
+              didTrigger = true;
+            } else if (grown > 1) {
+              xMultToMultiply *= grown;
               didTrigger = true;
             }
             break;
+          }
 
           case 'j_accusa_reale': {
             // Check if player holds Re (10) and Cavallo (9) of the same suit in hand
@@ -252,7 +288,27 @@ export const JOKER_EFFECTS = {
       dollarsToAdd,
       triggeredJokerIds,
       transmutedCard,
+      statGrowth,
     };
+  },
+
+  /**
+   * Banks the permanent growth a trick produced. Returns a new array so the
+   * jokers stay immutable; stats live for the whole run and reset with it.
+   */
+  applyStatGrowth(jokers: Joker[], growth: JokerStatGrowth[]): Joker[] {
+    if (growth.length === 0) return jokers;
+    return jokers.map((joker) => {
+      const earned = growth.filter((g) => g.jokerId === joker.id);
+      if (earned.length === 0) return joker;
+      const stats = { ...(joker.stats || {}) };
+      for (const entry of earned) {
+        if (entry.addMult) stats.accumulatedMult = (stats.accumulatedMult || 0) + entry.addMult;
+        if (entry.addChips) stats.accumulatedChips = (stats.accumulatedChips || 0) + entry.addChips;
+        stats.timesTriggered = (stats.timesTriggered || 0) + 1;
+      }
+      return { ...joker, stats };
+    });
   },
 
   /**

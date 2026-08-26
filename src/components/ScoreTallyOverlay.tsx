@@ -9,6 +9,8 @@ interface ScoreTallyProps {
   finalScore: number;
   trickPoints: number;
   playerWon: boolean;
+  /** Why the base Mult is what it is, e.g. "1 Carico +1", "Briscola +1". */
+  multReasons?: string[];
   onComplete: () => void;
   targetScore: number;
   currentTotalScore: number;
@@ -20,6 +22,7 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
   finalScore,
   trickPoints,
   playerWon,
+  multReasons = [],
   onComplete,
   targetScore,
   currentTotalScore,
@@ -169,6 +172,20 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
             >
               🔥 SUPER COMBO MOLTIPLICATORE ×{mult}!
             </motion.div>
+          )}
+
+          {/* What earned the base Mult: the rule is only learnable if it is shown. */}
+          {multReasons.length > 0 && (
+            <div className="flex flex-wrap items-center justify-center gap-1 mb-1">
+              {multReasons.map((reason) => (
+                <span
+                  key={reason}
+                  className="px-1.5 py-0.5 bg-red-950/80 border border-red-500/60 text-red-200 font-pixel text-[7.5px] rounded uppercase"
+                >
+                  {reason}
+                </span>
+              ))}
+            </div>
           )}
 
           {/* Chips x Mult formula container */}

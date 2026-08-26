@@ -171,28 +171,28 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ isOpen, onClose })
                   <span>🏆</span> COME SI VINCE UNA MANCHE (ROUND)
                 </h3>
                 <p className="leading-relaxed text-slate-200">
-                  A fine smazzata (dopo aver giocato tutte le carte del mazzo), <strong>vinci la manche</strong> se soddisfi <u>almeno una</u> di queste due condizioni:
+                  A fine smazzata (dopo aver giocato tutte le carte del mazzo), <strong>vinci la manche</strong> se hai raggiunto il <strong>Punteggio Target</strong> del Blind. È l'unica condizione.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
                   <div className="bg-slate-900 p-2.5 rounded-lg border border-amber-500/40">
                     <div className="font-pixel text-[9.5px] text-amber-300 font-bold mb-1 flex items-center gap-1">
-                      <span>🎯</span> 1. Punteggio Target
+                      <span>🎯</span> Punteggio Target
                     </div>
                     <p className="text-[11px] text-slate-300 leading-snug">
-                      Superi i punti richiesti dal Blind tramite i <strong>moltiplicatori dei tuoi Jolly</strong> (Chips × Mult). Anche con poche prese vinte, puoi fare migliaia di punti!
+                      Ogni presa vinta vale <strong>Chips × Mult</strong>. Il Mult base dipende da <em>cosa</em> catturi: +1 per ogni Carico (Asso o Tre), +1 se prendi una Figura, +1 se vinci con la Briscola. I Jolly e le carte potenziate fanno il resto.
                     </p>
                   </div>
                   <div className="bg-slate-900 p-2.5 rounded-lg border border-orange-500/40">
                     <div className="font-pixel text-[9.5px] text-orange-300 font-bold mb-1 flex items-center gap-1">
-                      <span>🎴</span> 2. Briscola Classica
+                      <span>🎴</span> Maggioranza Briscola
                     </div>
                     <p className="text-[11px] text-slate-300 leading-snug">
-                      Totalizzi <strong>più di 60 Punti Briscola</strong> su 120 (vincendo la partita di carte tradizionale sul tavolo verde).
+                      Fare <strong>più di 60 Punti Briscola</strong> su 120 non vince la manche, ma paga <strong>+$4</strong>: vincere la partita vera finanzia la tua run.
                     </p>
                   </div>
                 </div>
                 <div className="mt-2 text-[10.5px] text-amber-200 bg-amber-950/40 p-2 rounded border border-amber-500/30">
-                  💡 <em>Curiosità:</em> Anche se l'avversario ha fatto più punti di Briscola di te (es. 70 a 50), se le tue prese hanno attivato Jolly potenti superando l'obiettivo del Blind, <strong>hai vinto la sfida strategica</strong> e passi al Negozio!
+                  💡 <em>Curiosità:</em> puoi perdere la Briscola tradizionale 70 a 50 e vincere lo stesso la manche, se le prese giuste hanno acceso i Jolly. Ma senza carichi e briscole il Mult resta basso: le due cose vanno a braccetto.
                 </div>
               </div>
 
@@ -206,10 +206,7 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ isOpen, onClose })
                 </p>
                 <div className="bg-red-950/40 p-2 rounded-lg border border-red-500/40 text-red-200 text-xs mt-1.5 space-y-1 font-medium">
                   <div className="flex items-start gap-1.5">
-                    <span>❌</span> <span><strong>NON hai raggiunto il Punteggio Target</strong> del Blind, <strong>E</strong></span>
-                  </div>
-                  <div className="flex items-start gap-1.5">
-                    <span>❌</span> <span><strong>Hai fatto 60 o meno Punti di Briscola</strong>.</span>
+                    <span>❌</span> <span><strong>NON hai raggiunto il Punteggio Target</strong> del Blind.</span>
                   </div>
                 </div>
                 <p className="text-[11px] text-slate-400 mt-2">

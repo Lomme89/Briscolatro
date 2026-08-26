@@ -97,6 +97,11 @@ export interface TrickClashResult {
   opponentEffectiveSuit: Suit;
 }
 
+/** Stone cards have no suit at all: they match nothing and are never trump. */
+function isStone(card: PlayingCard): boolean {
+  return card.enhancement === 'stone';
+}
+
 function effectiveSuit(
   card: PlayingCard,
   briscolaSuit: Suit,
@@ -147,15 +152,18 @@ export function resolveTrick(
 
   const leadSuit = effectiveSuit(leadCard, briscolaSuit, leadBelongsToOpponent, bossDebuff);
   const followSuit = effectiveSuit(followCard, briscolaSuit, followBelongsToOpponent, bossDebuff);
-  const leadIsTrump = leadSuit === briscolaSuit;
-  const followIsTrump = followSuit === briscolaSuit;
+  const leadIsTrump = leadSuit === briscolaSuit && !isStone(leadCard);
+  const followIsTrump = followSuit === briscolaSuit && !isStone(followCard);
+  // A stone card matches no suit, so a trick containing one falls through to
+  // rule 4: the opener keeps it unless the other card is trump.
+  const sameSuit = leadSuit === followSuit && !isStone(leadCard) && !isStone(followCard);
 
   let leadWon: boolean;
   if (leadIsTrump !== followIsTrump) {
     leadWon = leadIsTrump;
   } else if (leadIsTrump && followIsTrump) {
     leadWon = leadWinsPowerComparison(leadCard, followCard, isReverse);
-  } else if (leadSuit === followSuit) {
+  } else if (sameSuit) {
     leadWon = leadWinsPowerComparison(leadCard, followCard, isReverse);
   } else {
     leadWon = true;
@@ -166,8 +174,8 @@ export function resolveTrick(
   const opponentCard = leadIsPlayer ? followCard : leadCard;
   const playerSuit = leadIsPlayer ? leadSuit : followSuit;
   const opponentSuit = leadIsPlayer ? followSuit : leadSuit;
-  const playerIsTrump = playerSuit === briscolaSuit;
-  const opponentIsTrump = opponentSuit === briscolaSuit;
+  const playerIsTrump = playerSuit === briscolaSuit && !isStone(playerCard);
+  const opponentIsTrump = opponentSuit === briscolaSuit && !isStone(opponentCard);
 
   const rawPoints = playerCard.points + opponentCard.points;
   let points = rawPoints;

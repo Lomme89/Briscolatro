@@ -29,12 +29,49 @@ export interface RoundStateSnapshot {
 
 export interface RoundOutcomeResult {
   won: boolean;
+  /** Took more than 60 of the 120 Briscola points: pays a cash bonus. */
+  briscolaMajority: boolean;
+  briscolaBonus: number;
   baseReward: number;
   interest: number;
   totalReward: number;
   newHighScore: boolean;
   newUnlockedDecks: string[];
   isAnte8Victory: boolean;
+}
+
+/**
+ * Blind targets.
+ *
+ * These numbers are measured, not guessed: `src/game/__sim__` plays whole runs
+ * with the real engine, AI and scoring, and each ante is set to roughly a third
+ * to a half of what a reference build scores there. The ratio between antes
+ * shrinks as the run goes on (3.0x early, 1.7x at the end) because the player's
+ * own scaling decelerates once the joker slots are full - a constant multiplier
+ * would either trivialise the mid-game or wall the end of the run.
+ *
+ * Ante 1 keeps the traditional 300: it is beatable with no jokers at all, and it
+ * is the only blind that is.
+ */
+export const ANTE_BASE_TARGETS = [300, 900, 4000, 11000, 28000, 70000, 150000, 300000];
+
+/** Small blind, big blind, boss blind. */
+export const BLIND_TARGET_MULTIPLIERS: Record<number, number> = { 1: 1, 2: 1.5, 3: 2 };
+
+export function getBlindTargetScore(
+  ante: number,
+  round: number,
+  options: { bossMultiplier?: number; deckMultiplier?: number } = {}
+): number {
+  const capped = Math.min(ante, ANTE_BASE_TARGETS.length);
+  let base = ANTE_BASE_TARGETS[capped - 1];
+  // Endless antes beyond the table keep climbing at the final ratio.
+  for (let extra = ANTE_BASE_TARGETS.length; extra < ante; extra++) base *= 1.7;
+
+  const blind = BLIND_TARGET_MULTIPLIERS[round] ?? 1;
+  const boss = options.bossMultiplier ?? 1;
+  const deck = options.deckMultiplier ?? 1;
+  return Math.round(base * blind * boss * deck);
 }
 
 export function createRunDeck(deckDef: DeckDefinition): PlayingCard[] {
@@ -257,11 +294,18 @@ export function calculateRoundOutcome(
   highScore: number,
   unlockedDeckIds: string[]
 ): RoundOutcomeResult {
-  const won = snapshot.currentRoundScore >= snapshot.targetScore || snapshot.roundPointsTaken > 60;
+  // ONE win condition. Taking the majority of the Briscola points used to be an
+  // alternative victory, which made the target score decorative at low antes and
+  // the only survivable route at high ones; neither number carried any tension.
+  // The Briscola match is now scored for money instead: it still decides how the
+  // run is funded, without deciding the blind.
+  const won = snapshot.currentRoundScore >= snapshot.targetScore;
+  const briscolaMajority = snapshot.roundPointsTaken > 60;
+  const briscolaBonus = briscolaMajority ? 4 : 0;
   const baseReward = 4 + snapshot.ante;
   const interestCap = snapshot.vouchers.some((voucher) => voucher.id === 'v_interessi' && voucher.bought) ? 10 : 5;
   const interest = Math.min(interestCap, Math.floor(snapshot.money / 5));
-  const totalReward = won ? baseReward + interest : 0;
+  const totalReward = won ? baseReward + interest + briscolaBonus : 0;
   const newHighScore = snapshot.totalScore > highScore;
 
   const newUnlockedDecks: string[] = [];
@@ -271,6 +315,8 @@ export function calculateRoundOutcome(
 
   return {
     won,
+    briscolaMajority,
+    briscolaBonus,
     baseReward,
     interest,
     totalReward,

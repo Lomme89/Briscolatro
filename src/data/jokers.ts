@@ -151,7 +151,7 @@ export const ALL_JOKERS: Joker[] = [
     id: 'j_strega_vesuvio',
     name: 'La Strega del Vesuvio',
     italianTitle: 'Sortilegio Vesuviano',
-    description: 'Guadagna permanentemente +1 Moltiplicatore per ogni presa vinta (si accumula durante il round).',
+    description: '+1 Mult PERMANENTE per ogni presa che contiene una Briscola. Non si azzera tra i round.',
     rarity: 'uncommon',
     cost: 6,
     sellValue: 3,
@@ -165,7 +165,7 @@ export const ALL_JOKERS: Joker[] = [
     id: 'j_barone_briscola',
     name: 'Il Barone di Briscola',
     italianTitle: 'Il Dominatore del Banco',
-    description: '+30 Chips per ogni presa consecutiva vinta in questo round.',
+    description: '+30 Chips sulle prese consecutive e +10 Chips PERMANENTI ogni volta che ne incateni una.',
     rarity: 'uncommon',
     cost: 6,
     sellValue: 3,
@@ -207,7 +207,7 @@ export const ALL_JOKERS: Joker[] = [
     id: 'j_napola_cosmica',
     name: 'La Napola Cosmica',
     italianTitle: 'Tris di Denari (1, 2, 3)',
-    description: 'Se hai giocato o catturato Asso, Due e Tre di Denari: x3.0 Moltiplicatore Globale!',
+    description: 'Asso, Due e Tre di Denari catturati: x3.0 Mult, e la combo cresce di x0.05 ogni volta che scatta.',
     rarity: 'rare',
     cost: 8,
     sellValue: 4,
@@ -234,7 +234,7 @@ export const ALL_JOKERS: Joker[] = [
     id: 'j_duellante',
     name: 'Il Duellante Finale',
     italianTitle: 'Ultimo Respiro',
-    description: 'Nelle ultime 3 prese della partita, tutti i punteggi ricevono x2.5 Moltiplicatore!',
+    description: 'x2.5 Mult nelle ultime 3 prese, e ogni finale vinto lo potenzia di x0.1 in modo permanente.',
     rarity: 'rare',
     cost: 8,
     sellValue: 4,
@@ -292,7 +292,7 @@ export const ALL_JOKERS: Joker[] = [
     id: 'j_sovrano_briscolatro',
     name: 'Il Sovrano di Briscolatro',
     italianTitle: 'La Leggenda del Bar',
-    description: 'Tutte le carte giocate guadagnano +100 Chips e x1.5 Mult. I Carichi (Assi e Tre) valgono il doppio.',
+    description: 'Tutte le carte giocate: +100 Chips e x1.5 Mult. Ogni presa vinta gli aggiunge +25 Chips PERMANENTI.',
     rarity: 'legendary',
     cost: 12,
     sellValue: 6,
@@ -319,8 +319,12 @@ export const ALL_JOKERS: Joker[] = [
   }
 ];
 
+/**
+ * Always hands out copies with their own `stats`: jokers that grow during a run
+ * must never write back into the shared catalogue.
+ */
 export function getRandomJokers(count: number, excludedIds: string[] = []): Joker[] {
   const available = ALL_JOKERS.filter(j => !excludedIds.includes(j.id));
   const shuffled = [...available].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, count);
+  return shuffled.slice(0, count).map(j => ({ ...j, stats: { ...(j.stats || {}) } }));
 }

@@ -18,6 +18,7 @@ import { ALL_UNO_CARDS, ALL_VOUCHERS } from './data/unoCards';
 import {
   createRunDeck,
   addCardToRunDeck,
+  getBlindTargetScore,
   prepareRoundDeck,
   performExchangeDiscard,
   drawNextTrickCards,
@@ -300,17 +301,10 @@ export function App() {
     forcedTrickWinRef.current = false;
     setTallyData(null);
 
-    // Calculate Target Score for this round
-    let baseTarget = 300 * Math.pow(1.8, currentAnte - 1);
-    if (currentRoundNum === 2) baseTarget *= 1.4;
-    if (currentRoundNum === 3) baseTarget *= 1.8;
-    if (deckDef.specialDeckPerk === 'high_stakes_vision') baseTarget *= 1.25;
-
     // Check if Boss round (Round 3)
     let bossToSet: BossBlind | null = null;
     if (currentRoundNum === 3) {
       bossToSet = ALL_BOSS_BLINDS.find((b) => b.ante === currentAnte) || ALL_BOSS_BLINDS[0];
-      baseTarget *= BOSS_RULES.getTargetScoreMultiplier(bossToSet);
       setActiveBoss(bossToSet);
       activeBossRef.current = bossToSet;
       setOpponentSpeech(bossToSet.bossQuote);
@@ -327,7 +321,10 @@ export function App() {
       setOpponentSpeech(normalQuotes[Math.floor(Math.random() * normalQuotes.length)]);
     }
 
-    const finalTarget = Math.round(baseTarget);
+    const finalTarget = getBlindTargetScore(currentAnte, currentRoundNum, {
+      bossMultiplier: BOSS_RULES.getTargetScoreMultiplier(bossToSet),
+      deckMultiplier: deckDef.specialDeckPerk === 'high_stakes_vision' ? 1.25 : 1,
+    });
     setTargetScore(finalTarget);
 
     // Reset Discards
@@ -394,7 +391,7 @@ export function App() {
     const startJokers: Joker[] = [];
     deck.startingJokers.forEach((jId) => {
       const found = ALL_JOKERS.find((j) => j.id === jId);
-      if (found) startJokers.push({ ...found });
+      if (found) startJokers.push({ ...found, stats: {} });
     });
     setActiveJokers(startJokers);
     setConsumables([]);
@@ -527,6 +524,32 @@ export function App() {
         activeUnoMultiplier,
         disabledJokerIndex
       );
+
+      // Seals: a blue seal can roll a free UNO card, a purple one refunds a
+      // discard, and a glass card that shattered loses its enhancement for good.
+      const seals = scoreResult.sealEvents;
+      if (seals.extraDiscards > 0) {
+        setDiscardsLeft((d) => d + seals.extraDiscards);
+      }
+      if (seals.spawnUnoCard) {
+        setConsumables((prev) => {
+          if (prev.length >= maxConsumables) return prev;
+          const rolled = ALL_UNO_CARDS[Math.floor(Math.random() * ALL_UNO_CARDS.length)];
+          return [...prev, { ...rolled, id: `${rolled.id}_${Date.now()}` }];
+        });
+        setOpponentSpeech('Sigillo Blu: una carta UNO gratis!');
+      }
+      if (seals.shatteredCardIds.length > 0) {
+        const shattered = new Set(seals.shatteredCardIds);
+        setRunDeck((prev) =>
+          prev.map((c) => (shattered.has(c.id) ? { ...c, enhancement: 'none' as const } : c))
+        );
+      }
+
+      // Bank permanent joker growth for the rest of the run.
+      if (scoreResult.statGrowth.length > 0) {
+        setActiveJokers((prev) => JOKER_EFFECTS.applyStatGrowth(prev, scoreResult.statGrowth));
+      }
 
       if (scoreResult.triggeredJokerIds.length > 0) {
         setTriggeringJokerId(scoreResult.triggeredJokerIds[0]);
@@ -732,6 +755,7 @@ export function App() {
           bossAvatar: activeBoss?.avatar,
           cashEarned: outcome.baseReward,
           interestEarned: outcome.interest,
+          briscolaBonus: outcome.briscolaBonus,
           capturedCarichi: [],
           activeJokersCount: activeJokers.length,
         });
@@ -773,6 +797,7 @@ export function App() {
           bossAvatar: activeBoss?.avatar,
           cashEarned: 0,
           interestEarned: 0,
+          briscolaBonus: 0,
           capturedCarichi: [],
           activeJokersCount: activeJokers.length,
         });
@@ -793,7 +818,7 @@ export function App() {
           deckName: selectedDeck.name,
           newUnlockedDecks: [],
           isNewHighScore: outcome.newHighScore,
-          defeatReason: `Hai totalizzato ${nextSnapshot.currentRoundScore.toLocaleString()} punti (Target: ${targetScore.toLocaleString()}) e ${nextSnapshot.roundPointsTaken}/120 punti Briscola.`,
+          defeatReason: `Hai totalizzato ${nextSnapshot.currentRoundScore.toLocaleString()} punti sui ${targetScore.toLocaleString()} richiesti dal Blind (${nextSnapshot.roundPointsTaken}/120 punti Briscola presi).`,
         });
       }
     } else {
@@ -969,7 +994,7 @@ export function App() {
   const handleBuyJoker = (joker: Joker, cost: number) => {
     if (activeJokers.length >= maxJokers || money < cost) return;
     setMoney((m) => m - cost);
-    setActiveJokers((prev) => [...prev, joker]);
+    setActiveJokers((prev) => [...prev, { ...joker, stats: { ...(joker.stats || {}) } }]);
   };
 
   const handleBuyUnoCard = (unoCard: UnoCard, cost: number) => {
@@ -1190,6 +1215,7 @@ export function App() {
             finalScore={tallyData.finalScore}
             trickPoints={tallyData.trickPoints}
             playerWon={tallyData.playerWon}
+            multReasons={tallyData.scoreResult?.baseMultReasons}
             onComplete={handleTallyComplete}
             targetScore={targetScore}
             currentTotalScore={currentRoundScore}

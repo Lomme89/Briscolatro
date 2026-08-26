@@ -29,6 +29,37 @@ interface ShopViewProps {
   round: number;
 }
 
+/**
+ * Rolls the modifiers on a card offered by a booster.
+ *
+ * Deck upgrades are the second scaling path of the run (the first being
+ * jokers), so a bought card is always worth something: it replaces a card you
+ * already own, and it has to earn that slot.
+ */
+function upgradeBoosterCard(card: PlayingCard): PlayingCard {
+  const next = { ...card };
+  const roll = Math.random();
+
+  if (roll < 0.45) {
+    const edition = Math.random();
+    next.edition = edition < 0.45 ? 'foil' : edition < 0.75 ? 'holo' : edition < 0.92 ? 'polychrome' : 'gold';
+  }
+
+  const enhancementRoll = Math.random();
+  if (enhancementRoll < 0.45) {
+    const e = Math.random();
+    next.enhancement = e < 0.3 ? 'bonus' : e < 0.6 ? 'mult' : e < 0.78 ? 'steel' : e < 0.9 ? 'glass' : 'stone';
+  }
+
+  const sealRoll = Math.random();
+  if (sealRoll < 0.3) {
+    const seal = Math.random();
+    next.seal = seal < 0.4 ? 'red' : seal < 0.68 ? 'gold' : seal < 0.87 ? 'blue' : 'purple';
+  }
+
+  return next;
+}
+
 export const ShopView: React.FC<ShopViewProps> = ({
   money,
   jokers,
@@ -103,16 +134,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
 
     if (pack.type === 'cards' || pack.type === 'celeste') {
       const fullDeck = createStandardDeck();
-      cards = fullDeck.slice(0, pack.packSize).map(c => {
-        const rand = Math.random();
-        if (rand < 0.35) c.edition = 'foil';
-        else if (rand < 0.6) c.edition = 'holo';
-        else if (rand < 0.8) c.edition = 'polychrome';
-        else c.edition = 'gold';
-
-        if (Math.random() < 0.4) c.seal = 'red';
-        return c;
-      });
+      cards = fullDeck.slice(0, pack.packSize).map(c => upgradeBoosterCard(c));
     }
 
     if (pack.type === 'uno' || pack.type === 'tarot' || pack.type === 'celeste') {

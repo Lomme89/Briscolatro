@@ -1,8 +1,21 @@
 import { PlayingCard, Suit, Joker, BossBlind } from '../types/game';
 import { TrickClashResult } from './briscola';
-import { JOKER_EFFECTS, JokerScoringContext } from './jokerEffects';
+import { JOKER_EFFECTS, JokerScoringContext, JokerStatGrowth } from './jokerEffects';
+
+/** Side effects a trick's seals produced, applied by the caller. */
+export interface SealEvents {
+  /** A blue seal rolled a free UNO action card. */
+  spawnUnoCard: boolean;
+  /** A purple seal on the played card refunded a discard. */
+  extraDiscards: number;
+  /** Glass cards that shattered and must lose their enhancement in the run deck. */
+  shatteredCardIds: string[];
+}
 
 export interface TrickScoreCalculation {
+  /** Why base Mult is what it is, for the tally overlay. */
+  baseMultReasons: string[];
+  sealEvents: SealEvents;
   baseChips: number;
   bonusChips: number;
   totalChips: number;
@@ -14,6 +27,7 @@ export interface TrickScoreCalculation {
   bonusDollars: number;
   triggeredJokerIds: string[];
   transmutedCard?: { suit: Suit; edition: 'foil' };
+  statGrowth: JokerStatGrowth[];
 }
 
 export function calculateTrickScore(
@@ -29,7 +43,6 @@ export function calculateTrickScore(
 ): TrickScoreCalculation {
   let baseChips = 20;
   let bonusChips = 0;
-  let baseMult = 1;
   let bonusMult = 0;
   let xMult = activeUnoMultiplier;
   let bonusDollars = 0;
@@ -42,23 +55,91 @@ export function calculateTrickScore(
   // Base chips from card points
   baseChips += playerCard.points * 3;
 
-  // Edition bonuses on player card
-  if (playerCard.edition === 'foil') {
-    bonusChips += 50;
-  } else if (playerCard.edition === 'holo') {
-    bonusMult += 10;
-  } else if (playerCard.edition === 'polychrome') {
-    xMult *= 1.5;
-  } else if (playerCard.edition === 'gold') {
-    bonusDollars += 1;
+  /**
+   * Base Mult is what the trick itself was worth, the way a poker hand's rank is
+   * in Balatro. It used to be a hard-coded 1, which quietly broke the whole
+   * economy: every "+Chips" joker was worthless (chips were never multiplied by
+   * anything) and every "+Mult" joker was a 9x swing on its own.
+   *
+   * Tying it to what you captured also puts the scoring back on top of real
+   * Briscola: carichi and figure are exactly what you are fighting over.
+   */
+  const capturedCards = clashResult.playerWon ? [playerCard, opponentCard] : [];
+  const carichiCaptured = capturedCards.filter((c) => c.rank === 1 || c.rank === 3).length;
+  const figureCaptured = capturedCards.filter((c) => c.rank >= 8 && c.rank <= 10).length;
+  const baseMult =
+    1 +
+    carichiCaptured +
+    (figureCaptured > 0 ? 1 : 0) +
+    (clashResult.playerWon && clashResult.playerIsBriscola ? 1 : 0);
+
+  const sealEvents: SealEvents = { spawnUnoCard: false, extraDiscards: 0, shatteredCardIds: [] };
+
+  // --- The played card's own contribution ---------------------------------
+  // A red seal retriggers it, exactly once, the way Balatro's does.
+  const retriggers = playerCard.seal === 'red' ? 2 : 1;
+
+  for (let pass = 0; pass < retriggers; pass++) {
+    // Editions
+    if (playerCard.edition === 'foil') {
+      bonusChips += 50;
+    } else if (playerCard.edition === 'holo') {
+      bonusMult += 10;
+    } else if (playerCard.edition === 'polychrome') {
+      xMult *= 1.5;
+    } else if (playerCard.edition === 'gold') {
+      bonusDollars += 1;
+    }
+
+    // Enhancements
+    switch (playerCard.enhancement) {
+      case 'bonus':
+        bonusChips += 30;
+        break;
+      case 'mult':
+        bonusMult += 4;
+        break;
+      case 'stone':
+        bonusChips += 50;
+        break;
+      case 'glass':
+        xMult *= 2;
+        break;
+      default:
+        break;
+    }
+
+    // The retrigger repeats the card's point chips too.
+    if (pass > 0) bonusChips += playerCard.points * 3;
+    bonusChips += playerCard.customBonusChips || 0;
+    bonusMult += playerCard.customBonusMult || 0;
   }
 
-  // Edition bonuses on captured opponent card (if player won trick)
+  // Glass is a gamble: 1 in 4 it shatters and loses its enhancement for good.
+  // It never leaves the deck - Briscola needs an even number of cards.
+  if (playerCard.enhancement === 'glass' && Math.random() < 0.25) {
+    sealEvents.shatteredCardIds.push(playerCard.id);
+  }
+
+  if (playerCard.seal === 'purple') sealEvents.extraDiscards += 1;
+
+  // Steel pays for being HELD, not played.
+  for (const held of jokerContext.playerHand) {
+    if (held.enhancement === 'steel') xMult *= 1.5;
+  }
+
+  // --- The captured card ---------------------------------------------------
   if (clashResult.playerWon) {
     if (opponentCard.edition === 'foil') bonusChips += 25;
     if (opponentCard.edition === 'holo') bonusMult += 5;
     if (opponentCard.edition === 'polychrome') xMult *= 1.25;
     if (opponentCard.edition === 'gold') bonusDollars += 2;
+
+    // Seals pay out on capture, on either card in the trick.
+    for (const card of [playerCard, opponentCard]) {
+      if (card.seal === 'gold') bonusDollars += 2;
+      if (card.seal === 'blue' && Math.random() < 0.2) sealEvents.spawnUnoCard = true;
+    }
   }
 
   // Apply Joker effects
@@ -81,7 +162,14 @@ export function calculateTrickScore(
   const totalMult = Math.max(1, Math.round((baseMult + bonusMult) * xMult));
   const finalScore = totalChips * totalMult;
 
+  const baseMultReasons: string[] = [];
+  if (carichiCaptured > 0) baseMultReasons.push(`${carichiCaptured} Carico${carichiCaptured > 1 ? 'i' : ''} +${carichiCaptured}`);
+  if (figureCaptured > 0) baseMultReasons.push('Figura +1');
+  if (clashResult.playerWon && clashResult.playerIsBriscola) baseMultReasons.push('Briscola +1');
+
   return {
+    sealEvents,
+    baseMultReasons,
     baseChips,
     bonusChips,
     totalChips,
@@ -93,5 +181,6 @@ export function calculateTrickScore(
     bonusDollars,
     triggeredJokerIds: jokerMod.triggeredJokerIds,
     transmutedCard: jokerMod.transmutedCard,
+    statGrowth: jokerMod.statGrowth,
   };
 }

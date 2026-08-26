@@ -8,6 +8,18 @@ import { PixelCardSprite, useSpritesheet } from './PixelCardSprite';
 import { useCardStyle } from '../context/CardStyleContext';
 import { getCardStyleDefinition } from '../data/cardStyles';
 
+const ENHANCEMENT_BADGES: Record<
+  Exclude<PlayingCard['enhancement'], 'none'>,
+  { label: string; title: string; className: string }
+> = {
+  bonus: { label: '+30', title: 'Bonus: +30 Chips', className: 'bg-sky-600 text-white border-sky-300' },
+  mult: { label: '+4x', title: 'Mult: +4 Mult', className: 'bg-red-600 text-white border-red-300' },
+  wild: { label: 'JOLLY', title: 'Wild: vale sempre come Briscola', className: 'bg-fuchsia-600 text-white border-fuchsia-300' },
+  glass: { label: 'X2', title: 'Vetro: x2 Mult, 1 su 4 si spezza', className: 'bg-cyan-500 text-slate-900 border-cyan-200' },
+  steel: { label: 'X1.5', title: 'Acciaio: x1.5 Mult mentre resta in mano', className: 'bg-slate-400 text-slate-900 border-slate-200' },
+  stone: { label: 'PIETRA', title: 'Pietra: +50 Chips, nessun seme', className: 'bg-stone-500 text-white border-stone-300' },
+};
+
 interface PixelCardProps {
   card: PlayingCard | null | undefined;
   onClick?: () => void;
@@ -220,6 +232,21 @@ export const PixelCard: React.FC<PixelCardProps> = ({
               🔮
             </span>
           )}
+          {card.seal === 'purple' && (
+            <span className="w-4 h-4 rounded-full bg-purple-600 text-white flex items-center justify-center text-[8px] font-pixel shadow border border-purple-300">
+              🔄
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Enhancement badge: a card you built has to be readable at a glance. */}
+      {card.enhancement !== 'none' && (
+        <div
+          className={`absolute -top-1.5 -left-1.5 z-20 px-1 py-0.5 rounded font-pixel text-[6px] sm:text-[7px] font-bold shadow border ${ENHANCEMENT_BADGES[card.enhancement].className}`}
+          title={ENHANCEMENT_BADGES[card.enhancement].title}
+        >
+          {ENHANCEMENT_BADGES[card.enhancement].label}
         </div>
       )}
 
