@@ -27,7 +27,7 @@ import {
   calculateRoundOutcome,
   RoundStateSnapshot,
 } from './game/gameState';
-import { resolveTrick } from './game/briscola';
+import { createCard, resolveTrick } from './game/briscola';
 import { chooseOpponentFollow, chooseOpponentLead } from './game/ai';
 import { BOSS_RULES } from './game/bossRules';
 import { JOKER_EFFECTS } from './game/jokerEffects';
@@ -36,6 +36,9 @@ import { executeUnoCard } from './game/unoEffects';
 import { sound } from './services/soundEngine';
 
 import { GameTable } from './components/GameTable';
+import { PixelCard } from './components/PixelCard';
+import { TableFeltPattern } from './components/TableFeltPattern';
+import { getTableThemeForAnte } from './data/tableThemes';
 import { ShopView } from './components/ShopView';
 import { BlindSelectView } from './components/BlindSelectView';
 import { ScoreTallyOverlay } from './components/ScoreTallyOverlay';
@@ -184,6 +187,8 @@ export function App() {
   const [isPlayerTurn, setIsPlayerTurn] = useState<boolean>(true);
   // Who opened the trick on the table: the lead suit decides who wins it.
   const [trickLeadIsPlayer, setTrickLeadIsPlayer] = useState<boolean>(true);
+  // True while the opening hand is being dealt, so the table can stagger it.
+  const [isDealing, setIsDealing] = useState<boolean>(false);
   const [roundPointsTaken, setRoundPointsTaken] = useState<number>(0);
   const [opponentPointsTaken, setOpponentPointsTaken] = useState<number>(0);
   const [roundTricksWon, setRoundTricksWon] = useState<number>(0);
@@ -359,6 +364,14 @@ export function App() {
     setIsPlayerTurn(true);
     setTrickLeadIsPlayer(true);
     setTrickPhase('idle');
+
+    // Deal the opening hand card by card instead of having six appear at once.
+    setIsDealing(true);
+    for (let card = 0; card < 6; card++) {
+      scheduleAction(() => sound.playCardFlick(), 120 + card * 130);
+    }
+    scheduleAction(() => sound.playTrumpSlam(), 120 + 6 * 130);
+    scheduleAction(() => setIsDealing(false), 1400);
   };
 
   // --- Start a New Run ---
@@ -1049,6 +1062,17 @@ export function App() {
     setPhase('blind_select');
   };
 
+  // A fixed hand for the title screen: real cards, not decoration, and stable
+  // ids so they are not re-created (and re-animated) on every render.
+  const titleHand = React.useMemo(
+    () => [
+      createCard('denari', 1, 'gold', 'none', 'none', 'title_asso'),
+      createCard('coppe', 3, 'polychrome', 'none', 'none', 'title_tre'),
+      createCard('bastoni', 10, 'foil', 'none', 'none', 'title_re'),
+    ],
+    []
+  );
+
   /** Deals the round the reveal screen was announcing. */
   const handleSitDown = () => {
     if (!pendingRound) return;
@@ -1065,7 +1089,11 @@ export function App() {
         } ${settings.screenShake && isShaking ? 'animate-bounce' : ''}`}
       >
         {/* Background Retro Canvas Atmosphere */}
-        <div className="fixed inset-0 pointer-events-none opacity-20 overflow-hidden">
+        <div
+          className={`fixed inset-0 pointer-events-none overflow-hidden ${
+            phase === 'title' ? 'opacity-0' : 'opacity-20'
+          }`}
+        >
           <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-amber-500/20 blur-3xl plasma-bg" />
           <div className="absolute top-1/2 -right-40 w-96 h-96 rounded-full bg-purple-600/20 blur-3xl plasma-bg" />
           <div className="absolute -bottom-40 left-1/3 w-96 h-96 rounded-full bg-blue-600/20 blur-3xl plasma-bg" />
@@ -1073,12 +1101,49 @@ export function App() {
 
         {/* TITLE SCREEN VIEW */}
         {phase === 'title' && (
-          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center z-10">
+          <div className="flex-1 flex flex-col items-center justify-center p-5 sm:p-6 text-center z-10 relative">
+            {/* The felt of the first venue, so the game opens on a table. */}
+            <div className="absolute inset-0 -z-10 overflow-hidden">
+              <div className={`absolute inset-0 bg-gradient-to-b ${getTableThemeForAnte(1).feltGradient}`}>
+                <TableFeltPattern theme={getTableThemeForAnte(1)} />
+              </div>
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    'radial-gradient(circle at 50% 40%, rgba(16,185,129,0.10) 0%, rgba(0,0,0,0.82) 100%)',
+                }}
+              />
+            </div>
+
+            {/* A real hand, waiting to be played. */}
+            <div className="flex items-end justify-center -mb-5 sm:-mb-6 h-[86px] sm:h-[108px]">
+              {titleHand.map((card, i) => (
+                <motion.div
+                  key={card.id}
+                  initial={{ y: 60, opacity: 0, rotate: 0 }}
+                  animate={{
+                    y: [0, -6, 0],
+                    opacity: 1,
+                    rotate: (i - 1) * 11,
+                  }}
+                  transition={{
+                    y: { repeat: Infinity, duration: 3.4 + i * 0.5, ease: 'easeInOut', delay: 0.5 + i * 0.12 },
+                    opacity: { duration: 0.4, delay: 0.15 + i * 0.12 },
+                    rotate: { type: 'spring', damping: 14, delay: 0.15 + i * 0.12 },
+                  }}
+                  className={`${i === 1 ? 'z-20 -mx-2' : 'z-10'} drop-shadow-[0_6px_10px_rgba(0,0,0,0.6)]`}
+                >
+                  <PixelCard card={card} size="sm" showPoints={false} />
+                </motion.div>
+              ))}
+            </div>
+
             <motion.div
               initial={{ scale: 0.85, y: -20, opacity: 0 }}
               animate={{ scale: 1, y: 0, opacity: 1 }}
               transition={{ duration: 0.5 }}
-              className="flex flex-col items-center max-w-lg w-full bg-slate-900/90 border-3 border-amber-500 rounded-3xl p-8 pixel-box shadow-2xl relative"
+              className="flex flex-col items-center max-w-lg w-full bg-slate-950/90 backdrop-blur-sm border-3 border-amber-500 rounded-3xl p-6 sm:p-8 pixel-box shadow-2xl relative z-30"
             >
               {/* Italian Card Suits Row */}
               <div className="flex gap-4 mb-3">
@@ -1187,7 +1252,8 @@ export function App() {
             opponentHand={opponentHand}
             playerTrickCard={playerTrickCard}
             opponentTrickCard={opponentTrickCard}
-            isPlayerTurn={isPlayerTurn && trickPhase !== 'resolving' && trickPhase !== 'tally'}
+            isPlayerTurn={isPlayerTurn && trickPhase !== 'resolving' && trickPhase !== 'tally' && !isDealing}
+            isDealing={isDealing}
             trickLeadIsPlayer={trickLeadIsPlayer}
             activeJokers={activeJokers}
             consumables={consumables}

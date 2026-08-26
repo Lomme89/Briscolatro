@@ -30,6 +30,8 @@ interface GameTableProps {
   isPlayerTurn: boolean;
   /** True when the player opened the trick currently on the table. */
   trickLeadIsPlayer: boolean;
+  /** True while the opening hand is being dealt, so cards fly in one by one. */
+  isDealing: boolean;
   activeJokers: Joker[];
   consumables: UnoCard[];
   maxJokers: number;
@@ -66,6 +68,7 @@ export const GameTable: React.FC<GameTableProps> = ({
   opponentTrickCard,
   isPlayerTurn,
   trickLeadIsPlayer,
+  isDealing,
   activeJokers,
   consumables,
   maxJokers,
@@ -431,7 +434,7 @@ export const GameTable: React.FC<GameTableProps> = ({
                   faceDown={!hasVision}
                   size="xs"
                   animateDeal={true}
-                  dealDelay={i * 0.06}
+                  dealDelay={isDealing ? 0.06 + i * 0.26 : i * 0.06}
                 />
               ))}
             </div>
@@ -670,9 +673,17 @@ export const GameTable: React.FC<GameTableProps> = ({
         <div className={`z-10 flex flex-col items-center shrink-0 border-t ${tableTheme.dividerBorder} pt-1 pb-0.5`}>
           {/* Turn Prompt */}
           <div className="mb-0.5 flex items-center gap-1.5 leading-none">
-            <span className={`w-1.5 h-1.5 rounded-full ${isPlayerTurn ? 'bg-emerald-400 animate-ping' : 'bg-amber-500'}`} />
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                isDealing ? 'bg-slate-400' : isPlayerTurn ? 'bg-emerald-400 animate-ping' : 'bg-amber-500'
+              }`}
+            />
             <span className="font-pixel text-[7.5px] sm:text-[9px] text-amber-300 font-bold uppercase">
-              {isPlayerTurn ? 'Tocca una carta per giocare' : 'L\'avversario sta giocando...'}
+              {isDealing
+                ? 'Si distribuiscono le carte...'
+                : isPlayerTurn
+                  ? 'Tocca una carta per giocare'
+                  : 'L\'avversario sta giocando...'}
             </span>
           </div>
 
@@ -686,6 +697,8 @@ export const GameTable: React.FC<GameTableProps> = ({
                 const total = playerHand.length;
                 const handSpacing =
                   total > 4 ? '-mx-4 sm:-mx-2' : total > 3 ? '-mx-1 sm:mx-1' : 'mx-1 sm:mx-2';
+                // Player and opponent alternate, the way a real deal goes round.
+                const dealDelay = isDealing ? 0.18 + i * 0.26 : 0;
                 const middle = (total - 1) / 2;
                 const offset = i - middle; // -1, 0, +1 for 3 cards
                 const fanRotate = offset * 4.5; // gentle fan angle
@@ -695,8 +708,10 @@ export const GameTable: React.FC<GameTableProps> = ({
                   <motion.div
                     key={card.id}
                     layout
-                    initial={{ y: 50, opacity: 0, scale: 0.6 }}
+                    // Cards arrive from the stock on the left, one at a time.
+                    initial={{ x: -150, y: -110, opacity: 0, scale: 0.45, rotate: -40 }}
                     animate={{
+                      x: 0,
                       y: isSelected ? -20 : [fanY, fanY - 4, fanY],
                       rotate: isSelected ? 0 : [fanRotate, fanRotate + (offset < 0 ? -0.8 : offset > 0 ? 0.8 : 0), fanRotate],
                       scale: isSelected ? 1.08 : 1,
@@ -704,18 +719,21 @@ export const GameTable: React.FC<GameTableProps> = ({
                       zIndex: isSelected ? 30 : 10 + i,
                     }}
                     transition={{
+                      x: { type: 'spring', damping: 18, stiffness: 260, delay: dealDelay },
                       y: {
                         repeat: isSelected ? 0 : Infinity,
                         duration: 2.8 + i * 0.4,
                         ease: 'easeInOut',
+                        delay: dealDelay,
                       },
                       rotate: {
                         repeat: isSelected ? 0 : Infinity,
                         duration: 3.4 + i * 0.4,
                         ease: 'easeInOut',
+                        delay: dealDelay,
                       },
-                      scale: { type: 'spring', damping: 20, stiffness: 350 },
-                      opacity: { duration: 0.2 },
+                      scale: { type: 'spring', damping: 20, stiffness: 350, delay: dealDelay },
+                      opacity: { duration: 0.2, delay: dealDelay },
                     }}
                     whileHover={{
                       y: -14,

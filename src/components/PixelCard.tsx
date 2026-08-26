@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { CardStyle, PlayingCard } from '../types/game';
-import { RANK_INFO } from '../game/briscola';
+import { getSuitDisplayName, RANK_INFO } from '../game/briscola';
 import { PixelSuitIcon } from './PixelSuitIcon';
 import { NeapolitanCardIllustration } from './NeapolitanCardIllustration';
 import { PixelCardSprite, useSpritesheet } from './PixelCardSprite';
@@ -121,7 +121,7 @@ export const PixelCard: React.FC<PixelCardProps> = ({
           <PixelCardSprite
             rank={card.rank}
             suit={card.suit}
-            alt={`${card.name}`}
+            alt={`${info.name} di ${getSuitDisplayName(card.suit)}`}
             className="rounded-[3px]"
           />
         </div>
