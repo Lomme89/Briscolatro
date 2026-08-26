@@ -54,6 +54,31 @@ export function createRunDeck(deckDef: DeckDefinition): PlayingCard[] {
   return deck;
 }
 
+/**
+ * Adds a shop/booster card to the persistent run deck by REPLACING the least
+ * valuable plain card instead of appending.
+ *
+ * Two-player Briscola needs an even deck: the stock is dealt in pairs and the
+ * face-up trump is the last card drawn. A 41-card run deck leaves one card
+ * over at the end of the round and desynchronises the two hands, so cards
+ * bought in the shop take the place of an existing one.
+ */
+export function addCardToRunDeck(runDeck: PlayingCard[], newCard: PlayingCard): PlayingCard[] {
+  if (runDeck.length === 0) return [newCard];
+
+  const isPlain = (card: PlayingCard) =>
+    card.edition === 'standard' && card.seal === 'none' && card.enhancement === 'none';
+
+  const candidates = runDeck.filter(isPlain);
+  const pool = candidates.length > 0 ? candidates : runDeck;
+  const weakest = [...pool].sort((a, b) => a.points - b.points || a.power - b.power)[0];
+
+  const index = runDeck.findIndex((card) => card.id === weakest.id);
+  const next = [...runDeck];
+  next[index] = newCard;
+  return next;
+}
+
 export function prepareRoundDeck(runDeck: PlayingCard[]): {
   roundDrawPile: PlayingCard[];
   trumpCard: PlayingCard;
@@ -110,7 +135,15 @@ export function performExchangeDiscard(
   return { newPlayerHand: nextHand, newDrawPile: nextPile, newTrumpCard: trumpCard, success: true };
 }
 
-/** Winner draws first. The face-up trump is the final card drawn. */
+/**
+ * Winner draws first. The face-up trump is the final card drawn.
+ *
+ * Both hands must stay the same size for the rest of the round to be playable.
+ * If a card effect ever leaves them asymmetric this rebalances instead of
+ * throwing: an exception here used to abort the trick half-applied and freeze
+ * the round with the tally overlay stuck on screen. `parityCorrected` reports
+ * that a bug upstream had to be papered over.
+ */
 export function drawNextTrickCards(
   playerWonTrick: boolean,
   drawPile: PlayingCard[],
@@ -122,6 +155,7 @@ export function drawNextTrickCards(
   newOpponentHand: PlayingCard[];
   newDrawPile: PlayingCard[];
   newTrumpCard: PlayingCard | null;
+  parityCorrected: boolean;
 } {
   const nextPile = [...drawPile];
   let nextTrump = trumpCard;
@@ -146,9 +180,29 @@ export function drawNextTrickCards(
 
   // A legal two-player Briscola stock always deals symmetrically. The only
   // expected asymmetry is transient INSIDE drawOne; after the pair it must be gone.
+  let parityCorrected = false;
+  while (nextPlayerHand.length !== nextOpponentHand.length) {
+    const shorterHand =
+      nextPlayerHand.length < nextOpponentHand.length ? nextPlayerHand : nextOpponentHand;
+    const extra = drawOne();
+    if (!extra) break;
+    shorterHand.push(extra);
+    parityCorrected = true;
+  }
+
   if (nextPlayerHand.length !== nextOpponentHand.length) {
-    throw new Error(
-      `Briscola invariant violated after draw: player=${nextPlayerHand.length}, opponent=${nextOpponentHand.length}`
+    // The stock could not cover the gap: trim the longer hand back so the round
+    // can still be played out to its last trick.
+    parityCorrected = true;
+    const longerHand =
+      nextPlayerHand.length > nextOpponentHand.length ? nextPlayerHand : nextOpponentHand;
+    const shorterLength = Math.min(nextPlayerHand.length, nextOpponentHand.length);
+    nextPile.unshift(...longerHand.splice(shorterLength));
+  }
+
+  if (parityCorrected && typeof console !== 'undefined') {
+    console.warn(
+      `[briscola] hand parity had to be corrected (player=${nextPlayerHand.length}, opponent=${nextOpponentHand.length}). A card effect changed a hand size.`
     );
   }
 
@@ -157,6 +211,7 @@ export function drawNextTrickCards(
     newOpponentHand: nextOpponentHand,
     newDrawPile: nextPile,
     newTrumpCard: nextTrump,
+    parityCorrected,
   };
 }
 

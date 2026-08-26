@@ -17,6 +17,7 @@ import { ALL_BOSS_BLINDS } from './data/bosses';
 import { ALL_UNO_CARDS, ALL_VOUCHERS } from './data/unoCards';
 import {
   createRunDeck,
+  addCardToRunDeck,
   prepareRoundDeck,
   performExchangeDiscard,
   drawNextTrickCards,
@@ -983,8 +984,9 @@ export function App() {
   };
 
   const handleAddCardToDeck = (card: PlayingCard) => {
-    setRunDeck((prev) => [card, ...prev]);
-    setDrawPile((prev) => [card, ...prev]);
+    // Replaces a card instead of growing the deck: an odd run deck breaks the
+    // paired stock draw and desynchronises the two hands mid-round.
+    setRunDeck((prev) => addCardToRunDeck(prev, card));
   };
 
   const handleNextRoundFromShop = () => {

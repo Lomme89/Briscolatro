@@ -694,7 +694,12 @@ export const ShopView: React.FC<ShopViewProps> = ({
                 {activeBooster.pack.name}
               </h3>
               <p className="font-retro text-xs text-slate-300 mb-4">
-                Scegli {activeBooster.pack.selectCount - activeBooster.selectedCount} carta da aggiungere!
+                Scegli {activeBooster.pack.selectCount - activeBooster.selectedCount} carta!
+                {activeBooster.cards.length > 0 && (
+                  <span className="block text-[10px] text-slate-400 mt-1">
+                    Ogni carta scelta prende il posto della carta più debole del mazzo (il mazzo resta di 40 carte).
+                  </span>
+                )}
               </p>
 
               {/* Cards options grid */}

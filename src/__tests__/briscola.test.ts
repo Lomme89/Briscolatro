@@ -224,7 +224,7 @@ describe('Joker & Scoring Engine', () => {
 });
 
 describe('UNO Action Cards Execution', () => {
-  it('executes +2 Pesca Due cards correctly', () => {
+  it('cycles cards with +2 Pesca Due without changing hand size', () => {
     const plusTwo = ALL_UNO_CARDS.find((u) => u.id === 'uno_plus_two_red')!;
     const drawPile = [createCard('denari', 1), createCard('denari', 2), createCard('denari', 3)];
     const playerHand = [createCard('coppe', 7)];
@@ -246,8 +246,11 @@ describe('UNO Action Cards Execution', () => {
     };
 
     const res = executeUnoCard(ctx);
-    expect(res.newPlayerHand.length).toBe(3); // 1 + 2 drawn
-    expect(res.newDrawPile.length).toBe(1);   // 3 - 2 drawn
+    // +2 cycles cards through the stock: hand and stock sizes must not change,
+    // or the two hands desynchronise for the rest of the round.
+    expect(res.newPlayerHand.length).toBe(1);
+    expect(res.newDrawPile.length).toBe(3);
+    expect(res.newPlayerHand[0].id).not.toBe(playerHand[0].id);
     expect(res.newRoundScore).toBe(160);      // 100 + 60 bonus
   });
 

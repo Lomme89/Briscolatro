@@ -36,17 +36,56 @@ export interface UnoActionResult {
   forceWinCurrentTrick?: boolean;
 }
 
+/**
+ * Roguelite draw = CYCLE, never a net gain of cards.
+ *
+ * Two-player Briscola only stays consistent while both hands hold the same
+ * number of cards: every trick spends one card per side and the stock is dealt
+ * in pairs. Handing the player extra cards desynchronises the hands for the
+ * rest of the round, so "+2" swaps the two least useful cards in hand for the
+ * two on top of the stock and puts the old ones back at the bottom.
+ * Stock top = end of the array (same convention as drawNextTrickCards).
+ */
+function cycleCardsFromStock(
+  playerHand: PlayingCard[],
+  drawPile: PlayingCard[],
+  briscolaSuit: Suit,
+  count: number
+): { nextHand: PlayingCard[]; nextPile: PlayingCard[]; cycled: number } {
+  const cycled = Math.min(count, playerHand.length, drawPile.length);
+  if (cycled === 0) {
+    return { nextHand: playerHand, nextPile: drawPile, cycled: 0 };
+  }
+
+  const worstFirst = [...playerHand].sort(
+    (a, b) =>
+      Number(a.suit === briscolaSuit) - Number(b.suit === briscolaSuit) ||
+      a.points - b.points ||
+      a.power - b.power
+  );
+  const discardedIds = new Set(worstFirst.slice(0, cycled).map((card) => card.id));
+
+  const nextPile = [...drawPile];
+  const drawn = nextPile.splice(nextPile.length - cycled, cycled);
+  const nextHand = playerHand.filter((card) => !discardedIds.has(card.id));
+  nextHand.push(...drawn);
+  nextPile.unshift(...playerHand.filter((card) => discardedIds.has(card.id)));
+
+  return { nextHand, nextPile, cycled };
+}
+
 export const UNO_EFFECT_HANDLERS: Record<
   string,
   (ctx: UnoActionContext) => UnoActionResult
 > = {
-  // +2 Pesca Due (Rosso): Draw 2 cards + 60 Chips to round score
+  // +2 Pesca Due (Rosso): Cycle 2 cards through the stock + 60 Chips to round score
   uno_plus_two_red: (ctx) => {
-    let nextPile = [...ctx.drawPile];
-    let nextHand = [...ctx.playerHand];
-    const drawn = nextPile.slice(0, 2);
-    nextPile = nextPile.slice(2);
-    nextHand = [...nextHand, ...drawn];
+    const { nextHand, nextPile, cycled } = cycleCardsFromStock(
+      ctx.playerHand,
+      ctx.drawPile,
+      ctx.briscolaSuit,
+      2
+    );
     return {
       newDrawPile: nextPile,
       newPlayerHand: nextHand,
@@ -59,17 +98,20 @@ export const UNO_EFFECT_HANDLERS: Record<
       newBossDebuffActive: ctx.bossDebuffActive,
       newActiveUnoMultiplier: ctx.activeUnoMultiplier,
       newIsReverseActive: ctx.isReverseActive,
-      feedbackMessage: '+2 Carte pescate e +60 Chips assegnate!',
+      feedbackMessage: cycled > 0
+        ? `+2 Cambio carte (${cycled}) e +60 Chips assegnate!`
+        : 'Tallone esaurito: nessun cambio, +60 Chips assegnate!',
     };
   },
 
-  // +2 Pesca Due (Blu): Draw 2 cards + $3 cash
+  // +2 Pesca Due (Blu): Cycle 2 cards through the stock + $3 cash
   uno_plus_two_blue: (ctx) => {
-    let nextPile = [...ctx.drawPile];
-    let nextHand = [...ctx.playerHand];
-    const drawn = nextPile.slice(0, 2);
-    nextPile = nextPile.slice(2);
-    nextHand = [...nextHand, ...drawn];
+    const { nextHand, nextPile, cycled } = cycleCardsFromStock(
+      ctx.playerHand,
+      ctx.drawPile,
+      ctx.briscolaSuit,
+      2
+    );
     return {
       newDrawPile: nextPile,
       newPlayerHand: nextHand,
@@ -82,7 +124,9 @@ export const UNO_EFFECT_HANDLERS: Record<
       newBossDebuffActive: ctx.bossDebuffActive,
       newActiveUnoMultiplier: ctx.activeUnoMultiplier,
       newIsReverseActive: ctx.isReverseActive,
-      feedbackMessage: '+2 Carte pescate e +$3 incassati!',
+      feedbackMessage: cycled > 0
+        ? `+2 Cambio carte (${cycled}) e +$3 incassati!`
+        : 'Tallone esaurito: nessun cambio, +$3 incassati!',
     };
   },
 
