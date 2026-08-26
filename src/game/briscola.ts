@@ -29,9 +29,6 @@ export const RANK_INFO: Record<CardRank, RankDetails> = {
   2: { name: 'Due', shortName: '2', points: 0, power: 1, isCarico: false, isFigura: false },
 };
 
-/**
- * Creates a PlayingCard instance with strict rank/points/power synchronization.
- */
 export function createCard(
   suit: Suit,
   rank: CardRank,
@@ -53,44 +50,27 @@ export function createCard(
   };
 }
 
-/**
- * Atomically updates a card's rank, synchronizing its points and power from RANK_INFO.
- */
 export function withRank(card: PlayingCard, newRank: CardRank): PlayingCard {
   const info = RANK_INFO[newRank];
-  return {
-    ...card,
-    rank: newRank,
-    points: info.points,
-    power: info.power,
-  };
+  return { ...card, rank: newRank, points: info.points, power: info.power };
 }
 
-/**
- * Creates a standard 40-card Italian Briscola deck.
- * Total points in deck = 120 (4x11 + 4x10 + 4x4 + 4x3 + 4x2 = 44 + 40 + 16 + 12 + 8 = 120).
- */
+/** Creates the standard 40-card Italian deck. Total card points = 120. */
 export function createStandardDeck(): PlayingCard[] {
   const suits: Suit[] = ['denari', 'coppe', 'spade', 'bastoni'];
   const ranks: CardRank[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
   const deck: PlayingCard[] = [];
-
-  for (const suit of suits) {
-    for (const rank of ranks) {
-      deck.push(createCard(suit, rank));
-    }
-  }
-
+  for (const suit of suits) for (const rank of ranks) deck.push(createCard(suit, rank));
   return shuffleDeck(deck);
 }
 
 export function shuffleDeck<T>(deck: T[]): T[] {
-  const newDeck = [...deck];
-  for (let i = newDeck.length - 1; i > 0; i--) {
+  const result = [...deck];
+  for (let i = result.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [newDeck[i], newDeck[j]] = [newDeck[j], newDeck[i]];
+    [result[i], result[j]] = [result[j], result[i]];
   }
-  return newDeck;
+  return result;
 }
 
 export function getRankDisplayName(rank: CardRank): string {
@@ -117,14 +97,42 @@ export interface TrickClashResult {
   opponentEffectiveSuit: Suit;
 }
 
+function effectiveSuit(
+  card: PlayingCard,
+  briscolaSuit: Suit,
+  belongsToOpponent: boolean,
+  bossDebuff?: string
+): Suit {
+  // Wild is deliberately interpreted as trump in the current roguelite rules.
+  if (card.enhancement === 'wild') return briscolaSuit;
+
+  // This boss rule is asymmetric by design: opponent Spade count as trump.
+  if (belongsToOpponent && bossDebuff === 'spades_are_briscola' && card.suit === 'spade') {
+    return briscolaSuit;
+  }
+  return card.suit;
+}
+
 /**
- * Resolves a Briscola trick according to official Italian rules:
- * - If one card is of the Briscola suit, it wins.
- * - If both cards are of the Briscola suit, higher power wins.
- * - If neither is Briscola:
- *    - If follow card has the SAME suit as lead card, higher power wins.
- *    - If follow card has a DIFFERENT suit from lead card, lead card wins.
- * Hierarchy: Asso (10) > Tre (9) > Re (8) > Cavallo (7) > Fante (6) > 7 (5) > 6 (4) > 5 (3) > 4 (2) > 2 (1).
+ * Compare two cards only when normal Briscola rules say their rank is comparable
+ * (same effective suit, or both trump). On the impossible/effect-generated tie,
+ * the leader keeps the trick. `isReverse` reverses rank hierarchy only: it never
+ * makes a non-trump beat a trump and never removes the lead-suit advantage.
+ */
+function leadWinsPowerComparison(lead: PlayingCard, follow: PlayingCard, isReverse = false): boolean {
+  return isReverse ? lead.power <= follow.power : lead.power >= follow.power;
+}
+
+/**
+ * Canonical two-player Briscola resolver.
+ *
+ * Rules:
+ * 1. Trump beats non-trump.
+ * 2. If both are trump, rank decides.
+ * 3. If neither is trump and suits match, rank decides.
+ * 4. If neither is trump and suits differ, the LEAD card wins.
+ *
+ * There is no obligation to follow suit in Briscola.
  */
 export function resolveTrick(
   leadCard: PlayingCard,
@@ -132,82 +140,50 @@ export function resolveTrick(
   briscolaSuit: Suit,
   leadIsPlayer: boolean,
   bossDebuff?: string,
-  isReverse?: boolean
+  isReverse = false
 ): TrickClashResult {
+  const leadBelongsToOpponent = !leadIsPlayer;
+  const followBelongsToOpponent = leadIsPlayer;
+
+  const leadSuit = effectiveSuit(leadCard, briscolaSuit, leadBelongsToOpponent, bossDebuff);
+  const followSuit = effectiveSuit(followCard, briscolaSuit, followBelongsToOpponent, bossDebuff);
+  const leadIsTrump = leadSuit === briscolaSuit;
+  const followIsTrump = followSuit === briscolaSuit;
+
+  let leadWon: boolean;
+  if (leadIsTrump !== followIsTrump) {
+    leadWon = leadIsTrump;
+  } else if (leadIsTrump && followIsTrump) {
+    leadWon = leadWinsPowerComparison(leadCard, followCard, isReverse);
+  } else if (leadSuit === followSuit) {
+    leadWon = leadWinsPowerComparison(leadCard, followCard, isReverse);
+  } else {
+    leadWon = true;
+  }
+
+  const playerWon = leadIsPlayer ? leadWon : !leadWon;
   const playerCard = leadIsPlayer ? leadCard : followCard;
   const opponentCard = leadIsPlayer ? followCard : leadCard;
-
-  let effectivePlayerSuit: Suit = playerCard.enhancement === 'wild' ? briscolaSuit : playerCard.suit;
-  let effectiveOpponentSuit: Suit = opponentCard.enhancement === 'wild' ? briscolaSuit : opponentCard.suit;
-
-  if (bossDebuff === 'spades_are_briscola') {
-    if (opponentCard.suit === 'spade') effectiveOpponentSuit = briscolaSuit;
-  }
-
-  const isPlayerBriscola = effectivePlayerSuit === briscolaSuit;
-  const isOpponentBriscola = effectiveOpponentSuit === briscolaSuit;
-
-  let playerWon = false;
-
-  const comparePower = (p1: number, p2: number) => {
-    return isReverse ? p1 < p2 : p1 > p2;
-  };
-
-  if (leadIsPlayer) {
-    // Player played first
-    if (isPlayerBriscola && !isOpponentBriscola) {
-      playerWon = isReverse ? false : true;
-    } else if (!isPlayerBriscola && isOpponentBriscola) {
-      playerWon = isReverse ? true : false;
-    } else if (isPlayerBriscola && isOpponentBriscola) {
-      playerWon = comparePower(playerCard.power, opponentCard.power);
-    } else {
-      // Neither is briscola
-      if (effectiveOpponentSuit === effectivePlayerSuit) {
-        playerWon = comparePower(playerCard.power, opponentCard.power);
-      } else {
-        // Opponent played a different suit, lead player retains trick!
-        playerWon = true;
-      }
-    }
-  } else {
-    // Opponent played first
-    if (isOpponentBriscola && !isPlayerBriscola) {
-      playerWon = isReverse ? true : false;
-    } else if (!isOpponentBriscola && isPlayerBriscola) {
-      playerWon = isReverse ? false : true;
-    } else if (isOpponentBriscola && isPlayerBriscola) {
-      playerWon = comparePower(playerCard.power, opponentCard.power);
-    } else {
-      // Neither is briscola
-      if (effectivePlayerSuit === effectiveOpponentSuit) {
-        playerWon = comparePower(playerCard.power, opponentCard.power);
-      } else {
-        // Player played a different suit than lead, opponent retains trick!
-        playerWon = false;
-      }
-    }
-  }
+  const playerSuit = leadIsPlayer ? leadSuit : followSuit;
+  const opponentSuit = leadIsPlayer ? followSuit : leadSuit;
+  const playerIsTrump = playerSuit === briscolaSuit;
+  const opponentIsTrump = opponentSuit === briscolaSuit;
 
   const rawPoints = playerCard.points + opponentCard.points;
-  let finalPoints = rawPoints;
-
+  let points = rawPoints;
   if (bossDebuff === 'half_carichi') {
-    let pPts = playerCard.points;
-    let oPts = opponentCard.points;
-    if (pPts >= 10) pPts = Math.floor(pPts / 2);
-    if (oPts >= 10) oPts = Math.floor(oPts / 2);
-    finalPoints = pPts + oPts;
+    const adjusted = (value: number) => value >= 10 ? Math.floor(value / 2) : value;
+    points = adjusted(playerCard.points) + adjusted(opponentCard.points);
   }
 
   return {
     playerWon,
-    points: finalPoints,
+    points,
     rawPoints,
-    isBriscolaTrick: isPlayerBriscola || isOpponentBriscola,
-    playerIsBriscola: isPlayerBriscola,
-    opponentIsBriscola: isOpponentBriscola,
-    playerEffectiveSuit: effectivePlayerSuit,
-    opponentEffectiveSuit: effectiveOpponentSuit,
+    isBriscolaTrick: playerIsTrump || opponentIsTrump,
+    playerIsBriscola: playerIsTrump,
+    opponentIsBriscola: opponentIsTrump,
+    playerEffectiveSuit: playerSuit,
+    opponentEffectiveSuit: opponentSuit,
   };
 }

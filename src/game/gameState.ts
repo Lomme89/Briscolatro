@@ -1,6 +1,5 @@
 import { PlayingCard, Suit, DeckDefinition, BossBlind, Voucher, Joker } from '../types/game';
-import { createStandardDeck, shuffleDeck, TrickClashResult, resolveTrick } from './briscola';
-import { BOSS_RULES } from './bossRules';
+import { createStandardDeck, shuffleDeck } from './briscola';
 
 export interface RoundStateSnapshot {
   currentRoundScore: number;
@@ -38,34 +37,23 @@ export interface RoundOutcomeResult {
   isAnte8Victory: boolean;
 }
 
-/**
- * Initializes the persistent Run Deck for a new run, applying deck perks.
- */
 export function createRunDeck(deckDef: DeckDefinition): PlayingCard[] {
   let deck = createStandardDeck();
-
   if (deckDef.specialDeckPerk === 'bastoni_foil') {
     let foilCount = 0;
-    deck = deck.map((c) => {
-      if (c.suit === 'bastoni' && foilCount < 3) {
+    deck = deck.map((card) => {
+      if (card.suit === 'bastoni' && foilCount < 3) {
         foilCount++;
-        return { ...c, edition: 'foil' as const };
+        return { ...card, edition: 'foil' as const };
       }
-      return c;
+      return card;
     });
   } else if (deckDef.specialDeckPerk === 'holo_figures') {
-    deck = deck.map((c) => {
-      if (c.rank >= 8) return { ...c, edition: 'holo' as const };
-      return c;
-    });
+    deck = deck.map((card) => card.rank >= 8 ? { ...card, edition: 'holo' as const } : card);
   }
-
   return deck;
 }
 
-/**
- * Prepares the draw pile and initial deal for a round from the persistent Run Deck.
- */
 export function prepareRoundDeck(runDeck: PlayingCard[]): {
   roundDrawPile: PlayingCard[];
   trumpCard: PlayingCard;
@@ -73,33 +61,28 @@ export function prepareRoundDeck(runDeck: PlayingCard[]): {
   playerHand: PlayingCard[];
   opponentHand: PlayingCard[];
 } {
-  // Deep clone to avoid mutating runDeck during gameplay
-  const roundDeck = shuffleDeck(runDeck.map((c) => ({ ...c })));
+  if (runDeck.length < 7) throw new Error('Run deck too small to start a Briscola round');
 
+  const roundDeck = shuffleDeck(runDeck.map((card) => ({ ...card })));
   const trumpCard = roundDeck.pop()!;
-  const briscolaSuit = trumpCard.suit;
-
   const playerHand: PlayingCard[] = [];
   const opponentHand: PlayingCard[] = [];
 
   for (let i = 0; i < 3; i++) {
-    if (roundDeck.length > 0) playerHand.push(roundDeck.pop()!);
-    if (roundDeck.length > 0) opponentHand.push(roundDeck.pop()!);
+    const playerCard = roundDeck.pop();
+    const opponentCard = roundDeck.pop();
+    if (!playerCard || !opponentCard) throw new Error('Invalid initial Briscola deal');
+    playerHand.push(playerCard);
+    opponentHand.push(opponentCard);
   }
 
-  return {
-    roundDrawPile: roundDeck,
-    trumpCard,
-    briscolaSuit,
-    playerHand,
-    opponentHand,
-  };
+  return { roundDrawPile: roundDeck, trumpCard, briscolaSuit: trumpCard.suit, playerHand, opponentHand };
 }
 
 /**
- * Performs a strict card exchange for Discard to preserve the 40-card invariant.
- * Rule: Player discards 1 card -> draws 1 replacement -> discarded card is returned to the bottom of the draw pile
- * or swaps with the trump card if pile is empty.
+ * Roguelite discard = exchange with stock. We intentionally DISALLOW it once
+ * the normal stock is empty: swapping with the face-up trump corrupts the
+ * official final-draw sequence and can make turn parity confusing.
  */
 export function performExchangeDiscard(
   cardToDiscard: PlayingCard,
@@ -112,55 +95,22 @@ export function performExchangeDiscard(
   newTrumpCard: PlayingCard | null;
   success: boolean;
 } {
-  const cardIndex = playerHand.findIndex((c) => c.id === cardToDiscard.id);
-  if (cardIndex === -1) {
-    return {
-      newPlayerHand: playerHand,
-      newDrawPile: drawPile,
-      newTrumpCard: trumpCard,
-      success: false,
-    };
+  const cardIndex = playerHand.findIndex((card) => card.id === cardToDiscard.id);
+  if (cardIndex === -1 || drawPile.length === 0) {
+    return { newPlayerHand: playerHand, newDrawPile: drawPile, newTrumpCard: trumpCard, success: false };
   }
 
-  let nextHand = [...playerHand];
-  let nextPile = [...drawPile];
-  let nextTrump = trumpCard;
-
-  // Remove the discarded card from hand
+  const nextHand = [...playerHand];
+  const nextPile = [...drawPile];
   const [removedCard] = nextHand.splice(cardIndex, 1);
+  const drawnCard = nextPile.pop()!;
+  nextHand.push(drawnCard);
+  nextPile.unshift(removedCard); // bottom of stock
 
-  if (nextPile.length > 0) {
-    // Draw 1 card from top of draw pile
-    const drawnCard = nextPile.pop()!;
-    nextHand.push(drawnCard);
-    // Put discarded card at bottom (unshift) of draw pile
-    nextPile.unshift(removedCard);
-  } else if (nextTrump) {
-    // Swap with the trump card!
-    nextHand.push(nextTrump);
-    nextTrump = removedCard;
-  } else {
-    // Cannot discard when no cards remain in draw pile or trump
-    return {
-      newPlayerHand: playerHand,
-      newDrawPile: drawPile,
-      newTrumpCard: trumpCard,
-      success: false,
-    };
-  }
-
-  return {
-    newPlayerHand: nextHand,
-    newDrawPile: nextPile,
-    newTrumpCard: nextTrump,
-    success: true,
-  };
+  return { newPlayerHand: nextHand, newDrawPile: nextPile, newTrumpCard: trumpCard, success: true };
 }
 
-/**
- * Deals cards to player and opponent after a trick following official Briscola rules.
- * Winner of the trick draws first; the trump card is the very last card drawn.
- */
+/** Winner draws first. The face-up trump is the final card drawn. */
 export function drawNextTrickCards(
   playerWonTrick: boolean,
   drawPile: PlayingCard[],
@@ -179,27 +129,27 @@ export function drawNextTrickCards(
   const nextOpponentHand = [...opponentHand];
 
   const drawOne = (): PlayingCard | null => {
-    if (nextPile.length > 0) {
-      return nextPile.pop()!;
-    }
-    if (nextTrump) {
-      const t = nextTrump;
-      nextTrump = null;
-      return t;
-    }
-    return null;
+    const fromPile = nextPile.pop();
+    if (fromPile) return fromPile;
+    if (!nextTrump) return null;
+    const lastTrump = nextTrump;
+    nextTrump = null;
+    return lastTrump;
   };
 
-  if (playerWonTrick) {
-    const p = drawOne();
-    if (p) nextPlayerHand.push(p);
-    const o = drawOne();
-    if (o) nextOpponentHand.push(o);
-  } else {
-    const o = drawOne();
-    if (o) nextOpponentHand.push(o);
-    const p = drawOne();
-    if (p) nextPlayerHand.push(p);
+  const firstHand = playerWonTrick ? nextPlayerHand : nextOpponentHand;
+  const secondHand = playerWonTrick ? nextOpponentHand : nextPlayerHand;
+  const first = drawOne();
+  if (first) firstHand.push(first);
+  const second = drawOne();
+  if (second) secondHand.push(second);
+
+  // A legal two-player Briscola stock always deals symmetrically. The only
+  // expected asymmetry is transient INSIDE drawOne; after the pair it must be gone.
+  if (nextPlayerHand.length !== nextOpponentHand.length) {
+    throw new Error(
+      `Briscola invariant violated after draw: player=${nextPlayerHand.length}, opponent=${nextOpponentHand.length}`
+    );
   }
 
   return {
@@ -210,101 +160,59 @@ export function drawNextTrickCards(
   };
 }
 
-/**
- * Calculates updated snapshot after a trick score is tallied.
- */
 export function applyTrickResult(
   snapshot: RoundStateSnapshot,
   playerWon: boolean,
   finalTrickScore: number,
   trickPoints: number,
-  bonusDollars: number = 0
+  bonusDollars = 0
 ): RoundStateSnapshot {
   return {
     ...snapshot,
-    currentRoundScore: playerWon
-      ? snapshot.currentRoundScore + finalTrickScore
-      : snapshot.currentRoundScore,
-    totalScore: playerWon
-      ? snapshot.totalScore + finalTrickScore
-      : snapshot.totalScore,
-    roundPointsTaken: playerWon
-      ? snapshot.roundPointsTaken + trickPoints
-      : snapshot.roundPointsTaken,
-    opponentPointsTaken: !playerWon
-      ? snapshot.opponentPointsTaken + trickPoints
-      : snapshot.opponentPointsTaken,
-    roundTricksWon: playerWon
-      ? snapshot.roundTricksWon + 1
-      : snapshot.roundTricksWon,
-    roundTricksLost: !playerWon
-      ? snapshot.roundTricksLost + 1
-      : snapshot.roundTricksLost,
-    totalTricksWon: playerWon
-      ? snapshot.totalTricksWon + 1
-      : snapshot.totalTricksWon,
-    totalTricksLost: !playerWon
-      ? snapshot.totalTricksLost + 1
-      : snapshot.totalTricksLost,
+    currentRoundScore: playerWon ? snapshot.currentRoundScore + finalTrickScore : snapshot.currentRoundScore,
+    totalScore: playerWon ? snapshot.totalScore + finalTrickScore : snapshot.totalScore,
+    roundPointsTaken: playerWon ? snapshot.roundPointsTaken + trickPoints : snapshot.roundPointsTaken,
+    opponentPointsTaken: playerWon ? snapshot.opponentPointsTaken : snapshot.opponentPointsTaken + trickPoints,
+    roundTricksWon: playerWon ? snapshot.roundTricksWon + 1 : snapshot.roundTricksWon,
+    roundTricksLost: playerWon ? snapshot.roundTricksLost : snapshot.roundTricksLost + 1,
+    totalTricksWon: playerWon ? snapshot.totalTricksWon + 1 : snapshot.totalTricksWon,
+    totalTricksLost: playerWon ? snapshot.totalTricksLost : snapshot.totalTricksLost + 1,
     totalBriscolaPointsPlayer: playerWon
       ? snapshot.totalBriscolaPointsPlayer + trickPoints
       : snapshot.totalBriscolaPointsPlayer,
-    totalBriscolaPointsOpponent: !playerWon
-      ? snapshot.totalBriscolaPointsOpponent + trickPoints
-      : snapshot.totalBriscolaPointsOpponent,
+    totalBriscolaPointsOpponent: playerWon
+      ? snapshot.totalBriscolaPointsOpponent
+      : snapshot.totalBriscolaPointsOpponent + trickPoints,
     money: snapshot.money + bonusDollars,
     totalMoneyEarned: snapshot.totalMoneyEarned + bonusDollars,
   };
 }
 
-/**
- * Determines whether a round is finished (both hands are empty and draw pile is exhausted).
- */
 export function isRoundFinished(
   playerHand: PlayingCard[],
   opponentHand: PlayingCard[],
   drawPile: PlayingCard[],
   trumpCard: PlayingCard | null
 ): boolean {
-  return (
-    playerHand.length === 0 &&
-    opponentHand.length === 0 &&
-    drawPile.length === 0 &&
-    trumpCard === null
-  );
+  return playerHand.length === 0 && opponentHand.length === 0 && drawPile.length === 0 && trumpCard === null;
 }
 
-/**
- * Calculates final round outcome from a fresh snapshot without relying on asynchronous state.
- */
 export function calculateRoundOutcome(
   snapshot: RoundStateSnapshot,
   highScore: number,
   unlockedDeckIds: string[]
 ): RoundOutcomeResult {
   const won = snapshot.currentRoundScore >= snapshot.targetScore || snapshot.roundPointsTaken > 60;
-
   const baseReward = 4 + snapshot.ante;
-  const interestCap = snapshot.vouchers.some((v) => v.id === 'v_interessi' && v.bought)
-    ? 10
-    : 5;
+  const interestCap = snapshot.vouchers.some((voucher) => voucher.id === 'v_interessi' && voucher.bought) ? 10 : 5;
   const interest = Math.min(interestCap, Math.floor(snapshot.money / 5));
   const totalReward = won ? baseReward + interest : 0;
-
   const newHighScore = snapshot.totalScore > highScore;
 
   const newUnlockedDecks: string[] = [];
-  if (!unlockedDeckIds.includes('deck_denari') && snapshot.money + totalReward >= 30) {
-    newUnlockedDecks.push('deck_denari');
-  }
-  if (!unlockedDeckIds.includes('deck_spade') && snapshot.ante >= 3) {
-    newUnlockedDecks.push('deck_spade');
-  }
-  if (!unlockedDeckIds.includes('deck_baro') && snapshot.ante >= 5) {
-    newUnlockedDecks.push('deck_baro');
-  }
-
-  const isAnte8Victory = won && snapshot.ante >= 8 && snapshot.round === 3;
+  if (!unlockedDeckIds.includes('deck_denari') && snapshot.money + totalReward >= 30) newUnlockedDecks.push('deck_denari');
+  if (!unlockedDeckIds.includes('deck_spade') && snapshot.ante >= 3) newUnlockedDecks.push('deck_spade');
+  if (!unlockedDeckIds.includes('deck_baro') && snapshot.ante >= 5) newUnlockedDecks.push('deck_baro');
 
   return {
     won,
@@ -313,6 +221,6 @@ export function calculateRoundOutcome(
     totalReward,
     newHighScore,
     newUnlockedDecks,
-    isAnte8Victory,
+    isAnte8Victory: won && snapshot.ante >= 8 && snapshot.round === 3,
   };
 }
