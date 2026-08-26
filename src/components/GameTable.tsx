@@ -658,15 +658,15 @@ export const GameTable: React.FC<GameTableProps> = ({
           </div>
 
           {/* The Player Hand Cards with Fan Spread and Gentle Floating Idle */}
-          <div className="relative flex items-center justify-center my-1 w-full max-w-sm px-1 min-h-[126px] sm:min-h-[146px]">
+          <div className="relative flex items-center justify-center my-1.5 w-full max-w-md sm:max-w-lg px-2 min-h-[148px] sm:min-h-[175px] md:min-h-[195px]">
             <AnimatePresence mode="popLayout">
               {playerHand.map((card, i) => {
                 const isSelected = selectedCardId === card.id;
                 const total = playerHand.length;
                 const middle = (total - 1) / 2;
                 const offset = i - middle; // -1, 0, +1 for 3 cards
-                const fanRotate = offset * 5.5; // subtle fan angle: -5.5deg, 0deg, +5.5deg
-                const fanY = Math.abs(offset) * 3; // subtle arc curve
+                const fanRotate = offset * 4.5; // gentle fan angle
+                const fanY = Math.abs(offset) * 4; // subtle arc curve
 
                 return (
                   <motion.div
@@ -674,9 +674,9 @@ export const GameTable: React.FC<GameTableProps> = ({
                     layout
                     initial={{ y: 50, opacity: 0, scale: 0.6 }}
                     animate={{
-                      y: isSelected ? -16 : [fanY, fanY - 4, fanY],
+                      y: isSelected ? -20 : [fanY, fanY - 4, fanY],
                       rotate: isSelected ? 0 : [fanRotate, fanRotate + (offset < 0 ? -0.8 : offset > 0 ? 0.8 : 0), fanRotate],
-                      scale: isSelected ? 1.06 : 1,
+                      scale: isSelected ? 1.08 : 1,
                       opacity: 1,
                       zIndex: isSelected ? 30 : 10 + i,
                     }}
@@ -695,13 +695,13 @@ export const GameTable: React.FC<GameTableProps> = ({
                       opacity: { duration: 0.2 },
                     }}
                     whileHover={{
-                      y: -12,
-                      scale: 1.05,
+                      y: -14,
+                      scale: 1.06,
                       zIndex: 35,
                       transition: { duration: 0.15 },
                     }}
                     exit={{ y: -50, opacity: 0, scale: 0.5 }}
-                    className="flex flex-col items-center shrink-0 mx-0.5 sm:mx-1"
+                    className="flex flex-col items-center shrink-0 mx-1 sm:mx-2"
                   >
                     <PixelCard
                       card={card}

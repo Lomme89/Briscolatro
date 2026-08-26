@@ -3,6 +3,8 @@ import { motion } from 'motion/react';
 import { CardStyle, PlayingCard } from '../types/game';
 import { RANK_INFO } from '../data/cards';
 import { PixelSuitIcon } from './PixelSuitIcon';
+import { NeapolitanCardIllustration } from './NeapolitanCardIllustration';
+import { PixelCardSprite, useSpritesheet } from './PixelCardSprite';
 import { useCardStyle } from '../context/CardStyleContext';
 import { getCardStyleDefinition } from '../data/cardStyles';
 
@@ -41,6 +43,7 @@ export const PixelCard: React.FC<PixelCardProps> = ({
   const [isHovered, setIsHovered] = useState(false);
 
   const globalStyle = useCardStyle();
+  const { hasCustomDeck } = useSpritesheet();
   const activeStyleId = style || globalStyle || 'classic';
   const styleDef = getCardStyleDefinition(activeStyleId);
 
@@ -51,12 +54,12 @@ export const PixelCard: React.FC<PixelCardProps> = ({
     description: '',
   };
 
-  // Card dimensions based on size with standard Tailwind classes
+  // Card dimensions based on size with generous, readable hand dimensions
   const sizeClasses = {
     xs: 'w-11 sm:w-13 h-16 sm:h-18 text-[8px] sm:text-[9px]',
     sm: 'w-14 sm:w-18 h-20 sm:h-26 text-[9px] sm:text-xs',
     md: 'w-20 sm:w-24 md:w-26 h-28 sm:h-34 md:h-38 text-xs sm:text-sm',
-    lg: 'w-[84px] sm:w-[96px] md:w-[108px] h-[120px] sm:h-[136px] md:h-[152px] text-xs sm:text-sm',
+    lg: 'w-[96px] sm:w-[114px] md:w-[128px] lg:w-[140px] h-[138px] sm:h-[164px] md:h-[184px] lg:h-[200px] text-xs sm:text-sm',
   }[size];
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -91,96 +94,29 @@ export const PixelCard: React.FC<PixelCardProps> = ({
     }
   };
 
-  // Render Rank Center Illustration with Style Variations
+  // Center Content: Authentic Neapolitan Card Illustration (or Custom Sliced ZIP if uploaded)
   const renderCenterContent = () => {
-    const iconSize = size === 'lg' ? 24 : size === 'md' ? 18 : size === 'sm' ? 14 : 10;
-
-    if (card.rank === 1) {
+    if (hasCustomDeck && activeStyleId === 'classic') {
       return (
-        <div className="flex flex-col items-center justify-center">
-          <div className="relative">
-            <PixelSuitIcon
-              suit={card.suit}
-              style={activeStyleId}
-              size={size === 'lg' ? 36 : size === 'md' ? 26 : size === 'sm' ? 20 : 14}
-            />
-            <div className="absolute -top-1 -right-1 text-[8px] sm:text-[10px]">
-              {activeStyleId === 'neo_noir' ? '🩸' : activeStyleId === 'neon_cyber' ? '⚡' : '✨'}
-            </div>
-          </div>
-          <span className={`text-[8px] sm:text-[9px] font-pixel mt-0.5 uppercase tracking-wider font-bold ${styleDef.accentColors.asso}`}>
-            ASSO
-          </span>
-        </div>
-      );
-    }
-
-    if (card.rank === 3) {
-      return (
-        <div className="flex flex-col items-center gap-0.5">
-          <PixelSuitIcon suit={card.suit} style={activeStyleId} size={iconSize} />
-          <div className="flex gap-1">
-            <PixelSuitIcon suit={card.suit} style={activeStyleId} size={Math.max(8, iconSize - 3)} />
-            <PixelSuitIcon suit={card.suit} style={activeStyleId} size={Math.max(8, iconSize - 3)} />
-          </div>
-        </div>
-      );
-    }
-
-    if (card.rank === 10) {
-      return (
-        <div className="flex flex-col items-center text-center">
-          <span className="text-sm sm:text-base leading-none">
-            {activeStyleId === 'neo_noir' ? '👑' : activeStyleId === 'neon_cyber' ? '👑' : '👑'}
-          </span>
-          <PixelSuitIcon suit={card.suit} style={activeStyleId} size={iconSize} />
-          <span className={`text-[7.5px] sm:text-[8px] font-pixel font-bold mt-0.5 ${styleDef.accentColors.re}`}>
-            RE
-          </span>
-        </div>
-      );
-    }
-
-    if (card.rank === 9) {
-      return (
-        <div className="flex flex-col items-center text-center">
-          <span className="text-xs sm:text-sm leading-none">
-            {activeStyleId === 'neo_noir' ? '♟️' : activeStyleId === 'neon_cyber' ? '🛸' : '🐎'}
-          </span>
-          <PixelSuitIcon suit={card.suit} style={activeStyleId} size={iconSize} />
-          <span className={`text-[7.5px] sm:text-[8px] font-pixel font-bold mt-0.5 ${styleDef.accentColors.cav}`}>
-            CAV
-          </span>
-        </div>
-      );
-    }
-
-    if (card.rank === 8) {
-      return (
-        <div className="flex flex-col items-center text-center">
-          <span className="text-xs sm:text-sm leading-none">
-            {activeStyleId === 'neo_noir' ? '🗡️' : activeStyleId === 'neon_cyber' ? '💾' : '🛡️'}
-          </span>
-          <PixelSuitIcon suit={card.suit} style={activeStyleId} size={iconSize} />
-          <span className={`text-[7.5px] sm:text-[8px] font-pixel font-bold mt-0.5 ${styleDef.accentColors.fan}`}>
-            FAN
-          </span>
-        </div>
-      );
-    }
-
-    // Default numeric suits (2, 4, 5, 6, 7)
-    const iconCount = Math.min(card.rank, 4);
-    return (
-      <div className="grid grid-cols-2 gap-0.5 sm:gap-1 items-center justify-center">
-        {Array.from({ length: iconCount }).map((_, i) => (
-          <PixelSuitIcon
-            key={i}
+        <div className="w-full h-full flex items-center justify-center overflow-hidden p-0.5">
+          <PixelCardSprite
+            rank={card.rank}
             suit={card.suit}
-            style={activeStyleId}
-            size={Math.max(9, iconSize - 4)}
+            alt={`${card.name}`}
+            className="rounded-[3px]"
           />
-        ))}
+        </div>
+      );
+    }
+
+    return (
+      <div className="w-full h-full flex items-center justify-center overflow-hidden">
+        <NeapolitanCardIllustration
+          rank={card.rank}
+          suit={card.suit}
+          style={activeStyleId}
+          size={size}
+        />
       </div>
     );
   };
@@ -210,6 +146,8 @@ export const PixelCard: React.FC<PixelCardProps> = ({
       </motion.div>
     );
   }
+
+  const cornerSuitSize = size === 'lg' ? 15 : size === 'md' ? 12 : size === 'sm' ? 10 : 8;
 
   return (
     <motion.div
@@ -281,30 +219,30 @@ export const PixelCard: React.FC<PixelCardProps> = ({
       {/* Card Content Container */}
       <div className="relative z-10 w-full h-full p-1 sm:p-1.5 flex flex-col justify-between">
         {/* Top-Left Corner Index */}
-        <div className="flex flex-col items-start leading-none">
-          <span className={`font-pixel font-bold text-[10px] sm:text-xs ${styleDef.rankTextColor} tracking-tighter`}>
+        <div className="flex flex-col items-start leading-none pointer-events-none">
+          <span className={`font-pixel font-bold text-[10px] sm:text-xs md:text-sm ${styleDef.rankTextColor} tracking-tighter`}>
             {info.shortName}
           </span>
           <div className="mt-0.5">
-            <PixelSuitIcon suit={card.suit} style={activeStyleId} size={size === 'lg' ? 14 : size === 'md' ? 11 : 9} />
+            <PixelSuitIcon suit={card.suit} style={activeStyleId} size={cornerSuitSize} />
           </div>
         </div>
 
         {/* Center Illustration */}
-        <div className="my-auto flex items-center justify-center py-0.5">
+        <div className="my-auto flex items-center justify-center py-0.5 w-full flex-1 min-h-0 pointer-events-none">
           {renderCenterContent()}
         </div>
 
         {/* Bottom Bar: Points and Inverted Index */}
-        <div className="flex items-end justify-between leading-none">
+        <div className="flex items-end justify-between leading-none pointer-events-none">
           {showPoints ? (
             <div className="flex items-center">
               {info.points > 0 ? (
-                <span className={`font-pixel text-[7px] sm:text-[8px] px-0.5 sm:px-1 py-0.5 rounded shadow-xs font-bold ${styleDef.pointsBadgeClass}`}>
+                <span className={`font-pixel text-[7px] sm:text-[8px] md:text-[9px] px-1 py-0.5 rounded shadow-xs font-bold ${styleDef.pointsBadgeClass}`}>
                   {info.points}pt
                 </span>
               ) : (
-                <span className="font-pixel text-[7px] text-slate-400 opacity-60">
+                <span className="font-pixel text-[7px] sm:text-[8px] text-slate-400 opacity-60">
                   0pt
                 </span>
               )}
@@ -313,11 +251,11 @@ export const PixelCard: React.FC<PixelCardProps> = ({
 
           {/* Bottom-Right Inverted Corner */}
           <div className="flex flex-col items-end rotate-180">
-            <span className={`font-pixel font-bold text-[10px] sm:text-xs ${styleDef.rankTextColor} tracking-tighter`}>
+            <span className={`font-pixel font-bold text-[10px] sm:text-xs md:text-sm ${styleDef.rankTextColor} tracking-tighter`}>
               {info.shortName}
             </span>
             <div className="mt-0.5">
-              <PixelSuitIcon suit={card.suit} style={activeStyleId} size={size === 'lg' ? 14 : size === 'md' ? 11 : 9} />
+              <PixelSuitIcon suit={card.suit} style={activeStyleId} size={cornerSuitSize} />
             </div>
           </div>
         </div>
@@ -332,3 +270,4 @@ export const PixelCard: React.FC<PixelCardProps> = ({
     </motion.div>
   );
 };
+

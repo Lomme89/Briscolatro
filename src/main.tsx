@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
+import { SpritesheetProvider } from './components/PixelCardSprite.tsx';
 import './index.css';
 
 // Register PWA Service Worker in production
@@ -16,6 +17,8 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <SpritesheetProvider>
+      <App />
+    </SpritesheetProvider>
   </StrictMode>,
 );

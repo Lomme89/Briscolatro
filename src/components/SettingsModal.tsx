@@ -4,6 +4,7 @@ import { CardStyle, GameSettings, PlayingCard } from '../types/game';
 import { sound } from '../services/soundEngine';
 import { CARD_STYLES } from '../data/cardStyles';
 import { PixelCard } from './PixelCard';
+import { useSpritesheet } from './PixelCardSprite';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -44,6 +45,96 @@ const PREVIEW_BACK: PlayingCard = {
   edition: 'standard',
   seal: 'none',
   enhancement: 'none',
+};
+
+const SpritesheetUploader: React.FC = () => {
+  const { hasCustomDeck, customCardImages, loadZipArchive, resetToDefault } = useSpritesheet();
+  const [loading, setLoading] = React.useState(false);
+  const [feedback, setFeedback] = React.useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const cardCount = Object.keys(customCardImages).length;
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setLoading(true);
+    setFeedback(null);
+
+    if (file.name.toLowerCase().endsWith('.zip')) {
+      const result = await loadZipArchive(file);
+      if (result.error) {
+        setFeedback(`❌ ${result.error}`);
+      } else {
+        setFeedback(`✅ Caricate ${result.count} carte ritagliate dal file ZIP!`);
+      }
+    } else {
+      setFeedback('⚠️ Seleziona un file archivio .ZIP contenente le 40 carte ritagliate.');
+    }
+
+    setLoading(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  return (
+    <div className="bg-slate-900/90 rounded-xl p-2.5 sm:p-3 border border-slate-800/90 mt-2 space-y-2.5">
+      <div className="flex items-center justify-between">
+        <span className="font-pixel text-[9px] sm:text-[10px] text-amber-300 flex items-center gap-1">
+          <span>📦</span> Mazzo Carte Ritagliate PNG (40 Carte)
+        </span>
+        {hasCustomDeck ? (
+          <span className="font-pixel text-[7.5px] bg-emerald-900/90 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-500">
+            {cardCount} Carte Caricate
+          </span>
+        ) : (
+          <span className="font-pixel text-[7.5px] bg-amber-950/80 text-amber-300 px-1.5 py-0.5 rounded border border-amber-600/60">
+            Set Originale Ritagliato
+          </span>
+        )}
+      </div>
+
+      <div className="text-[10px] text-slate-400 font-retro leading-relaxed">
+        Il gioco utilizza le singole immagini PNG ritagliate ad alta definizione. Puoi anche caricare direttamente un file <span className="text-amber-400 font-bold">.ZIP</span> con le tue carte ritagliate.
+      </div>
+
+      {feedback && (
+        <div className="text-[9px] font-pixel px-2 py-1 rounded bg-slate-800 border border-slate-700 text-amber-300">
+          {feedback}
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2 pt-0.5">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".zip,application/zip"
+          className="hidden"
+          onChange={handleFileUpload}
+        />
+        <button
+          type="button"
+          disabled={loading}
+          onClick={() => fileInputRef.current?.click()}
+          className="bg-amber-600/80 hover:bg-amber-500 text-white font-pixel text-[8.5px] sm:text-[9.5px] px-2.5 py-1.5 rounded-lg border border-amber-400/40 cursor-pointer transition-colors flex items-center gap-1.5 disabled:opacity-50"
+        >
+          <span>📦</span> {loading ? 'Caricamento...' : 'Carica File .ZIP Carte'}
+        </button>
+
+        {hasCustomDeck && (
+          <button
+            type="button"
+            onClick={resetToDefault}
+            className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-pixel text-[8.5px] sm:text-[9.5px] px-2.5 py-1.5 rounded-lg border border-slate-700 cursor-pointer transition-colors"
+          >
+            Ripristina Predefinite
+          </button>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -248,6 +339,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* Custom Spritesheet Controls */}
+            <SpritesheetUploader />
           </div>
 
           {/* --- 2. AUDIO SECTION --- */}
