@@ -4,6 +4,7 @@ import { CardStyle, PlayingCard } from '../types/game';
 import { getSuitDisplayName, RANK_INFO } from '../game/briscola';
 import { PixelSuitIcon } from './PixelSuitIcon';
 import { NeapolitanCardIllustration } from './NeapolitanCardIllustration';
+import { CARD_PAPER, getCardArtUrl, NeapolitanCardArt } from './NeapolitanCardArt';
 import { PixelCardSprite, useSpritesheet } from './PixelCardSprite';
 import { useCardStyle } from '../context/CardStyleContext';
 import { getCardStyleDefinition } from '../data/cardStyles';
@@ -113,6 +114,12 @@ export const PixelCard: React.FC<PixelCardProps> = ({
     }
   };
 
+  // The finished Neapolitan deck is the face of a classic card: it carries its
+  // own background, border and figures, so the procedural drawing and the corner
+  // indices step aside for it. A player-uploaded deck still wins over both.
+  const artUrl = getCardArtUrl(card.suit, card.rank);
+  const usesFullArt = !hasCustomDeck && activeStyleId === 'classic' && Boolean(artUrl);
+
   // Center Content: Authentic Neapolitan Card Illustration (or Custom Sliced ZIP if uploaded)
   const renderCenterContent = () => {
     if (hasCustomDeck && activeStyleId === 'classic') {
@@ -204,6 +211,20 @@ export const PixelCard: React.FC<PixelCardProps> = ({
       {/* Background card texture */}
       <div className={`absolute inset-0 ${styleDef.cardInnerBg} rounded-md overflow-hidden pointer-events-none`} />
 
+      {/* The painted face, edge to edge */}
+      {usesFullArt && (
+        <div
+          className="absolute inset-0 rounded-md overflow-hidden pointer-events-none"
+          style={{ backgroundColor: CARD_PAPER }}
+        >
+          <NeapolitanCardArt
+            suit={card.suit}
+            rank={card.rank}
+            alt={`${info.name} di ${getSuitDisplayName(card.suit)}`}
+          />
+        </div>
+      )}
+
       {/* Foil / Shimmer Overlay */}
       {card.edition !== 'standard' && (
         <div className={`absolute inset-0 ${styleDef.shimmerBlendClass} pointer-events-none rounded-md`} />
@@ -252,22 +273,37 @@ export const PixelCard: React.FC<PixelCardProps> = ({
         </div>
       )}
 
-      {/* Card Content Container */}
+      {/* Card Content Container. Over the finished art only the things the art
+          cannot know are drawn: the rank chip you scan a hand by, and the point
+          value the game runs on. */}
       <div className="relative z-10 w-full h-full p-1 sm:p-1.5 flex flex-col justify-between">
-        {/* Top-Left Corner Index */}
-        <div className="flex flex-col items-start leading-none pointer-events-none">
-          <span className={`font-pixel font-bold text-[10px] sm:text-xs md:text-sm ${styleDef.rankTextColor} tracking-tighter`}>
-            {info.shortName}
-          </span>
-          <div className="mt-0.5">
-            <PixelSuitIcon suit={card.suit} style={activeStyleId} size={cornerSuitSize} />
+        {usesFullArt ? (
+          <div className="flex items-start justify-start pointer-events-none">
+            <span className="flex items-center gap-0.5 bg-slate-950/85 border border-amber-400/70 rounded px-1 py-0.5 shadow">
+              <span className="font-pixel font-bold text-[8px] sm:text-[10px] text-amber-200 tracking-tighter leading-none">
+                {info.shortName}
+              </span>
+              <PixelSuitIcon suit={card.suit} style={activeStyleId} size={cornerSuitSize - 2} />
+            </span>
           </div>
-        </div>
+        ) : (
+          <>
+            {/* Top-Left Corner Index */}
+            <div className="flex flex-col items-start leading-none pointer-events-none">
+              <span className={`font-pixel font-bold text-[10px] sm:text-xs md:text-sm ${styleDef.rankTextColor} tracking-tighter`}>
+                {info.shortName}
+              </span>
+              <div className="mt-0.5">
+                <PixelSuitIcon suit={card.suit} style={activeStyleId} size={cornerSuitSize} />
+              </div>
+            </div>
 
-        {/* Center Illustration */}
-        <div className="my-auto flex items-center justify-center py-0.5 w-full flex-1 min-h-0 pointer-events-none">
-          {renderCenterContent()}
-        </div>
+            {/* Center Illustration */}
+            <div className="my-auto flex items-center justify-center py-0.5 w-full flex-1 min-h-0 pointer-events-none">
+              {renderCenterContent()}
+            </div>
+          </>
+        )}
 
         {/* Bottom Bar: Points and Inverted Index */}
         <div className="flex items-end justify-between leading-none pointer-events-none">
@@ -278,22 +314,29 @@ export const PixelCard: React.FC<PixelCardProps> = ({
                   {info.points}pt
                 </span>
               ) : (
-                <span className="font-pixel text-[7px] sm:text-[8px] text-slate-400 opacity-60">
+                <span
+                  className={`font-pixel text-[7px] sm:text-[8px] ${
+                    usesFullArt
+                      ? 'text-slate-200 bg-slate-950/70 rounded px-1 py-0.5'
+                      : 'text-slate-400 opacity-60'
+                  }`}
+                >
                   0pt
                 </span>
               )}
             </div>
           ) : <div />}
 
-          {/* Bottom-Right Inverted Corner */}
-          <div className="flex flex-col items-end rotate-180">
-            <span className={`font-pixel font-bold text-[10px] sm:text-xs md:text-sm ${styleDef.rankTextColor} tracking-tighter`}>
-              {info.shortName}
-            </span>
-            <div className="mt-0.5">
-              <PixelSuitIcon suit={card.suit} style={activeStyleId} size={cornerSuitSize} />
+          {!usesFullArt && (
+            <div className="flex flex-col items-end rotate-180">
+              <span className={`font-pixel font-bold text-[10px] sm:text-xs md:text-sm ${styleDef.rankTextColor} tracking-tighter`}>
+                {info.shortName}
+              </span>
+              <div className="mt-0.5">
+                <PixelSuitIcon suit={card.suit} style={activeStyleId} size={cornerSuitSize} />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
