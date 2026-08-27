@@ -122,7 +122,7 @@ export const DevDebugDrawer: React.FC<DevDebugDrawerProps> = ({
 
             {/* Add UNO Card */}
             <div>
-              <span className="text-slate-400 block mb-1">Aggiungi Carta UNO:</span>
+              <span className="text-slate-400 block mb-1">Aggiungi Carta Sola:</span>
               <select
                 onChange={(e) => {
                   const u = ALL_UNO_CARDS.find((item) => item.id === e.target.value);
@@ -133,7 +133,7 @@ export const DevDebugDrawer: React.FC<DevDebugDrawerProps> = ({
                 defaultValue=""
               >
                 <option value="" disabled>
-                  -- Seleziona Carta UNO --
+                  -- Seleziona Carta Sola --
                 </option>
                 {ALL_UNO_CARDS.map((u) => (
                   <option key={u.id} value={u.id}>

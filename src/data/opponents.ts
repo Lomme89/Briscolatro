@@ -46,6 +46,7 @@ const REGULARS: Regular[] = [
       'Questo mazzo lo conosco meglio di mia moglie.',
       'Gioca, gioca. Tanto la Briscola ce l’ho io.',
       'Al bancone dicono che sei bravo. Vediamo.',
+      'E ricordati: chi nun dice SOLA, pesca.',
     ],
   },
   {

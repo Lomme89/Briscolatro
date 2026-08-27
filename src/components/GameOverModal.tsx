@@ -102,7 +102,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
             {won
               ? 'Sei il nuovo Campione indiscusso del Torneo di Briscolatro! Tutti i bari e i veterani del Bar Sport si inchinano alla tua maestria.'
               : summary.defeatReason ||
-                `Non hai raggiunto il punteggio richiesto di ${targetScore.toLocaleString()} punti ad Ante ${ante}. Riprova combinando nuovi Jolly e carte UNO!`}
+                `Non hai raggiunto il punteggio richiesto di ${targetScore.toLocaleString()} punti ad Ante ${ante}. Riprova combinando nuovi Jolly e Carte Sola!`}
           </p>
         </div>
 

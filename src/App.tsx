@@ -586,7 +586,7 @@ export function App() {
           const rolled = ALL_UNO_CARDS[Math.floor(Math.random() * ALL_UNO_CARDS.length)];
           return [...prev, { ...rolled, id: `${rolled.id}_${Date.now()}` }];
         });
-        setOpponentSpeech('Sigillo Blu: una carta UNO gratis!');
+        setOpponentSpeech('Sigillo Blu: una Carta Sola gratis!');
       }
       if (seals.shatteredCardIds.length > 0) {
         const shattered = new Set(seals.shatteredCardIds);
@@ -956,7 +956,7 @@ export function App() {
       (trickPhase === 'idle' || trickPhase === 'waiting_player_follow') && isPlayerTurn;
     if (!canUseNow) {
       sound.playTrickLose();
-      setOpponentSpeech('Aspetta il tuo turno per giocare una carta UNO!');
+      setOpponentSpeech('Aspetta il tuo turno per giocare una Carta Sola!');
       return;
     }
     // One cast at a time: the board is already changing under the last one.
@@ -1257,6 +1257,9 @@ export function App() {
               {/* Footer Traditional Tag */}
               <div className="mt-6 pt-3 border-t border-slate-800 text-[10px] font-retro text-slate-400">
                 Ispirato a Balatro & alla tradizione delle carte napoletane
+                <div className="mt-1 text-[9px] text-slate-500">
+                  Con le Carte Sola, gioco di carte legalmente distinto.
+                </div>
               </div>
             </motion.div>
           </div>

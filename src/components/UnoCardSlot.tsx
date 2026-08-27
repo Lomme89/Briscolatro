@@ -52,7 +52,7 @@ export const UnoCardSlot: React.FC<UnoCardSlotProps> = ({
         className={`${sizeClasses} border-2 border-dashed border-red-900/40 rounded-xl flex flex-col items-center justify-center text-red-900/60 bg-red-950/20 select-none shrink-0`}
       >
         <span className={`${isSmall ? 'text-sm sm:text-base' : 'text-lg sm:text-xl'} opacity-40`}>🔴</span>
-        <span className="text-[6.5px] sm:text-[7.5px] font-pixel mt-0.5 opacity-50 font-bold tracking-wider">UNO</span>
+        <span className="text-[6.5px] sm:text-[7.5px] font-pixel mt-0.5 opacity-50 font-bold tracking-wider">SOLA</span>
       </div>
     );
   }
@@ -202,7 +202,7 @@ export const UnoCardSlot: React.FC<UnoCardSlotProps> = ({
             bareFace ? 'hidden' : ''
           }`}
         >
-          <span className="truncate max-w-[40px] font-bold">{unoCard.badgeText || 'UNO'}</span>
+          <span className="truncate max-w-[40px] font-bold">{unoCard.badgeText || 'SOLA'}</span>
           <span className="font-mono font-bold text-amber-300">
             {isShopItem ? `$${buyCost || unoCard.cost}` : 'USA'}
           </span>

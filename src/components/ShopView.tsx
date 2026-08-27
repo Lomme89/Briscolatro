@@ -201,7 +201,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
   const handleSelectBoosterUnoCard = (unoCard: UnoCard) => {
     if (!activeBooster) return;
     if (consumables.length >= maxConsumables) {
-      alert('Non hai abbastanza spazio per altre Carte Azione UNO!');
+      alert('Non hai abbastanza spazio per altre Carte Sola!');
       return;
     }
     sound.playCashChime();
@@ -321,7 +321,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
           <div className="flex flex-col gap-1 border-t md:border-t-0 md:border-l border-slate-800 pt-1.5 md:pt-0 md:pl-3">
             <div className="flex items-center justify-between text-[9px] sm:text-[10px] font-pixel text-slate-300 px-1">
               <span className="text-red-400 flex items-center gap-1 font-bold">
-                <span className="bg-red-600 text-white px-1 rounded text-[7.5px] font-black">UNO</span>
+                <span className="bg-red-600 text-white px-1 rounded text-[7.5px] font-black">SOLA</span>
                 CARTE AZIONE ({consumables.length}/{maxConsumables})
               </span>
               <span className="text-[8px] text-slate-400">Tocca per vendere</span>
@@ -367,7 +367,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
           }`}
         >
           <span>🃏</span>
-          <span>JOLLY & UNO ({shopJokers.length + shopUnoCards.length})</span>
+          <span>JOLLY & SOLA ({shopJokers.length + shopUnoCards.length})</span>
         </button>
         <button
           onClick={() => setMobileTab('packs')}
@@ -394,7 +394,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
             {/* Shelf Header */}
             <div className="flex items-center justify-between mb-2.5 border-b border-slate-800 pb-2">
               <span className="font-pixel text-[10.5px] sm:text-xs text-amber-400 font-bold flex items-center gap-1.5">
-                <span>🃏</span> PERSONAGGI & CARTE UNO
+                <span>🃏</span> PERSONAGGI & CARTE SOLA
               </span>
               <button
                 onClick={handleReroll}
@@ -510,7 +510,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
                     >
                       <div className="flex items-center justify-between w-full mb-1">
                         <span className="text-[7px] font-pixel px-1 py-0.2 rounded bg-red-600 text-white uppercase font-black">
-                          UNO
+                          SOLA
                         </span>
                         <span className="text-[9px] text-slate-400">ⓘ Info</span>
                       </div>
@@ -716,7 +716,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
                 </span>
               ) : inspectedItem.type === 'uno' ? (
                 <span className="font-pixel text-[7.5px] px-2 py-0.5 rounded bg-red-600/20 text-red-300 uppercase mb-2 border border-red-500/40">
-                  Carta UNO
+                  Carta Sola
                 </span>
               ) : null}
               <p className="font-retro text-xs text-slate-200 mb-4 leading-relaxed">

@@ -2,7 +2,7 @@
   "id": "./",
   "name": "Briscolatro - Roguelike Briscola",
   "short_name": "Briscolatro",
-  "description": "Il roguelike di Briscola all'italiana in stile Balatro con Jolly, carte UNO e potenziamenti.",
+  "description": "Il roguelike di Briscola all'italiana in stile Balatro con Jolly, Carte Sola e potenziamenti.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

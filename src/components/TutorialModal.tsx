@@ -235,8 +235,8 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ isOpen, onClose })
             <div className="space-y-3">
               <div className="bg-slate-950/80 p-3 rounded-xl border border-slate-800">
                 <h3 className="font-pixel text-[11px] text-red-400 mb-1 flex items-center gap-1.5">
-                  <span className="bg-red-600 text-white px-1.5 py-0.5 rounded text-[8px] font-bold">UNO</span>
-                  Jolly, Carte Azione UNO & Negozio
+                  <span className="bg-red-600 text-white px-1.5 py-0.5 rounded text-[8px] font-bold">SOLA</span>
+                  Jolly, Carte Sola & Negozio
                 </h3>
                 <p className="leading-relaxed mb-2">
                   Tra una manche e l'altra visiterai il <strong>Negozio del Bar Sport</strong>, dove potrai spendere i soldi guadagnati:
@@ -252,14 +252,14 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ isOpen, onClose })
                   <li className="flex items-start gap-2 bg-slate-900 p-2 rounded-lg border border-slate-800">
                     <span className="text-red-500 font-bold text-base shrink-0">🔴</span>
                     <div>
-                      <strong className="text-red-300 font-pixel text-[10px]">Carte Azione (Stile UNO):</strong>
-                      <p className="text-xs text-slate-300 mt-0.5">Carte iconiche (+2 Pesca Due, Salta Giro ⊘, Inverti Giro ⇄, Wild Cambio Colore 🎨, Scambio 🔀, Grido UNO!) per manipolare le regole e applicare Foil/Ologrammi alle tue carte.</p>
+                      <strong className="text-red-300 font-pixel text-[10px]">Carte Sola:</strong>
+                      <p className="text-xs text-slate-300 mt-0.5">Quelle carte lì: +2 Pesca Due, Sgambetto ⊘, Giravolta ⇄, Jolly Matto 🎨, Scambio 🔀 e il grido "SOLA!". Le abbiamo chiamate diversamente, per il resto ci siamo capiti.</p>
                     </div>
                   </li>
                   <li className="flex items-start gap-2 bg-slate-900 p-2 rounded-lg border border-slate-800">
                     <span className="text-lg shrink-0">🎁</span>
                     <div>
-                      <strong className="text-cyan-300 font-pixel text-[10px]">Bustine & Carte UNO:</strong>
+                      <strong className="text-cyan-300 font-pixel text-[10px]">Bustine & Carte Sola:</strong>
                       <p className="text-xs text-slate-300 mt-0.5">Apri pacchetti speciali per trovare Carte Azione, modificatori e Jolly leggendari.</p>
                     </div>
                   </li>

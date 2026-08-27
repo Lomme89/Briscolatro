@@ -52,7 +52,7 @@ export const ItemInspectorModal: React.FC<ItemInspectorModalProps> = ({
     ? ''
     : isJoker
       ? (entry.item as Joker).rarity
-      : 'Carta UNO';
+      : 'Carta Sola';
 
   // Only the personaggi have a second name worth printing; repeating a UNO
   // card's own title under itself said nothing.

@@ -276,7 +276,7 @@ export const GameTable: React.FC<GameTableProps> = ({
       artUrl: getUnoArtUrl(unoCard.id),
       name: unoCard.name,
       description: unoCard.description,
-      badges: ['CARTA UNO'],
+      badges: ['CARTA SOLA'],
       sellValue: 1,
       onSell: () => onSellUnoCard(inspected.index),
     };
