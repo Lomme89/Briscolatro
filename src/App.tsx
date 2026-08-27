@@ -268,6 +268,15 @@ export function App() {
    */
   const playedCardsRef = useRef<PlayingCard[]>([]);
   /**
+   * The suit of the card the player last WON a trick with.
+   *
+   * Il Maestro dei Bastoni chains the next opening to it. A ref because the
+   * check runs from the same delayed callbacks the AI does, and state there is
+   * a render behind.
+   */
+  const lastWinningSuitRef = useRef<Suit | null>(null);
+  const [forcedLeadSuit, setForcedLeadSuit] = useState<Suit | null>(null);
+  /**
    * The temperament of tonight's opponent, fixed when the round starts.
    *
    * A ref because the AI runs from delayed callbacks where state would be one
@@ -372,6 +381,8 @@ export function App() {
     setOpponentTrickCard(null);
     setTricksPlayedInRound(0);
     playedCardsRef.current = [];
+    lastWinningSuitRef.current = null;
+    setForcedLeadSuit(null);
     // Who you are playing tonight decides how they play, for the whole round.
     opponentProfileRef.current = getAiProfile(
       getOpponentIntro(currentAnte, currentRoundNum).aiProfileId
@@ -429,7 +440,7 @@ export function App() {
     setPlayerHand(pHand);
     setOpponentHand(oHand);
 
-    setDisabledJokerIndex(BOSS_RULES.getDisabledJokerIndex(bossToSet, activeJokers.length));
+    setDisabledJokerIndex(BOSS_RULES.getSilencedJokerIndex(bossToSet, 0, activeJokers.length));
     setIsPlayerTurn(true);
     setTrickLeadIsPlayer(true);
     setTrickPhase('idle');
@@ -512,6 +523,7 @@ export function App() {
       remainingTricks:
         Math.floor(drawPileRef.current.length / 2) + playerHandRef.current.length,
       boss: getEnforcedBoss(),
+      silencedJokerIndex: disabledJokerIndex,
     });
 
   // --- Opponent Lead AI ---
@@ -860,8 +872,17 @@ export function App() {
     setIsReverseActive(false);
     isReverseActiveRef.current = false;
 
-    // Pick new disabled joker if debuff active
-    setDisabledJokerIndex(BOSS_RULES.getDisabledJokerIndex(getEnforcedBoss(), activeJokers.length));
+    // The toll is charged on the suit you won with, and only while you still
+    // hold that suit: a chain that cannot be followed simply ends.
+    lastWinningSuitRef.current = playerWon ? (playerTrickCard?.suit ?? null) : null;
+    setForcedLeadSuit(
+      BOSS_RULES.getForcedLeadSuit(getEnforcedBoss(), lastWinningSuitRef.current, newPlayerHand)
+    );
+
+    // The Sovrano walks the rail in order, so the next silence is knowable.
+    setDisabledJokerIndex(
+      BOSS_RULES.getSilencedJokerIndex(getEnforcedBoss(), newTricksPlayed, activeJokers.length)
+    );
 
     // 3. Check if Round Finished
     const roundEnded = isRoundFinished(newPlayerHand, newOpponentHand, newDrawPile, newTrumpCard);
@@ -1004,7 +1025,12 @@ export function App() {
 
     // Check Boss lead restriction (e.g. Il Cambiavalute)
     if (opponentTrickCard === null) {
-      const bossCheck = BOSS_RULES.canPlayerLeadCard(card, getEnforcedBoss(), playerHandRef.current);
+      const bossCheck = BOSS_RULES.canPlayerLeadCard(
+        card,
+        getEnforcedBoss(),
+        playerHandRef.current,
+        lastWinningSuitRef.current
+      );
       if (!bossCheck.allowed) {
         sound.playTrickLose();
         setOpponentSpeech(bossCheck.reason || 'Mossa non consentita!');
@@ -1436,6 +1462,8 @@ export function App() {
             maxJokers={maxJokers}
             maxConsumables={maxConsumables}
             currentBoss={activeBoss}
+            forcedLeadSuit={forcedLeadSuit}
+            silencedJokerIndex={disabledJokerIndex}
             bossDebuffNeutralized={bossDebuffNeutralized}
             opponentSpeech={opponentSpeech}
             onPlayCard={handlePlayCard}

@@ -66,12 +66,13 @@ export const ALL_BOSS_BLINDS: BossBlind[] = [
     name: 'Il Maestro dei Bastoni',
     characterTitle: 'Il Gigante del Tavolo',
     avatar: '🪵',
-    bossQuote: 'Un colpo solo per spazzare via tutti i tuoi trucchi!',
+    bossQuote: 'Da me si paga il pedaggio: come hai vinto, cosi\' riapri.',
     ante: 6,
     targetScore: 7500,
     reward: 10,
-    debuffDescription: 'Punteggio Target titanico (+50% rispetto al normale).',
-    debuffType: 'high_target_only',
+    debuffDescription:
+      'Dopo una presa vinta devi aprire la successiva con lo stesso seme della carta con cui l\'hai vinta, se ce l\'hai in mano.',
+    debuffType: 'forced_suit_chain',
   },
   {
     id: 'boss_ante_7',
@@ -82,7 +83,8 @@ export const ALL_BOSS_BLINDS: BossBlind[] = [
     ante: 7,
     targetScore: 14000,
     reward: 12,
-    debuffDescription: 'Non puoi giocare carte di Denari come prima mossa della presa.',
+    debuffDescription:
+      'Non puoi aprire la presa con i Denari. Se in mano ti restano solo Denari, sei libero di aprire.',
     debuffType: 'no_denari_first',
   },
   {
@@ -90,11 +92,12 @@ export const ALL_BOSS_BLINDS: BossBlind[] = [
     name: 'Il Sovrano di Briscolatro',
     characterTitle: 'Il Campione Supremo dell\'Infinito',
     avatar: '👑',
-    bossQuote: 'Sei giunto al cospetto del Trono. Dimostra di essere il vero Re della Briscola!',
+    bossQuote: 'Uno alla volta, i tuoi cortigiani tacciono. So già in che ordine.',
     ante: 8,
     targetScore: 25000,
     reward: 20,
-    debuffDescription: 'A ogni presa, un tuo Jolly casuale viene disattivato per quel turno.',
-    debuffType: 'random_joker_disabled',
+    debuffDescription:
+      'Il Sovrano zittisce un tuo Jolly per presa, sempre in ordine dal primo all\'ultimo. Sai già quale tocca dopo.',
+    debuffType: 'rotating_joker_silence',
   },
 ];

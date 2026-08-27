@@ -5,7 +5,8 @@ import { PixelCard } from './PixelCard';
 import { PixelSuitIcon } from './PixelSuitIcon';
 import { PixelAvatar, OpponentEmotion } from './PixelAvatar';
 import { CaricoParticles } from './CaricoParticles';
-import { resolveTrick } from '../game/briscola';
+import { resolveTrick, getSuitDisplayName } from '../game/briscola';
+import { BOSS_RULES } from '../game/bossRules';
 import { JokerSlot } from './JokerSlot';
 import { UnoCardSlot } from './UnoCardSlot';
 import { UnoConfirmModal } from './UnoConfirmModal';
@@ -44,6 +45,10 @@ interface GameTableProps {
   maxConsumables: number;
   currentBoss: BossBlind | null;
   bossDebuffNeutralized: boolean;
+  /** Il Maestro dei Bastoni: the suit the next opening is chained to. */
+  forcedLeadSuit: Suit | null;
+  /** Il Sovrano: which slot on the joker rail is silent this trick. */
+  silencedJokerIndex: number | null;
   opponentSpeech: string;
   onPlayCard: (card: PlayingCard) => void;
   onDiscardCard: (card: PlayingCard) => void;
@@ -94,6 +99,8 @@ export const GameTable: React.FC<GameTableProps> = ({
   maxConsumables,
   currentBoss,
   bossDebuffNeutralized,
+  forcedLeadSuit,
+  silencedJokerIndex,
   opponentSpeech,
   onPlayCard,
   onDiscardCard,
@@ -133,12 +140,27 @@ export const GameTable: React.FC<GameTableProps> = ({
 
   const selectedCard = playerHand.find((c) => c.id === selectedCardId);
 
+  // Opening the trick is where both lead restrictions bite. Working it out here
+  // means an illegal card is visibly out of reach instead of being refused
+  // after the tap - the rule reads as part of the table, not as a rejection.
+  const isOpeningTrick = opponentTrickCard === null;
+  const effectiveBoss = bossDebuffNeutralized ? null : currentBoss;
+  const isCardPlayable = (card: PlayingCard): boolean => {
+    if (!isOpeningTrick) return true;
+    return BOSS_RULES.canPlayerLeadCard(card, effectiveBoss, playerHand, forcedLeadSuit).allowed;
+  };
+
   const handleCardClick = (card: PlayingCard) => {
     sound.playCardSelect();
     if (activeUnoToApply) {
       // Apply UNO action card to this card!
       onUseUnoCard(activeUnoToApply, card);
       setActiveUnoToApply(null);
+      return;
+    }
+
+    if (!isCardPlayable(card)) {
+      sound.playTrickLose();
       return;
     }
 
@@ -427,6 +449,7 @@ export const GameTable: React.FC<GameTableProps> = ({
                     )
                   }
                   isTriggering={joker.id === triggeringJokerId}
+                  isSilenced={silencedJokerIndex === i}
                   showSellButton={false}
                   size="sm"
                 />
@@ -635,6 +658,31 @@ export const GameTable: React.FC<GameTableProps> = ({
                 >
                   {currentBoss.debuffDescription}
                 </div>
+
+                {/* The rule as it stands this instant. The description says what
+                    the boss does; this says what it is doing to you now. */}
+                {!bossDebuffNeutralized && forcedLeadSuit && isOpeningTrick && (
+                  <div className="mt-1 inline-flex items-center gap-1.5 bg-red-800/80 border border-red-400 rounded-lg px-1.5 py-0.5">
+                    <PixelSuitIcon suit={forcedLeadSuit} size={11} />
+                    <span className="font-pixel text-[7px] sm:text-[8px] text-white uppercase">
+                      Pedaggio: apri di {getSuitDisplayName(forcedLeadSuit)}
+                    </span>
+                  </div>
+                )}
+                {!bossDebuffNeutralized &&
+                  silencedJokerIndex !== null &&
+                  activeJokers[silencedJokerIndex] && (
+                    <div className="mt-1 inline-flex items-center gap-1.5 bg-red-800/80 border border-red-400 rounded-lg px-1.5 py-0.5">
+                      <span className="font-pixel text-[7px] sm:text-[8px] text-white uppercase">
+                        🔇 Zitto: {activeJokers[silencedJokerIndex].name}
+                      </span>
+                      {activeJokers.length > 1 && (
+                        <span className="font-retro text-[9px] text-red-200">
+                          poi {activeJokers[(silencedJokerIndex + 1) % activeJokers.length].name}
+                        </span>
+                      )}
+                    </div>
+                  )}
               </div>
             </motion.div>
           )}
@@ -952,6 +1000,7 @@ export const GameTable: React.FC<GameTableProps> = ({
                     <PixelCard
                       card={card}
                       selected={isSelected}
+                      disabled={!isCardPlayable(card)}
                       onClick={() => handleCardClick(card)}
                       isBriscola={card.suit === briscolaSuit}
                       size={handCardSize}

@@ -12,18 +12,42 @@ export interface BossRuleContext {
 
 export const BOSS_RULES = {
   /**
+   * The suit the player is obliged to open with, or null when they are free.
+   *
+   * Il Maestro dei Bastoni takes his toll: win a trick with a Coppa and the
+   * next trick opens in Coppe. The absence of any obligation to follow suit is
+   * what Briscola IS, so putting one back changes every trick - you stop asking
+   * only whether to win and start asking what you want to be holding after.
+   *
+   * If the hand has none of that suit the chain simply breaks: the round can
+   * never reach a position with no legal card to play.
+   */
+  getForcedLeadSuit(
+    boss: BossBlind | null,
+    lastWinningSuit: Suit | null,
+    hand: PlayingCard[]
+  ): Suit | null {
+    if (!boss || boss.debuffType !== 'forced_suit_chain') return null;
+    if (!lastWinningSuit) return null;
+    return hand.some((card) => card.suit === lastWinningSuit) ? lastWinningSuit : null;
+  },
+
+  /**
    * Checks if player is allowed to lead with a specific card.
+   *
+   * Both lead restrictions live here, and both have the same escape hatch: a
+   * rule that cannot be obeyed does not apply. A round with no legal opening
+   * would sit there forever.
    */
   canPlayerLeadCard(
     card: PlayingCard,
     boss: BossBlind | null,
-    hand: PlayingCard[] = []
+    hand: PlayingCard[] = [],
+    lastWinningSuit: Suit | null = null
   ): { allowed: boolean; reason?: string } {
     if (!boss) return { allowed: true };
+
     if (boss.debuffType === 'no_denari_first' && card.suit === 'denari') {
-      // A hand of nothing but Denari would have no legal lead at all, and the
-      // round would sit there forever. The ban only bites while you have a way
-      // to obey it.
       const hasOtherSuit = hand.some((c) => c.suit !== 'denari');
       if (!hasOtherSuit) return { allowed: true };
       return {
@@ -31,6 +55,17 @@ export const BOSS_RULES = {
         reason: 'Il banco proibisce di aprire la presa con carte di Denari!',
       };
     }
+
+    if (boss.debuffType === 'forced_suit_chain') {
+      const forced = BOSS_RULES.getForcedLeadSuit(boss, lastWinningSuit, hand);
+      if (forced && card.suit !== forced) {
+        return {
+          allowed: false,
+          reason: `Pedaggio del Gigante: hai vinto di ${forced}, devi riaprire di ${forced}!`,
+        };
+      }
+    }
+
     return { allowed: true };
   },
 
@@ -61,18 +96,31 @@ export const BOSS_RULES = {
 
   /**
    * Calculates target score modifier for a boss.
+   *
+   * Nothing uses it any more: Ante 6 used to be a +50% tax and is now a rule
+   * you play around instead. Kept because a future boss may well want one, and
+   * because every caller already asks.
    */
   getTargetScoreMultiplier(boss: BossBlind | null): number {
-    if (!boss) return 1.0;
-    if (boss.debuffType === 'high_target_only') return 1.5;
+    void boss;
     return 1.0;
   },
 
   /**
-   * Selects a random joker index to disable for a trick if boss debuff is active.
+   * Which joker the Sovrano has silenced for this trick.
+   *
+   * It used to be a random one every trick, which is thematic and impossible to
+   * play around: you could never know whether the trick you were setting up
+   * would have its engine attached. Now it walks the rail in order, one slot
+   * per trick, so the player can read three tricks ahead and time the big hand
+   * for a moment when the joker that matters is awake.
    */
-  getDisabledJokerIndex(boss: BossBlind | null, jokersCount: number): number | null {
-    if (!boss || boss.debuffType !== 'random_joker_disabled' || jokersCount === 0) return null;
-    return Math.floor(Math.random() * jokersCount);
+  getSilencedJokerIndex(
+    boss: BossBlind | null,
+    trickCount: number,
+    jokersCount: number
+  ): number | null {
+    if (!boss || boss.debuffType !== 'rotating_joker_silence' || jokersCount === 0) return null;
+    return trickCount % jokersCount;
   },
 };

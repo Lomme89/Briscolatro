@@ -63,6 +63,12 @@ export interface ThreatContext {
   /** Roughly how many tricks are left in the round. */
   remainingTricks: number;
   boss: BossBlind | null;
+  /**
+   * The joker the Sovrano has silenced for this trick, if any. Greyed out on
+   * the rail for everyone to see, so an opponent that is paying attention knows
+   * this one is not going to pay out and stops playing around it.
+   */
+  silencedJokerIndex?: number | null;
 }
 
 /**
@@ -84,7 +90,12 @@ export function readPlayerThreat(jokers: Joker[], context: ThreatContext): Playe
     threat.suitBounty[suit] = (threat.suitBounty[suit] ?? 0) + value;
   };
 
-  for (const joker of jokers) {
+  for (let index = 0; index < jokers.length; index++) {
+    // A silent jolly threatens nothing this trick: it is greyed out on the rail
+    // and the opponent can see that as plainly as the player can.
+    if (index === context.silencedJokerIndex) continue;
+
+    const joker = jokers[index];
     const value = worth(joker);
 
     switch (joker.customEffectId) {

@@ -167,8 +167,8 @@ export interface BossBlind {
     | 'hidden_opponent_card' 
     | 'no_denari_first' 
     | 'spades_are_briscola' 
-    | 'high_target_only' 
-    | 'random_joker_disabled';
+    | 'forced_suit_chain' 
+    | 'rotating_joker_silence';
 }
 
 export interface DeckDefinition {

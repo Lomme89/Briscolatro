@@ -10,6 +10,8 @@ interface JokerSlotProps {
   onClick?: () => void;
   showSellButton?: boolean;
   isTriggering?: boolean;
+  /** Il Sovrano has this one silent for the current trick. */
+  isSilenced?: boolean;
   isShopItem?: boolean;
   buyCost?: number;
   onBuy?: () => void;
@@ -25,6 +27,7 @@ export const JokerSlot: React.FC<JokerSlotProps> = ({
   onClick,
   showSellButton = true,
   isTriggering = false,
+  isSilenced = false,
   isShopItem = false,
   buyCost,
   onBuy,
@@ -101,9 +104,17 @@ export const JokerSlot: React.FC<JokerSlotProps> = ({
         className={`
           ${sizeClasses} rounded-lg border-2 pixel-box select-none cursor-pointer flex flex-col justify-between relative overflow-hidden
           ${rarityColors}
+          ${isSilenced ? 'grayscale opacity-45' : ''}
           transition-transform duration-150 hover:-translate-y-1 hover:shadow-lg
         `}
       >
+        {/* Silenced by the Sovrano: greyed out, and said out loud, because the
+            whole point of the rotation is that you can see it coming. */}
+        {isSilenced && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-slate-950/55 pointer-events-none">
+            <span className="text-base drop-shadow">🔇</span>
+          </div>
+        )}
         {/* Portrait, or the accent glow it replaces */}
         {artUrl ? (
           <>
