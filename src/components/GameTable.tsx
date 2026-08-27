@@ -11,6 +11,7 @@ import { UnoCardSlot } from './UnoCardSlot';
 import { UnoConfirmModal } from './UnoConfirmModal';
 import { sound } from '../services/soundEngine';
 import { getTableThemeForAnte } from '../data/tableThemes';
+import { getRegularForAnte } from '../data/opponents';
 import { TableFeltPattern } from './TableFeltPattern';
 import { CardFaceArt, getJokerArtUrl, getUnoArtUrl } from './CardFaceArt';
 
@@ -282,6 +283,9 @@ export const GameTable: React.FC<GameTableProps> = ({
   })();
 
   const tableTheme = getTableThemeForAnte(ante);
+  // Who is sitting opposite when it is not the boss of the ante: every venue
+  // has its own regular, so the name and the face have to follow the ante.
+  const regular = getRegularForAnte(ante);
 
   // Particle burst condition: Player plays or wins with Asso (1, 11pt) or Tre (3, 10pt)
   const isPlayerCarico = playerTrickCard && (playerTrickCard.rank === 1 || playerTrickCard.rank === 3);
@@ -576,7 +580,7 @@ export const GameTable: React.FC<GameTableProps> = ({
             <div className="flex items-center gap-1.5 sm:gap-2">
               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-slate-900 border-2 border-amber-500/70 pixel-box flex items-center justify-center p-0.5 shadow-lg shrink-0 overflow-hidden relative">
                 <PixelAvatar
-                  characterId={currentBoss ? currentBoss.id : 'gennaro'}
+                  characterId={currentBoss ? currentBoss.id : regular.characterId}
                   emotion={opponentEmotion}
                   size={32}
                   showGlow={!!currentBoss}
@@ -584,7 +588,7 @@ export const GameTable: React.FC<GameTableProps> = ({
               </div>
               <div className="flex items-center gap-1.5 leading-none">
                 <span className="font-pixel text-[9px] sm:text-[11px] text-amber-300 font-bold">
-                  {currentBoss ? currentBoss.name : 'Gennaro'}
+                  {currentBoss ? currentBoss.name : regular.name}
                 </span>
                 {currentBoss && (
                   <span className="text-[6.5px] sm:text-[7.5px] bg-red-900 border border-red-500 text-red-200 px-1 py-0.5 rounded font-pixel uppercase font-bold animate-pulse">

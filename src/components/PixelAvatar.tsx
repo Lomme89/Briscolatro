@@ -317,6 +317,368 @@ export const PixelAvatar: React.FC<PixelAvatarProps> = ({
           </svg>
         );
 
+      // REGULARS - the locals you play before the owner of the venue sits down.
+
+      // NONNA ASSUNTA (Bocciofila: Grey Bun, Gold Glasses, Pearls, Bowls Ball)
+      case 'assunta':
+        return (
+          <svg viewBox="0 0 24 24" width={size} height={size} className="pixelated" fill="none">
+            {/* Grey bun and set hair */}
+            <rect x="9" y="0" width="6" height="3" fill="#cbd5e1" />
+            <rect x="5" y="2" width="14" height="5" fill="#e2e8f0" />
+            <rect x="4" y="6" width="2" height="4" fill="#cbd5e1" />
+            <rect x="18" y="6" width="2" height="4" fill="#cbd5e1" />
+            {/* Face */}
+            <rect x="6" y="7" width="12" height="10" fill="#fde4c8" />
+            {/* Gold reading glasses */}
+            <rect x="6" y="10" width="5" height="3" fill="#eab308" />
+            <rect x="13" y="10" width="5" height="3" fill="#eab308" />
+            <rect x="11" y="11" width="2" height="1" fill="#eab308" />
+            <rect x="7" y="11" width="3" height="1" fill="#e0f2fe" />
+            <rect x="14" y="11" width="3" height="1" fill="#e0f2fe" />
+            {/* Eyes behind the lenses */}
+            {emotion === 'shocked' ? (
+              <>
+                <rect x="8" y="11" width="2" height="1" fill="#0f172a" />
+                <rect x="14" y="11" width="2" height="1" fill="#0f172a" />
+                <rect x="19" y="8" width="2" height="3" fill="#38bdf8" />
+              </>
+            ) : emotion === 'angry' ? (
+              <>
+                <rect x="7" y="9" width="4" height="1" fill="#64748b" />
+                <rect x="13" y="9" width="4" height="1" fill="#64748b" />
+                <rect x="8" y="11" width="2" height="1" fill="#7f1d1d" />
+                <rect x="14" y="11" width="2" height="1" fill="#7f1d1d" />
+              </>
+            ) : (
+              <>
+                <rect x="8" y="11" width="2" height="1" fill="#334155" />
+                <rect x="14" y="11" width="2" height="1" fill="#334155" />
+              </>
+            )}
+            {/* Rouged cheeks and nose */}
+            <rect x="6" y="13" width="2" height="2" fill="#f9a8d4" />
+            <rect x="16" y="13" width="2" height="2" fill="#f9a8d4" />
+            <rect x="11" y="13" width="2" height="2" fill="#f0b184" />
+            {/* Mouth */}
+            {emotion === 'happy' ? (
+              <rect x="10" y="15" width="4" height="1" fill="#9f1239" />
+            ) : (
+              <rect x="11" y="15" width="2" height="1" fill="#9f1239" />
+            )}
+            {/* Pearls over a flowered shawl */}
+            <rect x="4" y="18" width="16" height="6" fill="#a78bfa" />
+            <rect x="6" y="20" width="2" height="2" fill="#f472b6" />
+            <rect x="12" y="21" width="2" height="2" fill="#f472b6" />
+            <rect x="8" y="18" width="1" height="1" fill="#f8fafc" />
+            <rect x="10" y="19" width="1" height="1" fill="#f8fafc" />
+            <rect x="13" y="19" width="1" height="1" fill="#f8fafc" />
+            <rect x="15" y="18" width="1" height="1" fill="#f8fafc" />
+            {/* Bowls ball resting in her hand */}
+            <rect x="18" y="20" width="4" height="4" fill="#166534" />
+            <rect x="19" y="21" width="1" height="1" fill="#4ade80" />
+          </svg>
+        );
+
+      // MIMI FIORDALISO (Soubrette: Feather Plume, Blonde Waves, Boa, Red Lips)
+      case 'mimi':
+        return (
+          <svg viewBox="0 0 24 24" width={size} height={size} className="pixelated" fill="none">
+            {/* Feather plume */}
+            <rect x="13" y="0" width="2" height="2" fill="#f9a8d4" />
+            <rect x="15" y="1" width="2" height="2" fill="#f472b6" />
+            <rect x="16" y="2" width="2" height="3" fill="#fb7185" />
+            <rect x="14" y="2" width="2" height="2" fill="#fb7185" />
+            <rect x="15" y="4" width="2" height="1" fill="#eab308" />
+            {/* Blonde marcel waves under a gold band */}
+            <rect x="5" y="4" width="14" height="4" fill="#facc15" />
+            <rect x="5" y="3" width="14" height="1" fill="#eab308" />
+            <rect x="4" y="8" width="2" height="5" fill="#fbbf24" />
+            <rect x="18" y="8" width="2" height="5" fill="#fbbf24" />
+            {/* Face */}
+            <rect x="6" y="8" width="12" height="9" fill="#ffe4d0" />
+            {/* Stage lashes and eyes */}
+            {emotion === 'shocked' ? (
+              <>
+                <rect x="7" y="9" width="4" height="1" fill="#0f172a" />
+                <rect x="13" y="9" width="4" height="1" fill="#0f172a" />
+                <rect x="8" y="10" width="2" height="3" fill="#0ea5e9" />
+                <rect x="14" y="10" width="2" height="3" fill="#0ea5e9" />
+              </>
+            ) : emotion === 'angry' ? (
+              <>
+                <rect x="7" y="9" width="4" height="1" fill="#7f1d1d" />
+                <rect x="13" y="9" width="4" height="1" fill="#7f1d1d" />
+                <rect x="8" y="11" width="2" height="2" fill="#0369a1" />
+                <rect x="14" y="11" width="2" height="2" fill="#0369a1" />
+              </>
+            ) : (
+              <>
+                <rect x="7" y="10" width="4" height="1" fill="#0f172a" />
+                <rect x="13" y="10" width="4" height="1" fill="#0f172a" />
+                <rect x="8" y="11" width="2" height="2" fill="#0ea5e9" />
+                <rect x="14" y="11" width="2" height="2" fill="#0ea5e9" />
+                <rect x="8" y="11" width="1" height="1" fill="#ffffff" />
+                <rect x="14" y="11" width="1" height="1" fill="#ffffff" />
+              </>
+            )}
+            {/* Beauty mark and lips */}
+            <rect x="15" y="14" width="1" height="1" fill="#3f2a14" />
+            {emotion === 'happy' ? (
+              <rect x="9" y="14" width="6" height="2" fill="#e11d48" />
+            ) : (
+              <rect x="10" y="14" width="4" height="2" fill="#e11d48" />
+            )}
+            {/* Drop earrings */}
+            <rect x="4" y="13" width="1" height="2" fill="#eab308" />
+            <rect x="19" y="13" width="1" height="2" fill="#eab308" />
+            {/* Feather boa over a sequined dress */}
+            <rect x="3" y="17" width="18" height="3" fill="#fb7185" />
+            <rect x="5" y="18" width="2" height="1" fill="#fda4af" />
+            <rect x="11" y="18" width="2" height="1" fill="#fda4af" />
+            <rect x="16" y="18" width="2" height="1" fill="#fda4af" />
+            <rect x="5" y="20" width="14" height="4" fill="#047857" />
+            <rect x="8" y="21" width="1" height="1" fill="#fde047" />
+            <rect x="12" y="22" width="1" height="1" fill="#fde047" />
+            <rect x="15" y="21" width="1" height="1" fill="#fde047" />
+          </svg>
+        );
+
+      // 'O MUTO (Bisca: Black Coppola Pulled Low, Scar, Cigarette, Collar Up)
+      case 'o_muto':
+        return (
+          <svg viewBox="0 0 24 24" width={size} height={size} className="pixelated" fill="none">
+            {/* Black cap, worn low */}
+            <rect x="5" y="2" width="14" height="4" fill="#0f172a" />
+            <rect x="3" y="6" width="18" height="2" fill="#020617" />
+            {/* Face, half of it in the brim's shadow */}
+            <rect x="6" y="8" width="12" height="9" fill="#e8c39e" />
+            <rect x="6" y="8" width="12" height="1" fill="#c69a70" />
+            {/* Eyes: two glints under the brim */}
+            {emotion === 'angry' ? (
+              <>
+                <rect x="8" y="10" width="2" height="2" fill="#dc2626" />
+                <rect x="14" y="10" width="2" height="2" fill="#dc2626" />
+              </>
+            ) : emotion === 'shocked' ? (
+              <>
+                <rect x="8" y="10" width="2" height="2" fill="#f8fafc" />
+                <rect x="14" y="10" width="2" height="2" fill="#f8fafc" />
+                <rect x="8" y="10" width="1" height="1" fill="#0f172a" />
+                <rect x="14" y="10" width="1" height="1" fill="#0f172a" />
+              </>
+            ) : (
+              <>
+                <rect x="8" y="10" width="2" height="2" fill="#f8fafc" />
+                <rect x="14" y="10" width="2" height="2" fill="#f8fafc" />
+                <rect x="8" y="11" width="2" height="1" fill="#0f172a" />
+                <rect x="14" y="11" width="2" height="1" fill="#0f172a" />
+              </>
+            )}
+            {/* Scar down the right cheek */}
+            <rect x="16" y="11" width="1" height="3" fill="#b91c1c" />
+            {/* Stubble */}
+            <rect x="6" y="13" width="12" height="4" fill="#475569" />
+            <rect x="7" y="13" width="10" height="1" fill="#e8c39e" />
+            {/* Mouth: a line. He does not do more than that. */}
+            {emotion === 'happy' ? (
+              <rect x="10" y="15" width="4" height="1" fill="#0f172a" />
+            ) : (
+              <rect x="10" y="15" width="3" height="1" fill="#0f172a" />
+            )}
+            {/* Cigarette and smoke */}
+            <rect x="13" y="15" width="4" height="1" fill="#f8fafc" />
+            <rect x="17" y="15" width="1" height="1" fill="#f97316" />
+            <rect x="19" y="13" width="1" height="1" fill="#cbd5e1" opacity="0.7" />
+            <rect x="20" y="11" width="1" height="1" fill="#94a3b8" opacity="0.5" />
+            {/* Leather jacket, collar up */}
+            <rect x="4" y="17" width="16" height="7" fill="#1c1917" />
+            <rect x="4" y="17" width="4" height="5" fill="#44403c" />
+            <rect x="16" y="17" width="4" height="5" fill="#44403c" />
+            <rect x="10" y="17" width="4" height="3" fill="#e2e8f0" />
+            <rect x="11" y="19" width="2" height="5" fill="#0f172a" />
+          </svg>
+        );
+
+      // CADETTO SALVATORE (Armeria: Fencing Mask Pushed Up, White Jacket, Foil)
+      case 'salvatore':
+        return (
+          <svg viewBox="0 0 24 24" width={size} height={size} className="pixelated" fill="none">
+            {/* Fencing mask pushed up on his head */}
+            <rect x="7" y="0" width="10" height="1" fill="#334155" />
+            <rect x="6" y="1" width="12" height="3" fill="#cbd5e1" />
+            <rect x="7" y="1" width="1" height="1" fill="#334155" />
+            <rect x="9" y="2" width="1" height="1" fill="#334155" />
+            <rect x="11" y="1" width="1" height="1" fill="#334155" />
+            <rect x="13" y="2" width="1" height="1" fill="#334155" />
+            <rect x="15" y="1" width="1" height="1" fill="#334155" />
+            <rect x="5" y="1" width="1" height="3" fill="#64748b" />
+            <rect x="18" y="1" width="1" height="3" fill="#64748b" />
+            <rect x="5" y="4" width="14" height="1" fill="#334155" />
+            {/* Young dark hair */}
+            <rect x="6" y="4" width="12" height="3" fill="#3f2a14" />
+            <rect x="5" y="6" width="1" height="3" fill="#3f2a14" />
+            <rect x="18" y="6" width="1" height="3" fill="#3f2a14" />
+            {/* Face */}
+            <rect x="6" y="7" width="12" height="9" fill="#fed7aa" />
+            {/* Eyes */}
+            {emotion === 'shocked' ? (
+              <>
+                <rect x="8" y="9" width="2" height="3" fill="#166534" />
+                <rect x="14" y="9" width="2" height="3" fill="#166534" />
+                <rect x="19" y="7" width="2" height="3" fill="#38bdf8" />
+              </>
+            ) : emotion === 'angry' ? (
+              <>
+                <rect x="7" y="9" width="4" height="1" fill="#3f2a14" />
+                <rect x="13" y="9" width="4" height="1" fill="#3f2a14" />
+                <rect x="8" y="10" width="2" height="2" fill="#166534" />
+                <rect x="14" y="10" width="2" height="2" fill="#166534" />
+              </>
+            ) : (
+              <>
+                <rect x="8" y="10" width="2" height="2" fill="#166534" />
+                <rect x="14" y="10" width="2" height="2" fill="#166534" />
+                <rect x="8" y="10" width="1" height="1" fill="#ffffff" />
+                <rect x="14" y="10" width="1" height="1" fill="#ffffff" />
+              </>
+            )}
+            {/* Nose and set jaw */}
+            <rect x="11" y="12" width="2" height="2" fill="#ea580c" />
+            {emotion === 'happy' ? (
+              <rect x="10" y="14" width="4" height="1" fill="#9a3412" />
+            ) : (
+              <rect x="11" y="14" width="2" height="1" fill="#7c2d12" />
+            )}
+            {/* White fencing jacket with a red sash */}
+            <rect x="5" y="16" width="14" height="8" fill="#f8fafc" />
+            <rect x="5" y="16" width="14" height="2" fill="#e2e8f0" />
+            <rect x="5" y="20" width="14" height="1" fill="#b91c1c" />
+            <rect x="11" y="18" width="2" height="6" fill="#e2e8f0" />
+            {/* Foil held upright */}
+            <rect x="20" y="4" width="1" height="13" fill="#cbd5e1" />
+            <rect x="19" y="17" width="3" height="2" fill="#eab308" />
+          </svg>
+        );
+
+      // ROCCO SPACCALEGNA (Taverna: Wool Beanie, Huge Red Beard, Plaid, Axe)
+      case 'rocco':
+        return (
+          <svg viewBox="0 0 24 24" width={size} height={size} className="pixelated" fill="none">
+            {/* Wool beanie */}
+            <rect x="11" y="0" width="2" height="1" fill="#f8fafc" />
+            <rect x="6" y="1" width="12" height="4" fill="#166534" />
+            <rect x="5" y="5" width="14" height="2" fill="#14532d" />
+            {/* Face */}
+            <rect x="6" y="7" width="12" height="6" fill="#fbcfa0" />
+            {/* Heavy brows */}
+            <rect x="7" y="8" width="4" height="1" fill="#9a3412" />
+            <rect x="13" y="8" width="4" height="1" fill="#9a3412" />
+            {/* Eyes */}
+            {emotion === 'shocked' ? (
+              <>
+                <rect x="8" y="9" width="2" height="3" fill="#0f172a" />
+                <rect x="14" y="9" width="2" height="3" fill="#0f172a" />
+                <rect x="19" y="8" width="2" height="3" fill="#38bdf8" />
+              </>
+            ) : emotion === 'angry' ? (
+              <>
+                <rect x="8" y="9" width="2" height="2" fill="#7f1d1d" />
+                <rect x="14" y="9" width="2" height="2" fill="#7f1d1d" />
+              </>
+            ) : (
+              <>
+                <rect x="8" y="9" width="2" height="2" fill="#0f172a" />
+                <rect x="14" y="9" width="2" height="2" fill="#0f172a" />
+                <rect x="8" y="9" width="1" height="1" fill="#ffffff" />
+                <rect x="14" y="9" width="1" height="1" fill="#ffffff" />
+              </>
+            )}
+            {/* Nose */}
+            <rect x="11" y="10" width="2" height="2" fill="#ea580c" />
+            {/* Enormous red beard */}
+            <rect x="5" y="12" width="14" height="6" fill="#c2410c" />
+            <rect x="7" y="12" width="10" height="2" fill="#9a3412" />
+            <rect x="7" y="17" width="10" height="2" fill="#9a3412" />
+            {/* Mouth inside the beard */}
+            {emotion === 'happy' ? (
+              <rect x="10" y="14" width="4" height="2" fill="#f8fafc" />
+            ) : (
+              <rect x="11" y="14" width="2" height="1" fill="#450a0a" />
+            )}
+            {/* Plaid shirt */}
+            <rect x="3" y="18" width="18" height="6" fill="#991b1b" />
+            <rect x="7" y="18" width="1" height="6" fill="#450a0a" />
+            <rect x="13" y="18" width="1" height="6" fill="#450a0a" />
+            <rect x="3" y="21" width="18" height="1" fill="#450a0a" />
+            {/* Axe resting on his shoulder */}
+            <rect x="20" y="10" width="1" height="8" fill="#78350f" />
+            <rect x="19" y="7" width="4" height="3" fill="#94a3b8" />
+            <rect x="19" y="7" width="1" height="3" fill="#e2e8f0" />
+          </svg>
+        );
+
+      // RAGIONIER ESPOSITO (Banco dei Pegni: Bald, Monocle, Pencil, Ledger)
+      case 'esposito':
+        return (
+          <svg viewBox="0 0 24 24" width={size} height={size} className="pixelated" fill="none">
+            {/* Bald head with a shine */}
+            <rect x="6" y="6" width="12" height="11" fill="#fde0c0" />
+            <rect x="9" y="7" width="3" height="1" fill="#fff7ed" />
+            <rect x="7" y="9" width="3" height="1" fill="#94a3b8" />
+            <rect x="14" y="9" width="3" height="1" fill="#94a3b8" />
+            {/* What is left of the hair */}
+            <rect x="4" y="9" width="2" height="5" fill="#94a3b8" />
+            <rect x="18" y="9" width="2" height="5" fill="#94a3b8" />
+            {/* Pencil behind the ear */}
+            <rect x="19" y="7" width="1" height="4" fill="#eab308" />
+            <rect x="19" y="11" width="1" height="1" fill="#f97316" />
+            {/* Left eye, right monocle */}
+            {emotion === 'shocked' ? (
+              <>
+                <rect x="8" y="10" width="2" height="3" fill="#0f172a" />
+                <rect x="14" y="10" width="2" height="3" fill="#0f172a" />
+              </>
+            ) : emotion === 'angry' ? (
+              <>
+                <rect x="7" y="9" width="4" height="1" fill="#64748b" />
+                <rect x="8" y="11" width="2" height="1" fill="#7f1d1d" />
+                <rect x="14" y="11" width="2" height="1" fill="#7f1d1d" />
+              </>
+            ) : (
+              <>
+                <rect x="8" y="11" width="2" height="2" fill="#334155" />
+                <rect x="14" y="11" width="2" height="2" fill="#334155" />
+                <rect x="8" y="11" width="1" height="1" fill="#ffffff" />
+              </>
+            )}
+            {/* Monocle and its chain */}
+            <rect x="13" y="10" width="4" height="1" fill="#eab308" />
+            <rect x="13" y="13" width="4" height="1" fill="#eab308" />
+            <rect x="13" y="11" width="1" height="2" fill="#eab308" />
+            <rect x="17" y="11" width="1" height="2" fill="#eab308" />
+            <rect x="18" y="14" width="1" height="1" fill="#ca8a04" />
+            <rect x="18" y="16" width="1" height="1" fill="#ca8a04" />
+            {/* Thin moustache and mouth */}
+            <rect x="10" y="14" width="4" height="1" fill="#64748b" />
+            {emotion === 'happy' ? (
+              <rect x="10" y="16" width="4" height="1" fill="#7c2d12" />
+            ) : (
+              <rect x="11" y="16" width="2" height="1" fill="#7c2d12" />
+            )}
+            {/* Waistcoat, wing collar and bow tie */}
+            <rect x="5" y="17" width="14" height="7" fill="#1e293b" />
+            <rect x="9" y="17" width="6" height="4" fill="#f8fafc" />
+            <rect x="10" y="17" width="4" height="2" fill="#7f1d1d" />
+            <rect x="11" y="20" width="2" height="1" fill="#94a3b8" />
+            {/* The ledger, always open */}
+            <rect x="0" y="15" width="6" height="8" fill="#78350f" />
+            <rect x="1" y="16" width="4" height="6" fill="#fef3c7" />
+            <rect x="2" y="17" width="2" height="1" fill="#94a3b8" />
+            <rect x="2" y="19" width="2" height="1" fill="#94a3b8" />
+          </svg>
+        );
+
       // DEFAULT: GENNARO (The Tavern Master: Flat Cap / Coppola, Mustache, Neckerchief)
       case 'gennaro':
       default:

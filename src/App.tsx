@@ -39,6 +39,7 @@ import { GameTable } from './components/GameTable';
 import { PixelCard } from './components/PixelCard';
 import { TableFeltPattern } from './components/TableFeltPattern';
 import { getTableThemeForAnte } from './data/tableThemes';
+import { getOpponentIntro } from './data/opponents';
 import { ShopView } from './components/ShopView';
 import { BlindSelectView } from './components/BlindSelectView';
 import { ScoreTallyOverlay } from './components/ScoreTallyOverlay';
@@ -335,12 +336,9 @@ export function App() {
     } else {
       setActiveBoss(null);
       activeBossRef.current = null;
-      const normalQuotes = [
-        'Vediamo cosa sai fare con queste carte!',
-        'Sul tavolo del Bar Sport non si fanno sconti.',
-        'Pronto a perdere la posta in gioco?',
-        'Oggi ho pescato un mazzo fortunato!',
-      ];
+      // The banter belongs to whoever is sitting there: generic table talk made
+      // every venue sound the same.
+      const normalQuotes = getOpponentIntro(currentAnte, currentRoundNum).banter;
       setOpponentSpeech(normalQuotes[Math.floor(Math.random() * normalQuotes.length)]);
     }
 
