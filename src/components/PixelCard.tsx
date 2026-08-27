@@ -280,17 +280,20 @@ export const PixelCard: React.FC<PixelCardProps> = ({
         {usesFullArt ? (
           <div className="flex items-start justify-start pointer-events-none">
             {chipsVisible && (
-              // Ink on paper, not a dark pill dropped on top: the chip belongs
-              // to the card it is printed on.
-              <span
-                className="flex items-center gap-0.5 rounded-[3px] px-1 py-0.5 border"
-                style={{ backgroundColor: 'rgba(245,244,232,0.92)', borderColor: 'rgba(30,41,59,0.5)' }}
-              >
-                <span className="font-pixel font-bold text-[8px] sm:text-[10px] text-slate-900 tracking-tighter leading-none">
+              // The index of a real card: rank, and the suit under it, printed
+              // straight on the paper. No pill, no frame - a box around it read
+              // as a sticker someone put on the card.
+              <div className="flex flex-col items-start leading-none">
+                <span
+                  className={`font-pixel font-bold text-[10px] sm:text-xs md:text-sm ${styleDef.rankTextColor} tracking-tighter`}
+                  style={{ textShadow: '0 1px 2px rgba(245,244,232,0.95)' }}
+                >
                   {info.shortName}
                 </span>
-                <PixelSuitIcon suit={card.suit} style={activeStyleId} size={cornerSuitSize - 2} />
-              </span>
+                <div className="mt-0.5">
+                  <PixelSuitIcon suit={card.suit} style={activeStyleId} size={cornerSuitSize} />
+                </div>
+              </div>
             )}
           </div>
         ) : (
@@ -318,11 +321,12 @@ export const PixelCard: React.FC<PixelCardProps> = ({
             <div className="flex items-center">
               {usesFullArt ? (
                 <span
-                  className="font-pixel text-[7px] sm:text-[8px] md:text-[9px] px-1 py-0.5 rounded-[3px] border font-bold"
+                  className={`font-pixel text-[7px] sm:text-[8px] md:text-[9px] font-bold ${
+                    info.points > 0 ? '' : 'opacity-60'
+                  }`}
                   style={{
-                    backgroundColor: 'rgba(245,244,232,0.92)',
-                    borderColor: 'rgba(30,41,59,0.5)',
-                    color: info.points > 0 ? '#7c2d12' : '#475569',
+                    color: info.points > 0 ? '#7c2d12' : '#64748b',
+                    textShadow: '0 1px 2px rgba(245,244,232,0.95)',
                   }}
                 >
                   {info.points}pt
