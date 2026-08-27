@@ -50,8 +50,10 @@ import { DeckSelectModal } from './components/DeckSelectModal';
 import { DeckViewerModal } from './components/DeckViewerModal';
 import { SettingsModal } from './components/SettingsModal';
 import { DevDebugDrawer } from './components/DevDebugDrawer';
-import { CardStyleProvider } from './context/CardStyleContext';
 import { GameSettings } from './types/game';
+
+/** What a fresh install starts with, and what "azzera progressi" goes back to. */
+const DEFAULT_UNLOCKED_DECKS = ['deck_napoletano', 'deck_bastoni'];
 
 export type TrickPhase =
   | 'idle'
@@ -76,7 +78,6 @@ export function App() {
             crtScanlines: false,
             screenShake: true,
             fastMode: false,
-            cardStyle: 'classic',
           };
     } catch {
       return {
@@ -87,7 +88,6 @@ export function App() {
         crtScanlines: false,
         screenShake: true,
         fastMode: false,
-        cardStyle: 'classic',
       };
     }
   });
@@ -146,9 +146,9 @@ export function App() {
   const [unlockedDeckIds, setUnlockedDeckIds] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('briscolatro_unlocked_decks');
-      return saved ? JSON.parse(saved) : ['deck_napoletano', 'deck_bastoni'];
+      return saved ? JSON.parse(saved) : DEFAULT_UNLOCKED_DECKS;
     } catch {
-      return ['deck_napoletano', 'deck_bastoni'];
+      return DEFAULT_UNLOCKED_DECKS;
     }
   });
 
@@ -159,6 +159,17 @@ export function App() {
       return 0;
     }
   });
+
+  /** Back to a fresh install: the record and the decks you earned. */
+  const handleResetProgress = () => {
+    setHighScore(0);
+    setUnlockedDeckIds(DEFAULT_UNLOCKED_DECKS);
+    try {
+      localStorage.removeItem('briscolatro_highscore');
+      localStorage.removeItem('briscolatro_unlocked_decks');
+    } catch {}
+    sound.playCardFlick();
+  };
 
   // --- Run State ---
   const [phase, setPhase] = useState<GamePhase>('title');
@@ -1091,7 +1102,7 @@ export function App() {
   };
 
   return (
-    <CardStyleProvider style={settings.cardStyle || 'classic'}>
+    <>
       <div
         // overflow-x-hidden would force overflow-y to `auto`, turning this into a
         // scroll box that clips the table instead of letting the page grow.
@@ -1377,6 +1388,10 @@ export function App() {
           onClose={() => setShowSettings(false)}
           settings={settings}
           onUpdateSettings={handleUpdateSettings}
+          onResetProgress={handleResetProgress}
+          highScore={highScore}
+          unlockedDeckCount={unlockedDeckIds.length}
+          totalDeckCount={ALL_DECKS.length}
         />
 
         {/* DEV DEBUG UTILITY */}
@@ -1416,7 +1431,7 @@ export function App() {
           }}
         />
       </div>
-    </CardStyleProvider>
+    </>
   );
 }
 

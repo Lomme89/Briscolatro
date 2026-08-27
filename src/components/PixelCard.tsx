@@ -5,8 +5,6 @@ import { getSuitDisplayName, RANK_INFO } from '../game/briscola';
 import { PixelSuitIcon } from './PixelSuitIcon';
 import { NeapolitanCardIllustration } from './NeapolitanCardIllustration';
 import { CARD_PAPER, getCardArtUrl, NeapolitanCardArt } from './NeapolitanCardArt';
-import { PixelCardSprite, useSpritesheet } from './PixelCardSprite';
-import { useCardStyle } from '../context/CardStyleContext';
 import { getCardStyleDefinition } from '../data/cardStyles';
 import { PICKER_CARD_BOX } from './cardSizing';
 
@@ -59,9 +57,7 @@ export const PixelCard: React.FC<PixelCardProps> = ({
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [isHovered, setIsHovered] = useState(false);
 
-  const globalStyle = useCardStyle();
-  const { hasCustomDeck } = useSpritesheet();
-  const activeStyleId = style || globalStyle || 'classic';
+  const activeStyleId = style || 'classic';
   const styleDef = getCardStyleDefinition(activeStyleId);
 
   // A missing card used to crash the whole table: the face-down deck stack was
@@ -118,25 +114,12 @@ export const PixelCard: React.FC<PixelCardProps> = ({
 
   // The finished Neapolitan deck is the face of a classic card: it carries its
   // own background, border and figures, so the procedural drawing and the corner
-  // indices step aside for it. A player-uploaded deck still wins over both.
+  // indices step aside for it.
   const artUrl = getCardArtUrl(card.suit, card.rank);
-  const usesFullArt = !hasCustomDeck && activeStyleId === 'classic' && Boolean(artUrl);
+  const usesFullArt = activeStyleId === 'classic' && Boolean(artUrl);
 
-  // Center Content: Authentic Neapolitan Card Illustration (or Custom Sliced ZIP if uploaded)
+  // Center Content: Authentic Neapolitan Card Illustration
   const renderCenterContent = () => {
-    if (hasCustomDeck && activeStyleId === 'classic') {
-      return (
-        <div className="w-full h-full flex items-center justify-center overflow-hidden p-0.5">
-          <PixelCardSprite
-            rank={card.rank}
-            suit={card.suit}
-            alt={`${info.name} di ${getSuitDisplayName(card.suit)}`}
-            className="rounded-[3px]"
-          />
-        </div>
-      );
-    }
-
     return (
       <div className="w-full h-full flex items-center justify-center overflow-hidden">
         <NeapolitanCardIllustration

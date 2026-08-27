@@ -1,150 +1,113 @@
 import React, { useEffect } from 'react';
 import { motion } from 'motion/react';
-import { CardStyle, GameSettings, PlayingCard } from '../types/game';
+import { GameSettings } from '../types/game';
 import { sound } from '../services/soundEngine';
-import { CARD_STYLES } from '../data/cardStyles';
-import { PixelCard } from './PixelCard';
-import { useSpritesheet } from './PixelCardSprite';
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   settings: GameSettings;
   onUpdateSettings: (newSettings: Partial<GameSettings>) => void;
+  /** Wipes the record and the unlocked decks. */
+  onResetProgress: () => void;
+  highScore: number;
+  unlockedDeckCount: number;
+  totalDeckCount: number;
 }
 
-// Sample preview cards to demonstrate the visual assets in real-time
-const PREVIEW_ASSO: PlayingCard = {
-  id: 'preview_asso',
-  suit: 'denari',
-  rank: 1,
-  points: 11,
-  power: 10,
-  edition: 'standard',
-  seal: 'none',
-  enhancement: 'none',
-};
-
-const PREVIEW_RE: PlayingCard = {
-  id: 'preview_re',
-  suit: 'coppe',
-  rank: 10,
-  points: 4,
-  power: 8,
-  edition: 'standard',
-  seal: 'none',
-  enhancement: 'none',
-};
-
-const PREVIEW_BACK: PlayingCard = {
-  id: 'preview_back',
-  suit: 'spade',
-  rank: 7,
-  points: 0,
-  power: 5,
-  edition: 'standard',
-  seal: 'none',
-  enhancement: 'none',
-};
-
-const SpritesheetUploader: React.FC = () => {
-  const { hasCustomDeck, customCardImages, loadZipArchive, resetToDefault } = useSpritesheet();
-  const [loading, setLoading] = React.useState(false);
-  const [feedback, setFeedback] = React.useState<string | null>(null);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-
-  const cardCount = Object.keys(customCardImages).length;
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setLoading(true);
-    setFeedback(null);
-
-    if (file.name.toLowerCase().endsWith('.zip')) {
-      const result = await loadZipArchive(file);
-      if (result.error) {
-        setFeedback(`❌ ${result.error}`);
-      } else {
-        setFeedback(`✅ Caricate ${result.count} carte ritagliate dal file ZIP!`);
-      }
-    } else {
-      setFeedback('⚠️ Seleziona un file archivio .ZIP contenente le 40 carte ritagliate.');
-    }
-
-    setLoading(false);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  return (
-    <div className="bg-slate-900/90 rounded-xl p-2.5 sm:p-3 border border-slate-800/90 mt-2 space-y-2.5">
-      <div className="flex items-center justify-between">
-        <span className="font-pixel text-[9px] sm:text-[10px] text-amber-300 flex items-center gap-1">
-          <span>📦</span> Mazzo Carte Ritagliate PNG (40 Carte)
-        </span>
-        {hasCustomDeck ? (
-          <span className="font-pixel text-[7.5px] bg-emerald-900/90 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-500">
-            {cardCount} Carte Caricate
-          </span>
-        ) : (
-          <span className="font-pixel text-[7.5px] bg-amber-950/80 text-amber-300 px-1.5 py-0.5 rounded border border-amber-600/60">
-            Set Originale Ritagliato
-          </span>
-        )}
-      </div>
-
-      <div className="text-[10px] text-slate-400 font-retro leading-relaxed">
-        Il gioco utilizza le singole immagini PNG ritagliate ad alta definizione. Puoi anche caricare direttamente un file <span className="text-amber-400 font-bold">.ZIP</span> con le tue carte ritagliate.
-      </div>
-
-      {feedback && (
-        <div className="text-[9px] font-pixel px-2 py-1 rounded bg-slate-800 border border-slate-700 text-amber-300">
-          {feedback}
-        </div>
-      )}
-
-      <div className="flex flex-wrap items-center gap-2 pt-0.5">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".zip,application/zip"
-          className="hidden"
-          onChange={handleFileUpload}
-        />
-        <button
-          type="button"
-          disabled={loading}
-          onClick={() => fileInputRef.current?.click()}
-          className="bg-amber-600/80 hover:bg-amber-500 text-white font-pixel text-[8.5px] sm:text-[9.5px] px-2.5 py-1.5 rounded-lg border border-amber-400/40 cursor-pointer transition-colors flex items-center gap-1.5 disabled:opacity-50"
-        >
-          <span>📦</span> {loading ? 'Caricamento...' : 'Carica File .ZIP Carte'}
-        </button>
-
-        {hasCustomDeck && (
-          <button
-            type="button"
-            onClick={resetToDefault}
-            className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-pixel text-[8.5px] sm:text-[9.5px] px-2.5 py-1.5 rounded-lg border border-slate-700 cursor-pointer transition-colors"
-          >
-            Ripristina Predefinite
-          </button>
-        )}
-      </div>
+const Section: React.FC<{
+  icon: string;
+  title: string;
+  children: React.ReactNode;
+}> = ({ icon, title, children }) => (
+  <div className="bg-slate-950/80 p-3 rounded-xl border border-slate-800 space-y-3">
+    <div className="font-pixel text-[11px] sm:text-xs text-slate-300 flex items-center gap-1.5">
+      <span>{icon}</span>
+      <span>{title}</span>
     </div>
-  );
-};
+    {children}
+  </div>
+);
+
+const Row: React.FC<{
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}> = ({ label, hint, children }) => (
+  <div className="flex items-center justify-between gap-3">
+    <div className="min-w-0">
+      <div className="font-pixel text-[10px] sm:text-[11px] text-slate-300">{label}</div>
+      {hint && <div className="text-[10px] text-slate-400 font-retro leading-snug">{hint}</div>}
+    </div>
+    <div className="shrink-0">{children}</div>
+  </div>
+);
+
+const Toggle: React.FC<{
+  on: boolean;
+  onClick: () => void;
+  onLabel?: string;
+  offLabel?: string;
+}> = ({ on, onClick, onLabel = 'ON', offLabel = 'OFF' }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`font-pixel text-[9px] sm:text-[10px] px-3 py-1.5 rounded-lg pixel-box font-bold cursor-pointer transition-colors min-h-[34px] min-w-[74px] ${
+      on ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-slate-800 text-slate-400 border border-slate-700'
+    }`}
+  >
+    {on ? onLabel : offLabel}
+  </button>
+);
+
+/**
+ * A slider you can actually hit with a thumb.
+ *
+ * sfxVolume and musicVolume were in the settings and applied to the sound
+ * engine from the first line, but nothing on this screen could move them: you
+ * could only have the audio all the way up or off.
+ */
+const VolumeSlider: React.FC<{
+  value: number;
+  disabled: boolean;
+  onChange: (value: number) => void;
+  onCommit?: () => void;
+}> = ({ value, disabled, onChange, onCommit }) => (
+  <div className="flex items-center gap-2">
+    <input
+      type="range"
+      min={0}
+      max={100}
+      step={5}
+      value={value}
+      disabled={disabled}
+      onChange={(e) => onChange(Number(e.target.value))}
+      onMouseUp={onCommit}
+      onTouchEnd={onCommit}
+      className="w-32 sm:w-40 accent-amber-400 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+    />
+    <span
+      className={`font-pixel text-[9px] w-8 text-right ${disabled ? 'text-slate-600' : 'text-amber-300'}`}
+    >
+      {value}
+    </span>
+  </div>
+);
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
   onClose,
   settings,
   onUpdateSettings,
+  onResetProgress,
+  highScore,
+  unlockedDeckCount,
+  totalDeckCount,
 }) => {
   const [deferredPrompt, setDeferredPrompt] = React.useState<any>(null);
   const [isInstalled, setIsInstalled] = React.useState(false);
+  // Wiping the record is not something you should manage on one tap.
+  const [confirmReset, setConfirmReset] = React.useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -170,9 +133,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (!isOpen) setConfirmReset(false);
+  }, [isOpen]);
 
-  const currentCardStyle: CardStyle = settings.cardStyle || 'classic';
+  if (!isOpen) return null;
 
   const handleInstallPWA = async () => {
     if (deferredPrompt) {
@@ -183,11 +148,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       }
       setDeferredPrompt(null);
     }
-  };
-
-  const handleSelectCardStyle = (styleId: CardStyle) => {
-    sound.playCardFlick();
-    onUpdateSettings({ cardStyle: styleId });
   };
 
   return (
@@ -211,9 +171,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <span className="text-xl sm:text-2xl">⚙️</span>
             <div>
               <h2 className="font-pixel text-xs sm:text-sm text-slate-200 font-bold uppercase tracking-wide">
-                IMPOSTAZIONI GIOCO
+                IMPOSTAZIONI
               </h2>
-              <p className="text-[10px] text-slate-400 font-retro">Personalizza audio, grafica e stile delle carte</p>
+              <p className="text-[10px] text-slate-400 font-retro">Audio, ritmo di gioco e app</p>
             </div>
           </div>
           <button
@@ -226,261 +186,179 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         <div className="space-y-3.5 overflow-y-auto pr-0.5">
-          {/* --- 1. PIXEL ART CARD STYLES SECTION (KEY FEATURE) --- */}
-          <div className="bg-slate-950/80 p-3 sm:p-3.5 rounded-xl border border-slate-800 space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-pixel text-[11px] sm:text-xs text-amber-400 font-bold flex items-center gap-1.5">
-                  <span>🃏</span>
-                  <span>STILE GRAFICO CARTE</span>
-                </div>
-                <div className="text-[10px] text-slate-400 font-retro">
-                  Cambia le texture, la palette dei semi e l'aspetto delle carte
-                </div>
-              </div>
-              <span className="font-pixel text-[8px] sm:text-[9px] px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded">
-                3 TEMI
-              </span>
-            </div>
-
-            {/* Style Selector Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              {CARD_STYLES.map((styleOption) => {
-                const isSelected = currentCardStyle === styleOption.id;
-                return (
-                  <button
-                    type="button"
-                    key={styleOption.id}
-                    onClick={() => handleSelectCardStyle(styleOption.id)}
-                    className={`relative text-left p-2.5 rounded-xl pixel-box border-2 transition-all cursor-pointer flex flex-col justify-between min-h-[90px] ${
-                      isSelected
-                        ? 'bg-amber-500/15 border-amber-400 ring-2 ring-amber-400/40 shadow-lg'
-                        : 'bg-slate-900 hover:bg-slate-850 border-slate-800 hover:border-slate-700 text-slate-300'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-1 mb-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-base sm:text-lg">{styleOption.icon}</span>
-                        <span className={`font-pixel text-[10px] sm:text-[11px] font-bold ${isSelected ? 'text-amber-300' : 'text-slate-200'}`}>
-                          {styleOption.name}
-                        </span>
-                      </div>
-                      {isSelected && (
-                        <span className="font-pixel text-[7.5px] bg-amber-500 text-slate-950 px-1 py-0.2 rounded font-bold">
-                          ATTIVO
-                        </span>
-                      )}
-                    </div>
-
-                    <p className="text-[9.5px] leading-tight text-slate-400 font-retro">
-                      {styleOption.subtitle}
-                    </p>
-
-                    <div className="mt-2 flex items-center justify-between pt-1 border-t border-slate-800/80">
-                      <span className="font-pixel text-[7.5px] text-slate-500 uppercase tracking-wide">
-                        {styleOption.tag}
-                      </span>
-                      <div
-                        className={`w-3 h-3 rounded-full border flex items-center justify-center ${
-                          isSelected
-                            ? 'border-amber-400 bg-amber-400'
-                            : 'border-slate-600 bg-slate-800'
-                        }`}
-                      >
-                        {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-slate-950" />}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Live Interactive Card Preview Display */}
-            <div className="bg-slate-900/90 rounded-xl p-2.5 sm:p-3 border border-slate-800/90 mt-2">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-pixel text-[9px] sm:text-[10px] text-slate-300 flex items-center gap-1">
-                  <span>👁️</span> Anteprima dal Vivo ({CARD_STYLES.find(s => s.id === currentCardStyle)?.name})
-                </span>
-                <span className="text-[9px] text-slate-500 font-retro">Semi, figure e retro aggiornati</span>
-              </div>
-
-              <div className="flex items-center justify-center gap-2 sm:gap-3 py-1">
-                {/* 1. Asso di Denari */}
-                <div className="flex flex-col items-center">
-                  <PixelCard
-                    card={PREVIEW_ASSO}
-                    size="sm"
-                    style={currentCardStyle}
-                    showPoints
-                  />
-                  <span className="font-pixel text-[7.5px] text-slate-400 mt-1">Asso (11pt)</span>
-                </div>
-
-                {/* 2. Re di Coppe (Figura) */}
-                <div className="flex flex-col items-center">
-                  <PixelCard
-                    card={PREVIEW_RE}
-                    size="sm"
-                    style={currentCardStyle}
-                    showPoints
-                  />
-                  <span className="font-pixel text-[7.5px] text-slate-400 mt-1">Re (4pt)</span>
-                </div>
-
-                {/* 3. Retro Carta */}
-                <div className="flex flex-col items-center">
-                  <PixelCard
-                    card={PREVIEW_BACK}
-                    size="sm"
-                    faceDown
-                    style={currentCardStyle}
-                  />
-                  <span className="font-pixel text-[7.5px] text-slate-400 mt-1">Retro</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Custom Spritesheet Controls */}
-            <SpritesheetUploader />
-          </div>
-
-          {/* --- 2. AUDIO SECTION --- */}
-          <div className="bg-slate-950/80 p-3 rounded-xl border border-slate-800 space-y-3">
-            <div className="font-pixel text-[11px] sm:text-xs text-slate-300 flex items-center gap-1.5">
-              <span>🔊</span>
-              <span>AUDIO & SFX</span>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <span className="font-pixel text-[10px] sm:text-[11px] text-slate-300">Effetti Sonori (SFX)</span>
-              <button
-                type="button"
+          {/* --- AUDIO --- */}
+          <Section icon="🔊" title="AUDIO">
+            <Row label="Effetti sonori">
+              <Toggle
+                on={settings.soundEnabled}
+                onLabel="ATTIVI"
+                offLabel="MUTI"
                 onClick={() => {
                   const next = !settings.soundEnabled;
                   onUpdateSettings({ soundEnabled: next });
                   sound.setMuted(!next);
+                  if (next) sound.playCardSelect();
                 }}
-                className={`font-pixel text-[9px] sm:text-[10px] px-3 py-1.5 rounded-lg pixel-box font-bold cursor-pointer transition-colors min-h-[34px] ${
-                  settings.soundEnabled ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-red-950 border border-red-800 text-red-300'
-                }`}
-              >
-                {settings.soundEnabled ? 'ATTIVI' : 'DISATTIVATI'}
-              </button>
-            </div>
+              />
+            </Row>
+            <Row label="Volume effetti">
+              <VolumeSlider
+                value={settings.sfxVolume}
+                disabled={!settings.soundEnabled}
+                onChange={(value) => onUpdateSettings({ sfxVolume: value })}
+                // A volume slider you cannot hear is a guess: play a card on release.
+                onCommit={() => settings.soundEnabled && sound.playCardSelect()}
+              />
+            </Row>
 
-            <div className="flex items-center justify-between">
-              <span className="font-pixel text-[10px] sm:text-[11px] text-slate-300">Musica Chiptune 8-Bit</span>
-              <button
-                type="button"
-                onClick={() => {
-                  const next = !settings.musicEnabled;
-                  onUpdateSettings({ musicEnabled: next });
-                  sound.toggleMusic(next);
-                }}
-                className={`font-pixel text-[9px] sm:text-[10px] px-3 py-1.5 rounded-lg pixel-box font-bold cursor-pointer transition-colors min-h-[34px] ${
-                  settings.musicEnabled ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-red-950 border border-red-800 text-red-300'
-                }`}
-              >
-                {settings.musicEnabled ? 'ATTIVA' : 'DISATTIVATA'}
-              </button>
+            <div className="border-t border-slate-800 pt-3 space-y-3">
+              <Row label="Musica chiptune">
+                <Toggle
+                  on={settings.musicEnabled}
+                  onLabel="ATTIVA"
+                  offLabel="MUTA"
+                  onClick={() => {
+                    const next = !settings.musicEnabled;
+                    onUpdateSettings({ musicEnabled: next });
+                    sound.toggleMusic(next);
+                  }}
+                />
+              </Row>
+              <Row label="Volume musica">
+                <VolumeSlider
+                  value={settings.musicVolume}
+                  disabled={!settings.musicEnabled}
+                  onChange={(value) => onUpdateSettings({ musicVolume: value })}
+                />
+              </Row>
             </div>
-          </div>
+          </Section>
 
-          {/* --- 3. VISUALS & FEEDBACK SECTION --- */}
-          <div className="bg-slate-950/80 p-3 rounded-xl border border-slate-800 space-y-3">
-            <div className="font-pixel text-[11px] sm:text-xs text-slate-300 flex items-center gap-1.5">
-              <span>📺</span>
-              <span>EFFETTI RETRO</span>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-pixel text-[10px] sm:text-[11px] text-slate-300">Effetto Monitor CRT</div>
-                <div className="text-[10px] text-slate-400 font-retro">Filtro retro arcade stile cabinato</div>
-              </div>
-              <button
-                type="button"
-                onClick={() => onUpdateSettings({ crtScanlines: !settings.crtScanlines })}
-                className={`font-pixel text-[9px] sm:text-[10px] px-3 py-1.5 rounded-lg pixel-box font-bold cursor-pointer transition-colors min-h-[34px] ${
-                  settings.crtScanlines ? 'bg-amber-500 hover:bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400'
-                }`}
-              >
-                {settings.crtScanlines ? 'ON' : 'OFF'}
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-pixel text-[10px] sm:text-[11px] text-slate-300">Partita Rapida</div>
-                <div className="text-[10px] text-slate-400 font-retro">Dimezza le pause tra una presa e l'altra</div>
-              </div>
-              <button
-                type="button"
+          {/* --- PARTITA --- */}
+          <Section icon="🃏" title="PARTITA">
+            <Row label="Partita rapida" hint="Dimezza le pause tra una presa e l'altra">
+              <Toggle
+                on={settings.fastMode}
                 onClick={() => onUpdateSettings({ fastMode: !settings.fastMode })}
-                className={`font-pixel text-[9px] sm:text-[10px] px-3 py-1.5 rounded-lg pixel-box font-bold cursor-pointer transition-colors min-h-[34px] ${
-                  settings.fastMode ? 'bg-amber-500 hover:bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400'
-                }`}
-              >
-                {settings.fastMode ? 'ON' : 'OFF'}
-              </button>
-            </div>
+              />
+            </Row>
+          </Section>
 
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-pixel text-[10px] sm:text-[11px] text-slate-300">Scuotimento Schermo (Shake)</div>
-                <div className="text-[10px] text-slate-400 font-retro">Feedback cinetico su carichi e prese forti</div>
-              </div>
-              <button
-                type="button"
+          {/* --- EFFETTI --- */}
+          <Section icon="📺" title="EFFETTI">
+            <Row label="Monitor CRT" hint="Filtro retro arcade stile cabinato">
+              <Toggle
+                on={settings.crtScanlines}
+                onClick={() => onUpdateSettings({ crtScanlines: !settings.crtScanlines })}
+              />
+            </Row>
+            <Row label="Scuotimento schermo" hint="Feedback cinetico su carichi e prese forti">
+              <Toggle
+                on={settings.screenShake}
                 onClick={() => onUpdateSettings({ screenShake: !settings.screenShake })}
-                className={`font-pixel text-[9px] sm:text-[10px] px-3 py-1.5 rounded-lg pixel-box font-bold cursor-pointer transition-colors min-h-[34px] ${
-                  settings.screenShake ? 'bg-amber-500 hover:bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400'
-                }`}
-              >
-                {settings.screenShake ? 'ON' : 'OFF'}
-              </button>
-            </div>
-          </div>
+              />
+            </Row>
+          </Section>
 
-          {/* --- 4. PWA APP INSTALLATION SECTION --- */}
-          <div className="bg-gradient-to-r from-amber-950/40 via-slate-950/80 to-slate-950/80 p-3 sm:p-3.5 rounded-xl border border-amber-500/40 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <img src="/icon-192.png" alt="Briscolatro Icon" className="w-8 h-8 rounded-lg border border-amber-500/50 shadow-md shrink-0" />
-                <div>
+          {/* --- PROGRESSI --- */}
+          <Section icon="🏆" title="PROGRESSI">
+            <div className="flex items-center gap-2">
+              <div className="flex-1 bg-slate-900/90 border border-slate-800 rounded-lg px-2.5 py-2">
+                <div className="font-pixel text-[8px] text-slate-500 uppercase">Record</div>
+                <div className="font-pixel text-[11px] text-amber-300 font-bold">
+                  {highScore.toLocaleString('it-IT')}
+                </div>
+              </div>
+              <div className="flex-1 bg-slate-900/90 border border-slate-800 rounded-lg px-2.5 py-2">
+                <div className="font-pixel text-[8px] text-slate-500 uppercase">Mazzi sbloccati</div>
+                <div className="font-pixel text-[11px] text-amber-300 font-bold">
+                  {unlockedDeckCount}/{totalDeckCount}
+                </div>
+              </div>
+            </div>
+
+            {confirmReset ? (
+              <div className="bg-red-950/50 border border-red-700 rounded-lg p-2.5 space-y-2">
+                <div className="font-retro text-[11px] text-red-200 leading-snug">
+                  Cancella il record e i mazzi sbloccati. Non si torna indietro.
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onResetProgress();
+                      setConfirmReset(false);
+                    }}
+                    className="flex-1 bg-red-600 hover:bg-red-500 text-white font-pixel text-[9px] py-2 rounded-lg pixel-box font-bold cursor-pointer"
+                  >
+                    SÌ, AZZERA
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmReset(false)}
+                    className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-pixel text-[9px] py-2 rounded-lg pixel-box cursor-pointer"
+                  >
+                    ANNULLA
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <Row label="Azzera progressi" hint="Record e mazzi sbloccati tornano a zero">
+                <button
+                  type="button"
+                  onClick={() => setConfirmReset(true)}
+                  className="font-pixel text-[9px] sm:text-[10px] px-3 py-1.5 rounded-lg pixel-box cursor-pointer min-h-[34px] min-w-[74px] bg-slate-800 hover:bg-red-900 text-red-300 border border-red-900/70 transition-colors"
+                >
+                  AZZERA
+                </button>
+              </Row>
+            )}
+          </Section>
+
+          {/* --- APP --- */}
+          <div className="bg-gradient-to-r from-amber-950/40 via-slate-950/80 to-slate-950/80 p-3 rounded-xl border border-amber-500/40 space-y-2.5">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <img
+                  src="/icon-192.png"
+                  alt="Briscolatro"
+                  className="w-8 h-8 rounded-lg border border-amber-500/50 shadow-md shrink-0"
+                />
+                <div className="min-w-0">
                   <div className="font-pixel text-[11px] sm:text-xs text-amber-300 font-bold">
                     INSTALLA COME APP
                   </div>
-                  <div className="text-[10px] text-slate-400 font-retro">
+                  <div className="text-[10px] text-slate-400 font-retro leading-snug">
                     Gioca a schermo intero senza barre del browser
                   </div>
                 </div>
               </div>
               {isInstalled ? (
-                <span className="font-pixel text-[8px] bg-emerald-900/80 text-emerald-200 border border-emerald-500/60 px-2 py-1 rounded">
+                <span className="font-pixel text-[8px] bg-emerald-900/80 text-emerald-200 border border-emerald-500/60 px-2 py-1 rounded shrink-0">
                   ✓ INSTALLATA
                 </span>
               ) : deferredPrompt ? (
                 <button
                   type="button"
                   onClick={handleInstallPWA}
-                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-pixel text-[9.5px] px-3 py-1.5 rounded-lg font-bold shadow-lg animate-bounce cursor-pointer"
+                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-pixel text-[9.5px] px-3 py-1.5 rounded-lg font-bold shadow-lg cursor-pointer shrink-0"
                 >
                   📲 INSTALLA
                 </button>
               ) : (
-                <span className="font-pixel text-[8px] bg-slate-800 text-amber-300/80 border border-slate-700 px-2 py-1 rounded">
+                <span className="font-pixel text-[8px] bg-slate-800 text-amber-300/80 border border-slate-700 px-2 py-1 rounded shrink-0">
                   PWA ATTIVA
                 </span>
               )}
             </div>
 
-            <div className="bg-slate-900/90 p-2 rounded-lg border border-slate-800 text-[10.5px] text-slate-300 space-y-1">
-              <div className="font-semibold text-amber-200">Come installare dal browser del telefono:</div>
-              <div className="text-slate-400 text-[10px] leading-relaxed">
-                Su <strong>Chrome / Brave Android</strong>: tocca il menu <strong>⋮ (3 puntini in alto a destra)</strong> e seleziona <strong>"Installa app"</strong> o <strong>"Aggiungi a schermata Home"</strong>.
+            {!isInstalled && !deferredPrompt && (
+              <div className="bg-slate-900/90 p-2 rounded-lg border border-slate-800 text-[10px] text-slate-400 font-retro leading-relaxed">
+                Su <strong className="text-slate-300">Chrome / Brave Android</strong>: menu{' '}
+                <strong className="text-slate-300">⋮</strong> →{' '}
+                <strong className="text-slate-300">Installa app</strong>.
               </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -490,7 +368,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             onClick={onClose}
             className="w-full sm:w-auto bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-slate-950 font-pixel text-xs font-bold px-6 py-2.5 rounded-lg pixel-box cursor-pointer min-h-[40px] transition-colors"
           >
-            SALVA & CHIUDI
+            CHIUDI
           </button>
         </div>
       </motion.div>

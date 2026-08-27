@@ -1,6 +1,5 @@
 import React from 'react';
 import { CardStyle, Suit } from '../types/game';
-import { useCardStyle } from '../context/CardStyleContext';
 
 interface Props {
   suit: Suit;
@@ -10,8 +9,7 @@ interface Props {
 }
 
 export const PixelSuitIcon: React.FC<Props> = ({ suit, className = '', size = 24, style }) => {
-  const globalStyle = useCardStyle();
-  const activeStyle = style || globalStyle || 'classic';
+  const activeStyle = style || 'classic';
 
   // --- 1. NEO-NOIR SUIT ASSETS ---
   if (activeStyle === 'neo_noir') {

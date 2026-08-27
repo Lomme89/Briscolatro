@@ -214,7 +214,6 @@ export interface GameSettings {
   crtScanlines: boolean;
   screenShake: boolean;
   fastMode: boolean;
-  cardStyle: CardStyle;
 }
 
 export interface OverallProgression {
