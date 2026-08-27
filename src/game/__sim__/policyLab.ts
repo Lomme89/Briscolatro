@@ -26,6 +26,15 @@ export interface RoundReport {
   tricksWon: number;
   /** Took more than 60 of the 120 points: won the round as Briscola scores it. */
   wonAsBriscola: boolean;
+  /**
+   * The jokers as they stand after the round.
+   *
+   * Il Vesuvio and il Barone bank permanent growth every time they fire, and in
+   * the real game that carries to the next blind. A run simulator that threw it
+   * away would systematically understate exactly the builds the game is built
+   * around.
+   */
+  jokersAfter: Joker[];
 }
 
 /** One trick, as both games see it: what it was worth, and what it paid. */
@@ -53,7 +62,14 @@ export function playRound(
   runDeck?: PlayingCard[],
   observers: PlayerPolicy[] = [],
   onDecision?: (state: PolicyState, picks: Record<string, PlayingCard>) => void,
-  onTrick?: (trick: TrickReport) => void
+  onTrick?: (trick: TrickReport) => void,
+  /**
+   * Carte Sola, in the crudest possible form: this many tricks get a x1.5 on
+   * their score, spent on the first tricks the player wins. The real cards do
+   * eighteen different things and the run simulator does not need them to; it
+   * needs the slot to cost money and to be worth something.
+   */
+  unoBoosts = 0
 ): RoundReport {
   let liveJokers = jokers.map((j) => ({ ...j }));
   const deal = prepareRoundDeck(runDeck ?? createStandardDeck());
@@ -70,6 +86,7 @@ export function playRound(
   let played = 0;
   const capturedDenari = new Set<number>();
   let playerLeads = true;
+  let boostsLeft = unoBoosts;
 
   while (hand.length > 0 && oppHand.length > 0) {
     // The opponent opens before the policy has to answer, so the state the
@@ -140,10 +157,11 @@ export function playRound(
           remainingTricksCount: Math.floor(pile.length / 2) + hand.length,
           capturedDenariRanksThisRound: capturedDenari,
         },
-        1,
+        boostsLeft > 0 ? 1.5 : 1,
         null,
         playerLeads
       );
+      if (boostsLeft > 0) boostsLeft--;
       score += result.finalScore;
       onTrick?.({ points: clash.points, score: result.finalScore, won: true });
       if (result.statGrowth.length > 0) {
@@ -170,7 +188,13 @@ export function playRound(
     trump = drawn.newTrumpCard;
   }
 
-  return { score, briscolaPoints, tricksWon, wonAsBriscola: briscolaPoints > 60 };
+  return {
+    score,
+    briscolaPoints,
+    tricksWon,
+    wonAsBriscola: briscolaPoints > 60,
+    jokersAfter: liveJokers,
+  };
 }
 
 export interface PolicySummary {
