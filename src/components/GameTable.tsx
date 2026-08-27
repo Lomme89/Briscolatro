@@ -47,8 +47,6 @@ interface GameTableProps {
   onPlayCard: (card: PlayingCard) => void;
   onDiscardCard: (card: PlayingCard) => void;
   onUseUnoCard: (card: UnoCard, targetCard?: PlayingCard) => void;
-  onSellJoker: (index: number) => void;
-  onSellUnoCard: (index: number) => void;
   onOpenDeckViewer: () => void;
   onOpenTutorial: () => void;
   onOpenSettings: () => void;
@@ -99,8 +97,6 @@ export const GameTable: React.FC<GameTableProps> = ({
   onPlayCard,
   onDiscardCard,
   onUseUnoCard,
-  onSellJoker,
-  onSellUnoCard,
   onOpenDeckViewer,
   onOpenTutorial,
   onOpenSettings,
@@ -265,8 +261,6 @@ export const GameTable: React.FC<GameTableProps> = ({
         name: joker.name,
         description: joker.description,
         badges,
-        sellValue: joker.sellValue,
-        onSell: () => onSellJoker(inspected.index),
       };
     }
     const unoCard = consumables[inspected.index];
@@ -277,8 +271,6 @@ export const GameTable: React.FC<GameTableProps> = ({
       name: unoCard.name,
       description: unoCard.description,
       badges: ['CARTA SOLA'],
-      sellValue: 1,
-      onSell: () => onSellUnoCard(inspected.index),
     };
   })();
 
@@ -292,6 +284,12 @@ export const GameTable: React.FC<GameTableProps> = ({
   const showPlayerCaricoParticles = Boolean(
     isPlayerCarico && (!opponentTrickCard || playerWonTrick)
   );
+
+  // The particles were silent: a Carico landing is the loudest thing that
+  // happens in a hand of Briscola, so it gets a sound the first frame it shows.
+  React.useEffect(() => {
+    if (showPlayerCaricoParticles) sound.playCaricoWin();
+  }, [showPlayerCaricoParticles]);
 
   // If opponent played an Ace or Three and player captures it!
   const isOpponentCarico = opponentTrickCard && (opponentTrickCard.rank === 1 || opponentTrickCard.rank === 3);
@@ -446,7 +444,6 @@ export const GameTable: React.FC<GameTableProps> = ({
                     key={`${unoCard.id}-${i}`}
                     unoCard={unoCard}
                     onUse={() => handleUnoCardClick(unoCard)}
-                    onSell={() => onSellUnoCard(i)}
                     canUse={true}
                     isSelected={activeUnoToApply?.id === unoCard.id}
                     size="sm"
@@ -502,18 +499,6 @@ export const GameTable: React.FC<GameTableProps> = ({
                         {badge}
                       </span>
                     ))}
-                    {inspectedItem.onSell && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          inspectedItem.onSell?.();
-                          setInspected(null);
-                        }}
-                        className="bg-red-800 hover:bg-red-700 text-white font-pixel text-[7.5px] sm:text-[8.5px] px-2 py-0.5 rounded pixel-box cursor-pointer"
-                      >
-                        VENDI +${inspectedItem.sellValue}
-                      </button>
-                    )}
                   </div>
                 </div>
               </div>

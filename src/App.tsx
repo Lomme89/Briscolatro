@@ -602,6 +602,8 @@ export function App() {
 
       if (scoreResult.triggeredJokerIds.length > 0) {
         setTriggeringJokerId(scoreResult.triggeredJokerIds[0]);
+        // The joker shakes on screen: it should be heard going off too.
+        sound.playJokerTrigger();
         setTimeout(() => setTriggeringJokerId(null), 1200);
       }
 
@@ -722,6 +724,12 @@ export function App() {
       opponentHandRef.current
     );
 
+    // Two cards come off the stock: one flick each, close together.
+    if (newDrawPile.length !== drawPileRef.current.length) {
+      sound.playCardDraw();
+      scheduleAction(() => sound.playCardDraw(), beat(140));
+    }
+
     playerHandRef.current = newPlayerHand;
     opponentHandRef.current = newOpponentHand;
     drawPileRef.current = newDrawPile;
@@ -778,7 +786,7 @@ export function App() {
       }
 
       if (outcome.won) {
-        sound.playVictoryFanfare();
+        sound.playRoundWin();
         confetti({ particleCount: 70, spread: 80 });
 
         setMoney((m) => m + outcome.totalReward);
@@ -810,6 +818,8 @@ export function App() {
         });
 
         if (outcome.isAnte8Victory) {
+          // The whole run, not just a blind: this is what the fanfare is for.
+          sound.playVictoryFanfare();
           setGameOverSummary({
             won: true,
             ante,
@@ -829,7 +839,7 @@ export function App() {
           });
         }
       } else {
-        sound.playTrickLose();
+        sound.playRoundLose();
 
         setRoundSummary({
           ante,
@@ -936,7 +946,7 @@ export function App() {
       trumpCardRef.current
     );
     if (res.success) {
-      sound.playCardSelect();
+      sound.playDiscard();
       playerHandRef.current = res.newPlayerHand;
       drawPileRef.current = res.newDrawPile;
       trumpCardRef.current = res.newTrumpCard;
@@ -1040,6 +1050,7 @@ export function App() {
       if (ante >= 8 && round === 3) {
         setPhase('game_over');
       } else {
+        sound.playShopEnter();
         setPhase('shop');
       }
     } else {
@@ -1312,8 +1323,6 @@ export function App() {
             onPlayCard={handlePlayCard}
             onDiscardCard={handleDiscardCard}
             onUseUnoCard={handleUseUnoCard}
-            onSellJoker={handleSellJoker}
-            onSellUnoCard={handleSellUnoCard}
             onOpenDeckViewer={() => setShowDeckViewer(true)}
             onOpenTutorial={() => setShowTutorial(true)}
             onOpenSettings={() => setShowSettings(true)}

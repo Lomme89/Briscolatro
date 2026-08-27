@@ -47,8 +47,8 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
 
   // Entrance: the opponent lands, then speaks. Tapping anywhere finishes it.
   useEffect(() => {
-    if (opponent.isBoss) sound.playBossAlarm();
-    else sound.playCardFlick();
+    // Whoever sits down gets their own motif; the boss keeps the alarm on top.
+    sound.playOpponentJingle(opponent.characterId, opponent.isBoss);
     const timer = setTimeout(() => setRevealed(true), opponent.isBoss ? 620 : 380);
     return () => clearTimeout(timer);
   }, [ante, round, opponent.isBoss]);

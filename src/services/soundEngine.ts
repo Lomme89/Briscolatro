@@ -73,6 +73,118 @@ const UNO_ACCENTS: Record<string, UnoAccent> = {
   default: { wave: 'square', notes: [587.33, 880.0, 1174.66], step: 0.075, decay: 0.22 },
 };
 
+
+interface Jingle {
+  wave: OscillatorType;
+  /** [frequency, seconds] pairs, played one after the other. */
+  notes: Array<[number, number]>;
+  /** A held note underneath, for the ones that need weight. */
+  drone?: number;
+  gain?: number;
+}
+
+/**
+ * A calling card for whoever sits down opposite you.
+ *
+ * Every regular and every boss announced itself with the same card flick (or
+ * the same alarm), so fifteen different faces sounded like two. A motif is
+ * cheap - six notes and a waveform - and it does what the portrait does: tells
+ * you who this is before you read the name.
+ */
+const OPPONENT_JINGLES: Record<string, Jingle> = {
+  // --- gli habitué ---
+  // Gennaro: la scampanellata del bar, tre note e una strizzata d'occhio.
+  gennaro: {
+    wave: 'square',
+    notes: [[523.25, 0.12], [659.25, 0.12], [783.99, 0.1], [659.25, 0.1], [880.0, 0.26]],
+  },
+  // Nonna Assunta: un valzerino lento, tutto in tono maggiore.
+  assunta: {
+    wave: 'triangle',
+    notes: [[392.0, 0.2], [493.88, 0.16], [587.33, 0.16], [493.88, 0.14], [440.0, 0.3]],
+  },
+  // Mimì: entrata da sipario, sale e si prende l'ultima nota.
+  mimi: {
+    wave: 'triangle',
+    notes: [[587.33, 0.1], [739.99, 0.1], [880.0, 0.1], [1046.5, 0.12], [1318.51, 0.34]],
+    gain: 0.24,
+  },
+  // 'O Muto: due note basse e poi niente. È tutto quello che dice.
+  o_muto: { wave: 'sine', notes: [[164.81, 0.22], [130.81, 0.5]], gain: 0.3 },
+  // Il cadetto: fanfara di scherma, corta e impaziente.
+  salvatore: {
+    wave: 'square',
+    notes: [[659.25, 0.1], [659.25, 0.08], [830.61, 0.1], [987.77, 0.28]],
+  },
+  // Rocco: colpi d'ascia sul ceppo.
+  rocco: {
+    wave: 'sawtooth',
+    notes: [[164.81, 0.16], [164.81, 0.16], [196.0, 0.16], [130.81, 0.34]],
+    drone: 82.41,
+  },
+  // Il ragioniere: un orologio a pendolo che conta.
+  esposito: {
+    wave: 'square',
+    notes: [[440.0, 0.1], [440.0, 0.1], [415.3, 0.1], [415.3, 0.1], [392.0, 0.28]],
+    gain: 0.2,
+  },
+
+  // --- i boss: stessa idea, ma con la terra sotto ---
+  boss_ante_1: {
+    wave: 'square',
+    notes: [[440.0, 0.12], [523.25, 0.12], [622.25, 0.14], [523.25, 0.12], [415.3, 0.36]],
+    drone: 110.0,
+  },
+  boss_ante_2: {
+    wave: 'sawtooth',
+    notes: [[146.83, 0.28], [138.59, 0.24], [110.0, 0.46]],
+    drone: 73.42,
+  },
+  boss_ante_3: {
+    wave: 'triangle',
+    notes: [[622.25, 0.09], [739.99, 0.09], [622.25, 0.09], [880.0, 0.09], [739.99, 0.32]],
+    drone: 155.56,
+  },
+  boss_ante_4: {
+    wave: 'square',
+    notes: [[311.13, 0.1], [329.63, 0.1], [349.23, 0.1], [369.99, 0.1], [277.18, 0.34]],
+    drone: 92.5,
+  },
+  boss_ante_5: {
+    wave: 'square',
+    notes: [[493.88, 0.12], [587.33, 0.12], [739.99, 0.14], [587.33, 0.12], [493.88, 0.34]],
+    drone: 123.47,
+  },
+  boss_ante_6: {
+    wave: 'sawtooth',
+    notes: [[110.0, 0.2], [110.0, 0.16], [146.83, 0.2], [98.0, 0.44]],
+    drone: 65.41,
+  },
+  boss_ante_7: {
+    wave: 'triangle',
+    notes: [[1046.5, 0.08], [880.0, 0.08], [739.99, 0.08], [622.25, 0.1], [523.25, 0.34]],
+    drone: 130.81,
+  },
+  // Il Sovrano: fanfara di corte, l'unica che si prende il suo tempo.
+  boss_ante_8: {
+    wave: 'square',
+    notes: [
+      [523.25, 0.14],
+      [659.25, 0.14],
+      [783.99, 0.14],
+      [1046.5, 0.22],
+      [987.77, 0.12],
+      [1046.5, 0.44],
+    ],
+    drone: 130.81,
+    gain: 0.3,
+  },
+  default: {
+    wave: 'square',
+    notes: [[523.25, 0.12], [659.25, 0.12], [783.99, 0.3]],
+  },
+};
+
 class SoundEngine {
   private ctx: AudioContext | null = null;
   private musicOsc1: OscillatorNode | null = null;
@@ -705,6 +817,181 @@ class SoundEngine {
       osc.start(now);
       osc.stop(now + 0.24);
     }
+  }
+
+
+  /**
+   * The motif of whoever is sitting down: see OPPONENT_JINGLES.
+   *
+   * The boss keeps its alarm on top - that one is a warning, not a name.
+   */
+  public playOpponentJingle(characterId: string, isBoss = false) {
+    if (this.isMuted || this.sfxVolume <= 0) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const jingle = OPPONENT_JINGLES[characterId] || OPPONENT_JINGLES.default;
+    const start = this.ctx.currentTime + (isBoss ? 0.22 : 0.02);
+    let at = start;
+
+    jingle.notes.forEach(([freq, length]) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      osc.type = jingle.wave;
+      osc.frequency.setValueAtTime(freq, at);
+
+      const peak = (jingle.gain ?? 0.26) * this.sfxVolume;
+      gain.gain.setValueAtTime(0.0001, at);
+      gain.gain.exponentialRampToValueAtTime(peak, at + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, at + length);
+
+      osc.connect(gain);
+      gain.connect(this.ctx!.destination);
+      osc.start(at);
+      osc.stop(at + length + 0.02);
+      at += length;
+    });
+
+    if (jingle.drone) {
+      const total = at - start;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(jingle.drone, start);
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.16 * this.sfxVolume, start + 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + total);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(start);
+      osc.stop(start + total + 0.05);
+    }
+
+    if (isBoss) this.playBossAlarm();
+  }
+
+  /** A short burst of filtered noise: paper, shuffling, anything with grain. */
+  private noiseBurst(duration: number, filterHz: number, peak: number, sweepTo?: number) {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const frames = Math.floor(this.ctx.sampleRate * duration);
+    const buffer = this.ctx.createBuffer(1, frames, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < frames; i++) data[i] = Math.random() * 2 - 1;
+
+    const source = this.ctx.createBufferSource();
+    source.buffer = buffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(filterHz, now);
+    if (sweepTo) filter.frequency.exponentialRampToValueAtTime(sweepTo, now + duration);
+    filter.Q.value = 1.2;
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(peak * this.sfxVolume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+    source.start(now);
+    source.stop(now + duration);
+  }
+
+  /** A card coming off the stock, once per card drawn. */
+  public playCardDraw() {
+    if (this.isMuted || this.sfxVolume <= 0) return;
+    this.initContext();
+    if (!this.ctx) return;
+    this.noiseBurst(0.12, 1800, 0.16, 3200);
+  }
+
+  /** Scarto: a card pushed back into the deck. */
+  public playDiscard() {
+    if (this.isMuted || this.sfxVolume <= 0) return;
+    this.initContext();
+    if (!this.ctx) return;
+    this.noiseBurst(0.22, 2600, 0.2, 700);
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(330, now);
+    osc.frequency.exponentialRampToValueAtTime(160, now + 0.2);
+    gain.gain.setValueAtTime(0.18 * this.sfxVolume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.24);
+  }
+
+  /** The door of the Bar Sport: two bells and you are inside. */
+  public playShopEnter() {
+    if (this.isMuted || this.sfxVolume <= 0) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    [
+      [1318.51, 0],
+      [1760.0, 0.09],
+    ].forEach(([freq, delay]) => {
+      const at = this.ctx!.currentTime + delay;
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, at);
+      gain.gain.setValueAtTime(0.22 * this.sfxVolume, at);
+      gain.gain.exponentialRampToValueAtTime(0.001, at + 0.55);
+      osc.connect(gain);
+      gain.connect(this.ctx!.destination);
+      osc.start(at);
+      osc.stop(at + 0.6);
+    });
+  }
+
+  /** Manche superata: short and bright, the fanfare is for the whole run. */
+  public playRoundWin() {
+    if (this.isMuted || this.sfxVolume <= 0) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+      const at = this.ctx!.currentTime + i * 0.09;
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(freq, at);
+      gain.gain.setValueAtTime(0.24 * this.sfxVolume, at);
+      gain.gain.exponentialRampToValueAtTime(0.001, at + 0.3);
+      osc.connect(gain);
+      gain.connect(this.ctx!.destination);
+      osc.start(at);
+      osc.stop(at + 0.32);
+    });
+  }
+
+  /** Manche fallita: the same shape, walking downstairs. */
+  public playRoundLose() {
+    if (this.isMuted || this.sfxVolume <= 0) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    [392.0, 349.23, 293.66, 220.0].forEach((freq, i) => {
+      const at = this.ctx!.currentTime + i * 0.13;
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, at);
+      gain.gain.setValueAtTime(0.2 * this.sfxVolume, at);
+      gain.gain.exponentialRampToValueAtTime(0.001, at + 0.4);
+      osc.connect(gain);
+      gain.connect(this.ctx!.destination);
+      osc.start(at);
+      osc.stop(at + 0.42);
+    });
   }
 
   public stopMusic() {
