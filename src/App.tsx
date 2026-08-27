@@ -17,7 +17,9 @@ import { ALL_BOSS_BLINDS } from './data/bosses';
 import { ALL_UNO_CARDS, ALL_VOUCHERS } from './data/unoCards';
 import {
   createRunDeck,
-  replaceCardInRunDeck,
+  upgradeCardInRunDeck,
+  clearSpecialInRunDeck,
+  assertRunDeckIntegrity,
   getBlindTargetScore,
   prepareRoundDeck,
   performExchangeDiscard,
@@ -29,6 +31,7 @@ import {
 } from './game/gameState';
 import { createCard, resolveTrick } from './game/briscola';
 import { chooseOpponentFollow, chooseOpponentLead } from './game/ai';
+import { resolveSpecialForTrick, visiblePlayerCards } from './game/specialCards';
 import { BOSS_RULES } from './game/bossRules';
 import { JOKER_EFFECTS } from './game/jokerEffects';
 import { calculateTrickScore, TrickScoreCalculation } from './game/scoring';
@@ -462,6 +465,9 @@ export function App() {
 
     // Create persistent Run Deck
     const newRunDeck = createRunDeck(deck);
+    // A run starts from the forty identities and never leaves them: if a deck
+    // perk ever broke that, this is where it would show up first.
+    if (import.meta.env.DEV) assertRunDeckIntegrity(newRunDeck, 'inizio run');
     setRunDeck(newRunDeck);
 
     setPendingRound({ ante: 1, round: 1, deck, runDeck: newRunDeck });
@@ -478,6 +484,9 @@ export function App() {
       briscolaSuit: currentSuit,
       bossDebuff: getActiveBossDebuff(),
       isReverse: isReverseActiveRef.current,
+      // A Segnata card is the only thing it gets to know, and it knows it the
+      // whole time that card is in hand.
+      knownPlayerCards: visiblePlayerCards(playerHandRef.current),
     });
 
     if (!chosenCard) {
@@ -508,6 +517,7 @@ export function App() {
       briscolaSuit: briscolaSuitRef.current,
       bossDebuff: getActiveBossDebuff(),
       isReverse: isReverseActiveRef.current,
+      knownPlayerCards: visiblePlayerCards(playerHandRef.current),
     });
 
     if (!chosenCard) {
@@ -586,7 +596,8 @@ export function App() {
           capturedDenariRanksThisRound,
         },
         activeUnoMultiplier,
-        disabledJokerIndex
+        disabledJokerIndex,
+        leadIsPlayer
       );
 
       // Seals: a blue seal can roll a free UNO card, a purple one refunds a
@@ -608,6 +619,12 @@ export function App() {
         setRunDeck((prev) =>
           prev.map((c) => (shattered.has(c.id) ? { ...c, enhancement: 'none' as const } : c))
         );
+      }
+
+      // The Azzardo's dollars ride along in scoreResult.bonusDollars, which
+      // handleTallyComplete pays out: charging again here would take it twice.
+      if (scoreResult.special.unpaidDebt) {
+        setOpponentSpeech('Cassa vuota: la carta A Debito non paga il bonus.');
       }
 
       // Bank permanent joker growth for the rest of the run.
@@ -646,6 +663,32 @@ export function App() {
       });
     } else {
       sound.playTrickLose();
+
+      // calculateTrickScore never runs on a lost trick, so the other half of
+      // the Azzardo lives here: this is where a Vetro breaks and a Traditrice
+      // presents the bill.
+      const special = resolveSpecialForTrick({
+        card: playerCard,
+        playerLed: leadIsPlayer,
+        playerWon: false,
+        money,
+      });
+      if (special.dollarsToAdd < 0) {
+        setMoney((m) => Math.max(0, m + special.dollarsToAdd));
+      }
+      if (special.brokenSpecialCardId) {
+        // The card stays in the deck - it is one of the forty - it just stops
+        // being special.
+        setRunDeck((prev) => clearSpecialInRunDeck(prev, special.brokenSpecialCardId!));
+        setPlayerHand((prev) =>
+          prev.map((c) => (c.id === special.brokenSpecialCardId ? { ...c, special: 'none' as const } : c))
+        );
+        sound.playCardShatter();
+      }
+      if (special.reasons.length > 0) {
+        setOpponentSpeech(special.reasons.join(' · '));
+      }
+
       setTallyData({
         chips: 0,
         mult: 1,
@@ -1124,12 +1167,15 @@ export function App() {
     setConsumables((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleAddCardToDeck = (card: PlayingCard, removedCardId?: string) => {
-    // Replaces a card instead of growing the deck: an odd run deck breaks the
-    // paired stock draw and desynchronises the two hands mid-round. Which card
-    // leaves is the player's call; a missing id falls back to the weakest one
-    // rather than letting the deck end up the wrong size.
-    setRunDeck((prev) => replaceCardInRunDeck(prev, removedCardId ?? null, card));
+  const handleUpgradeCard = (upgraded: PlayingCard) => {
+    // The 4 di Spade Vetro IS your 4 di Spade: the upgrade rewrites that one
+    // entry. Nothing is added, nothing is dropped, and the forty identities of
+    // the Italian deck stay exactly as they are.
+    setRunDeck((prev) => {
+      const next = upgradeCardInRunDeck(prev, upgraded);
+      if (import.meta.env.DEV) assertRunDeckIntegrity(next, 'upgrade in bustina');
+      return next;
+    });
   };
 
   const handleNextRoundFromShop = () => {
@@ -1376,7 +1422,7 @@ export function App() {
             onBuyVoucher={handleBuyVoucher}
             onSellJoker={handleSellJoker}
             onSellUnoCard={handleSellUnoCard}
-            onAddCardToDeck={handleAddCardToDeck}
+            onUpgradeCard={handleUpgradeCard}
             runDeck={runDeck}
             onNextRound={handleNextRoundFromShop}
             onReroll={(cost) => setMoney((m) => Math.max(0, m - cost))}
@@ -1497,6 +1543,19 @@ export function App() {
           }}
           onWinRound={() => {
             setCurrentRoundScore((s) => s + targetScore);
+          }}
+          onGiveSpecial={(special) => {
+            const target = playerHandRef.current[0];
+            if (!target) return;
+            const stamped = { ...target, special };
+            playerHandRef.current = [stamped, ...playerHandRef.current.slice(1)];
+            setPlayerHand(playerHandRef.current);
+            // The run deck holds the same identity: keep the two in step.
+            setRunDeck((prev) =>
+              prev.map((c) =>
+                c.suit === target.suit && c.rank === target.rank ? { ...c, special } : c
+              )
+            );
           }}
           onChangeBriscola={(suit) => {
             setBriscolaSuit(suit);

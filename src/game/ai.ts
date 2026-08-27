@@ -5,6 +5,11 @@ export interface OpponentAiContext {
   briscolaSuit: Suit;
   bossDebuff?: string;
   isReverse?: boolean;
+  /**
+   * The player cards the opponent is allowed to know about: Segnata cards, and
+   * only those. Build it with visiblePlayerCards - never hand over the hand.
+   */
+  knownPlayerCards?: PlayingCard[];
 }
 
 function keepValue(card: PlayingCard, briscolaSuit: Suit): number {
@@ -12,6 +17,26 @@ function keepValue(card: PlayingCard, briscolaSuit: Suit): number {
   const trumpTax = card.suit === briscolaSuit || card.enhancement === 'wild' ? 14 : 0;
   const editionTax = card.edition === 'standard' ? 0 : 5;
   return card.points * 20 + card.power + trumpTax + editionTax;
+}
+
+/**
+ * How bad it would be to open with this card, knowing what we know.
+ *
+ * A Segnata card is public: the opponent knows that exact card is in the hand
+ * across the table. It uses it the way a player would - it does not walk points
+ * into a card it can see will take them - and that is the whole extent of it.
+ * No hand reading, no lookahead.
+ */
+function markedCardRisk(card: PlayingCard, context: OpponentAiContext): number {
+  const known = context.knownPlayerCards;
+  if (!known || known.length === 0 || card.points === 0) return 0;
+
+  const beaten = known.some(
+    (playerCard) =>
+      resolveTrick(card, playerCard, context.briscolaSuit, false, context.bossDebuff, context.isReverse)
+        .playerWon
+  );
+  return beaten ? card.points * 20 : 0;
 }
 
 /** Deterministic lead: unload the cheapest safe card first. */
@@ -23,7 +48,12 @@ export function chooseOpponentLead(
   return [...hand].sort((a, b) => {
     const aTrump = a.suit === context.briscolaSuit || a.enhancement === 'wild' ? 1 : 0;
     const bTrump = b.suit === context.briscolaSuit || b.enhancement === 'wild' ? 1 : 0;
-    return aTrump - bTrump || keepValue(a, context.briscolaSuit) - keepValue(b, context.briscolaSuit);
+    return (
+      aTrump - bTrump ||
+      keepValue(a, context.briscolaSuit) +
+        markedCardRisk(a, context) -
+        (keepValue(b, context.briscolaSuit) + markedCardRisk(b, context))
+    );
   })[0];
 }
 

@@ -1,6 +1,7 @@
 import { PlayingCard, Suit, Joker, BossBlind } from '../types/game';
 import { TrickClashResult } from './briscola';
 import { JOKER_EFFECTS, JokerScoringContext, JokerStatGrowth } from './jokerEffects';
+import { resolveSpecialForTrick, SpecialTrickOutcome } from './specialCards';
 
 /** Side effects a trick's seals produced, applied by the caller. */
 export interface SealEvents {
@@ -28,6 +29,8 @@ export interface TrickScoreCalculation {
   triggeredJokerIds: string[];
   transmutedCard?: { suit: Suit; edition: 'foil' };
   statGrowth: JokerStatGrowth[];
+  /** What the played card's Azzardo did. Lost tricks resolve it outside here. */
+  special: SpecialTrickOutcome;
 }
 
 export function calculateTrickScore(
@@ -39,7 +42,9 @@ export function calculateTrickScore(
   currentBoss: BossBlind | null,
   jokerContext: Omit<JokerScoringContext, 'playerCard' | 'opponentCard' | 'clashResult' | 'briscolaSuit' | 'disabledJokerIndex'>,
   activeUnoMultiplier: number = 1.0,
-  disabledJokerIndex: number | null = null
+  disabledJokerIndex: number | null = null,
+  /** The player opened this trick rather than answering it: Traditrice cares. */
+  playerLed: boolean = true
 ): TrickScoreCalculation {
   let baseChips = 20;
   let bonusChips = 0;
@@ -115,8 +120,9 @@ export function calculateTrickScore(
     bonusMult += playerCard.customBonusMult || 0;
   }
 
-  // Glass is a gamble: 1 in 4 it shatters and loses its enhancement for good.
-  // It never leaves the deck - Briscola needs an even number of cards.
+  // The old glass enhancement is a coin flip on every play. It stays in the
+  // engine for cards that already carry it, but nothing hands it out any more:
+  // the Azzardo Vetro says exactly when it breaks, which is the point.
   if (playerCard.enhancement === 'glass' && Math.random() < 0.25) {
     sealEvents.shatteredCardIds.push(playerCard.id);
   }
@@ -142,6 +148,21 @@ export function calculateTrickScore(
     }
   }
 
+  // --- The Azzardo on the played card -------------------------------------
+  // This branch only ever runs on a won trick, so the outcome here is the good
+  // half; App resolves the other half (a Vetro breaking, a Traditrice charging)
+  // when the trick is lost.
+  const special = resolveSpecialForTrick({
+    card: playerCard,
+    playerLed,
+    playerWon: clashResult.playerWon,
+    money: jokerContext.money,
+  });
+  bonusChips += special.chipsToAdd;
+  bonusMult += special.multToAdd;
+  xMult *= special.xMultToMultiply;
+  bonusDollars += special.dollarsToAdd;
+
   // Apply Joker effects
   const fullJokerContext: JokerScoringContext = {
     ...jokerContext,
@@ -166,6 +187,7 @@ export function calculateTrickScore(
   if (carichiCaptured > 0) baseMultReasons.push(`${carichiCaptured} Carico${carichiCaptured > 1 ? 'i' : ''} +${carichiCaptured}`);
   if (figureCaptured > 0) baseMultReasons.push('Figura +1');
   if (clashResult.playerWon && clashResult.playerIsBriscola) baseMultReasons.push('Briscola +1');
+  baseMultReasons.push(...special.reasons);
 
   return {
     sealEvents,
@@ -182,5 +204,6 @@ export function calculateTrickScore(
     triggeredJokerIds: jokerMod.triggeredJokerIds,
     transmutedCard: jokerMod.transmutedCard,
     statGrowth: jokerMod.statGrowth,
+    special,
   };
 }

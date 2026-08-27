@@ -8,6 +8,7 @@ import { CARD_PAPER, getCardArtUrl, NeapolitanCardArt } from './NeapolitanCardAr
 import { getCardStyleDefinition } from '../data/cardStyles';
 import { PICKER_CARD_BOX } from './cardSizing';
 import { useCardChips } from '../context/CardChipsContext';
+import { SPECIAL_INFO } from '../game/specialCards';
 
 const ENHANCEMENT_BADGES: Record<
   Exclude<PlayingCard['enhancement'], 'none'>,
@@ -16,7 +17,7 @@ const ENHANCEMENT_BADGES: Record<
   bonus: { label: '+30', title: 'Bonus: +30 Chips', className: 'bg-sky-600 text-white border-sky-300' },
   mult: { label: '+4x', title: 'Mult: +4 Mult', className: 'bg-red-600 text-white border-red-300' },
   wild: { label: 'JOLLY', title: 'Wild: vale sempre come Briscola', className: 'bg-fuchsia-600 text-white border-fuchsia-300' },
-  glass: { label: 'X2', title: 'Vetro: x2 Mult, 1 su 4 si spezza', className: 'bg-cyan-500 text-slate-900 border-cyan-200' },
+  glass: { label: 'X2', title: 'Fragile: x2 Mult, 1 su 4 si spezza', className: 'bg-cyan-500 text-slate-900 border-cyan-200' },
   steel: { label: 'X1.5', title: 'Acciaio: x1.5 Mult mentre resta in mano', className: 'bg-slate-400 text-slate-900 border-slate-200' },
   stone: { label: 'PIETRA', title: 'Pietra: +50 Chips, nessun seme', className: 'bg-stone-500 text-white border-stone-300' },
 };
@@ -280,6 +281,17 @@ export const PixelCard: React.FC<PixelCardProps> = ({
           title={ENHANCEMENT_BADGES[card.enhancement].title}
         >
           {ENHANCEMENT_BADGES[card.enhancement].label}
+        </div>
+      )}
+
+      {/* Azzardo badge: the modifier with a price on it, so it gets the top
+          edge to itself rather than sharing a corner with the pure upside. */}
+      {card.special !== 'none' && (
+        <div
+          className={`absolute -top-1.5 left-1/2 -translate-x-1/2 z-20 px-1 py-0.5 rounded font-pixel text-[6px] sm:text-[7px] font-bold shadow border whitespace-nowrap ${SPECIAL_INFO[card.special].className}`}
+          title={`${SPECIAL_INFO[card.special].bonus} - ${SPECIAL_INFO[card.special].cost}`}
+        >
+          {SPECIAL_INFO[card.special].badge}
         </div>
       )}
 

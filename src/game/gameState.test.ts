@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createCard, createStandardDeck } from './briscola';
 import {
-  addCardToRunDeck,
+  upgradeCardInRunDeck,
   drawNextTrickCards,
   isRoundFinished,
   performExchangeDiscard,
@@ -53,27 +53,16 @@ describe('round card conservation', () => {
 });
 
 describe('run deck stays even', () => {
-  it('a shop card replaces a plain card instead of growing the deck', () => {
+  it('an upgrade rewrites a card in place instead of growing the deck', () => {
     const runDeck = fixedDeck();
-    const bought = createCard('denari', 1, 'foil');
-    const next = addCardToRunDeck(runDeck, bought);
+    const next = upgradeCardInRunDeck(runDeck, createCard('denari', 1, 'foil'));
     expect(next).toHaveLength(runDeck.length);
-    expect(next.some((c) => c.id === bought.id)).toBe(true);
+    expect(next.filter((c) => c.suit === 'denari' && c.rank === 1)).toHaveLength(1);
   });
 
-  it('never replaces an upgraded card while a plain one exists', () => {
-    const runDeck = [
-      createCard('denari', 2, 'polychrome', 'none', 'none', 'precious'),
-      createCard('coppe', 4, 'standard', 'none', 'none', 'plain'),
-    ];
-    const next = addCardToRunDeck(runDeck, createCard('spade', 1));
-    expect(next.some((c) => c.id === 'precious')).toBe(true);
-    expect(next.some((c) => c.id === 'plain')).toBe(false);
-  });
-
-  it('a full round with a replaced card still plays exactly 20 tricks', () => {
+  it('a full round with an upgraded card still plays exactly 20 tricks', () => {
     let runDeck = fixedDeck();
-    runDeck = addCardToRunDeck(runDeck, createCard('denari', 1, 'foil'));
+    runDeck = upgradeCardInRunDeck(runDeck, createCard('denari', 1, 'foil'));
     const deal = prepareRoundDeck(runDeck);
     let { playerHand, opponentHand } = deal;
     let pile = deal.roundDrawPile;

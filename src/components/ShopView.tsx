@@ -3,12 +3,12 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Joker, UnoCard, BoosterPack, Voucher, PlayingCard } from '../types/game';
 import { ALL_BOOSTER_PACKS, ALL_VOUCHERS, ALL_UNO_CARDS } from '../data/unoCards';
 import { getRandomJokers } from '../data/jokers';
-import { createStandardDeck } from '../game/briscola';
 import { JokerSlot } from './JokerSlot';
 import { UnoCardSlot } from './UnoCardSlot';
 import { PixelCard } from './PixelCard';
 import { CardInspectorModal } from './CardInspectorModal';
-import { DeckReplaceModal } from './DeckReplaceModal';
+import { CardUpgradeModal } from './CardUpgradeModal';
+import { rollCardUpgrade } from '../game/cardUpgrades';
 import { InspectableItem, ItemInspectorModal } from './ItemInspectorModal';
 import { PICKER_CARD_BOX } from './cardSizing';
 import { CardFaceArt, getJokerArtUrl, getUnoArtUrl } from './CardFaceArt';
@@ -27,44 +27,13 @@ interface ShopViewProps {
   onBuyVoucher: (voucher: Voucher) => void;
   onSellJoker: (index: number) => void;
   onSellUnoCard: (index: number) => void;
-  /** The player picks both the card that enters and the one it replaces. */
-  onAddCardToDeck: (card: PlayingCard, removedCardId: string) => void;
+  /** Applies the upgrade to the card of the same suit and rank in the deck. */
+  onUpgradeCard: (upgraded: PlayingCard) => void;
   runDeck: PlayingCard[];
   onNextRound: () => void;
   onReroll: (cost: number) => void;
   ante: number;
   round: number;
-}
-
-/**
- * Rolls the modifiers on a card offered by a booster.
- *
- * Deck upgrades are the second scaling path of the run (the first being
- * jokers), so a bought card is always worth something: it replaces a card you
- * already own, and it has to earn that slot.
- */
-function upgradeBoosterCard(card: PlayingCard): PlayingCard {
-  const next = { ...card };
-  const roll = Math.random();
-
-  if (roll < 0.45) {
-    const edition = Math.random();
-    next.edition = edition < 0.45 ? 'foil' : edition < 0.75 ? 'holo' : edition < 0.92 ? 'polychrome' : 'gold';
-  }
-
-  const enhancementRoll = Math.random();
-  if (enhancementRoll < 0.45) {
-    const e = Math.random();
-    next.enhancement = e < 0.3 ? 'bonus' : e < 0.6 ? 'mult' : e < 0.78 ? 'steel' : e < 0.9 ? 'glass' : 'stone';
-  }
-
-  const sealRoll = Math.random();
-  if (sealRoll < 0.3) {
-    const seal = Math.random();
-    next.seal = seal < 0.4 ? 'red' : seal < 0.68 ? 'gold' : seal < 0.87 ? 'blue' : 'purple';
-  }
-
-  return next;
 }
 
 export const ShopView: React.FC<ShopViewProps> = ({
@@ -79,7 +48,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
   onBuyVoucher,
   onSellJoker,
   onSellUnoCard,
-  onAddCardToDeck,
+  onUpgradeCard,
   runDeck,
   onNextRound,
   onReroll,
@@ -111,8 +80,8 @@ export const ShopView: React.FC<ShopViewProps> = ({
   // A booster card is picked at thumbnail size, so it opens in the inspector
   // first: the artwork at a readable size and every power written out.
   const [inspectedCard, setInspectedCard] = useState<PlayingCard | null>(null);
-  // The booster card waiting for the player to say which card it replaces.
-  const [pendingDeckCard, setPendingDeckCard] = useState<PlayingCard | null>(null);
+  // The upgrade waiting to be compared against the card the player already has.
+  const [pendingUpgrade, setPendingUpgrade] = useState<PlayingCard | null>(null);
   // Same idea for the jolly and the carte UNO of a booster: their slots carry a
   // tooltip built for the table, which in a grid covers the neighbours.
   const [inspectedBoosterItem, setInspectedBoosterItem] = useState<InspectableItem | null>(null);
@@ -178,11 +147,12 @@ export const ShopView: React.FC<ShopViewProps> = ({
     const types = drawTypes();
     const countOf = (type: BoosterPack['type']) => types.filter((t) => t === type).length;
 
-    // The deck came out in dealing order, so the Napoletana pack offered the
-    // same three cards every time.
-    const cards: PlayingCard[] = shuffle(createStandardDeck())
+    // Drawn from the run deck itself: the pack proposes upgrades to cards the
+    // player owns, so there is never a card on offer that the deck does not
+    // already contain exactly once.
+    const cards: PlayingCard[] = shuffle(runDeck)
       .slice(0, countOf('cards'))
-      .map((c) => upgradeBoosterCard(c));
+      .map((c) => rollCardUpgrade(c));
     const unoCards: UnoCard[] = shuffle(ALL_UNO_CARDS).slice(0, countOf('uno'));
     const generatedJokers: Joker[] = getRandomJokers(countOf('joker'));
 
@@ -195,23 +165,19 @@ export const ShopView: React.FC<ShopViewProps> = ({
     });
   };
 
-  // Picking the card is only half of it: the deck has a fixed size, so the
-  // player now says which card leaves. Nothing is spent until they confirm -
-  // cancelling drops back into the pack with every option still on the table.
+  // Nothing is applied until the player has seen what the upgrade does to
+  // their card and confirmed it: cancelling drops back into the pack with
+  // every option still on the table.
   const handleSelectBoosterCard = (card: PlayingCard) => {
     if (!activeBooster) return;
-    if (runDeck.length === 0) {
-      commitBoosterCard(card, '');
-      return;
-    }
     sound.playCardSelect();
-    setPendingDeckCard(card);
+    setPendingUpgrade(card);
   };
 
-  const commitBoosterCard = (card: PlayingCard, removedCardId: string) => {
+  const commitBoosterCard = (card: PlayingCard) => {
     if (!activeBooster) return;
     sound.playCashChime();
-    onAddCardToDeck(card, removedCardId);
+    onUpgradeCard(card);
 
     const nextCount = activeBooster.selectedCount + 1;
     if (nextCount >= activeBooster.pack.selectCount) {
@@ -812,7 +778,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
                 </span>
                 {activeBooster.cards.length > 0 && (
                   <span className="block text-[10px] text-slate-400 mt-1">
-                    Ogni carta scelta prende il posto di una carta del mazzo: scegli tu quale (il mazzo resta di {runDeck.length} carte).
+                    Ogni carta qui è una TUA carta potenziata: la trasformi, non la aggiungi. Il mazzo resta di {runDeck.length} carte.
                   </span>
                 )}
               </p>
@@ -886,16 +852,20 @@ export const ShopView: React.FC<ShopViewProps> = ({
         )}
       </AnimatePresence>
 
-      {/* The card is chosen, now the deck says who leaves. */}
-      <DeckReplaceModal
-        newCard={pendingDeckCard}
-        runDeck={runDeck}
-        onConfirm={(removedCardId) => {
-          const card = pendingDeckCard;
-          setPendingDeckCard(null);
-          if (card) commitBoosterCard(card, removedCardId);
+      {/* Your card, and your card wearing the upgrade. Nothing else. */}
+      <CardUpgradeModal
+        upgraded={pendingUpgrade}
+        current={
+          pendingUpgrade
+            ? runDeck.find((c) => c.suit === pendingUpgrade.suit && c.rank === pendingUpgrade.rank) ?? null
+            : null
+        }
+        onConfirm={() => {
+          const card = pendingUpgrade;
+          setPendingUpgrade(null);
+          if (card) commitBoosterCard(card);
         }}
-        onCancel={() => setPendingDeckCard(null)}
+        onCancel={() => setPendingUpgrade(null)}
       />
 
       {/* Card inspector, opened by tapping a booster card */}

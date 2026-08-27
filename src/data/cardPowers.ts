@@ -1,4 +1,5 @@
-import { Edition, Enhancement, PlayingCard, Seal } from '../types/game';
+import { CardSpecial, Edition, Enhancement, PlayingCard, Seal } from '../types/game';
+import { SPECIAL_INFO } from '../game/specialCards';
 
 export interface CardPower {
   label: string;
@@ -53,7 +54,9 @@ const ENHANCEMENT_POWERS: Record<Exclude<Enhancement, 'none'>, CardPower> = {
     className: 'bg-fuchsia-950 border-fuchsia-400 text-fuchsia-200',
   },
   glass: {
-    label: 'Vetro',
+    // Not handed out any more: the Azzardo Vetro replaced it, and two things
+    // called Vetro would be one too many. Cards that already carry it keep it.
+    label: 'Fragile',
     description: 'x2 Mult, ma 1 volta su 4 si spezza e perde il potenziamento.',
     className: 'bg-cyan-950 border-cyan-400 text-cyan-200',
   },
@@ -92,11 +95,40 @@ const SEAL_POWERS: Record<Exclude<Seal, 'none'>, CardPower> = {
   },
 };
 
+/**
+ * The Azzardo reads differently from the rest: it is the only entry with a
+ * price under it, so both halves are spelled out in the same chip.
+ */
+const SPECIAL_POWERS: Record<Exclude<CardSpecial, 'none'>, CardPower> = {
+  segnata: {
+    label: 'Segnata',
+    description: `${SPECIAL_INFO.segnata.bonus}. Però: ${SPECIAL_INFO.segnata.cost.toLowerCase()}.`,
+    className: 'bg-amber-950 border-amber-400 text-amber-200',
+  },
+  vetro: {
+    label: 'Vetro',
+    description: `${SPECIAL_INFO.vetro.bonus}. Però: ${SPECIAL_INFO.vetro.cost.toLowerCase()}.`,
+    className: 'bg-cyan-950 border-cyan-400 text-cyan-200',
+  },
+  debito: {
+    label: 'A Debito',
+    description: `${SPECIAL_INFO.debito.bonus}. Però: ${SPECIAL_INFO.debito.cost.toLowerCase()}.`,
+    className: 'bg-emerald-950 border-emerald-400 text-emerald-200',
+  },
+  traditrice: {
+    label: 'Traditrice',
+    description: `${SPECIAL_INFO.traditrice.bonus}. Però: ${SPECIAL_INFO.traditrice.cost.toLowerCase()}.`,
+    className: 'bg-rose-950 border-rose-400 text-rose-200',
+  },
+};
+
 /** Every power a card carries, in the order they read best. */
 export function getCardPowers(card: PlayingCard): CardPower[] {
   const powers: CardPower[] = [];
   if (card.edition !== 'standard') powers.push(EDITION_POWERS[card.edition]);
   if (card.enhancement !== 'none') powers.push(ENHANCEMENT_POWERS[card.enhancement]);
   if (card.seal !== 'none') powers.push(SEAL_POWERS[card.seal]);
+  // Last, because it is the one the player has to think about.
+  if (card.special !== 'none') powers.push(SPECIAL_POWERS[card.special]);
   return powers;
 }

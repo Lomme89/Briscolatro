@@ -1,4 +1,4 @@
-import { PlayingCard, Suit, CardRank, Edition, Seal, Enhancement } from '../types/game';
+import { PlayingCard, Suit, CardRank, Edition, Seal, Enhancement, CardSpecial } from '../types/game';
 
 export const SUITS: { id: Suit; name: string; symbol: string; color: string; bgColor: string }[] = [
   { id: 'denari', name: 'Denari', symbol: '🪙', color: '#fbbf24', bgColor: '#78350f' },
@@ -35,7 +35,8 @@ export function createCard(
   edition: Edition = 'standard',
   seal: Seal = 'none',
   enhancement: Enhancement = 'none',
-  customId?: string
+  customId?: string,
+  special: CardSpecial = 'none'
 ): PlayingCard {
   const info = RANK_INFO[rank];
   return {
@@ -47,6 +48,7 @@ export function createCard(
     edition,
     seal,
     enhancement,
+    special,
   };
 }
 

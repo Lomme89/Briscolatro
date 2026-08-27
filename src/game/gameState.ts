@@ -1,4 +1,4 @@
-import { PlayingCard, Suit, DeckDefinition, BossBlind, Voucher, Joker } from '../types/game';
+import { PlayingCard, Suit, CardRank, DeckDefinition, BossBlind, Voucher, Joker } from '../types/game';
 import { createStandardDeck, shuffleDeck } from './briscola';
 
 export interface RoundStateSnapshot {
@@ -106,70 +106,97 @@ export function createRunDeck(deckDef: DeckDefinition): PlayingCard[] {
 }
 
 /**
- * The card the engine would drop if nobody chose: the cheapest plain one.
+ * The forty identities of an Italian deck: one Asso, one Due ... one Re for
+ * each of the four suits, and nothing else, ever.
  *
- * This is the safety net, not the normal path. A low card is not a bad card -
- * a liscia of the right suit is what makes a Jolly work - so the choice
- * belongs to the player, and this only covers the paths that never ask.
+ * Briscola is played on memory. If the 4 di Spade can be in the deck twice, or
+ * not at all, then counting what has already fallen stops meaning anything and
+ * the game underneath the roguelite quietly stops working. Every upgrade path
+ * has to come out the other side satisfying this.
  */
-export function fallbackWeakestCardId(runDeck: PlayingCard[]): string | null {
-  if (runDeck.length === 0) return null;
+export interface RunDeckIntegrity {
+  valid: boolean;
+  problems: string[];
+}
 
-  const isPlain = (card: PlayingCard) =>
-    card.edition === 'standard' && card.seal === 'none' && card.enhancement === 'none';
+export function checkRunDeckIntegrity(runDeck: PlayingCard[]): RunDeckIntegrity {
+  const problems: string[] = [];
 
-  const candidates = runDeck.filter(isPlain);
-  const pool = candidates.length > 0 ? candidates : runDeck;
-  return [...pool].sort((a, b) => a.points - b.points || a.power - b.power)[0].id;
+  if (runDeck.length !== 40) {
+    problems.push(`il mazzo ha ${runDeck.length} carte invece di 40`);
+  }
+
+  const suits: Suit[] = ['denari', 'coppe', 'spade', 'bastoni'];
+  const seen = new Map<string, number>();
+  for (const card of runDeck) {
+    const key = `${card.suit}_${card.rank}`;
+    seen.set(key, (seen.get(key) || 0) + 1);
+  }
+
+  for (const suit of suits) {
+    const count = runDeck.filter((card) => card.suit === suit).length;
+    if (count !== 10) problems.push(`${suit}: ${count} carte invece di 10`);
+
+    for (let rank = 1 as CardRank; rank <= 10; rank = (rank + 1) as CardRank) {
+      const count = seen.get(`${suit}_${rank}`) || 0;
+      if (count === 0) problems.push(`manca ${rank} di ${suit}`);
+      if (count > 1) problems.push(`${rank} di ${suit} compare ${count} volte`);
+    }
+  }
+
+  const ids = new Set(runDeck.map((card) => card.id));
+  if (ids.size !== runDeck.length) problems.push('due carte condividono lo stesso id');
+
+  return { valid: problems.length === 0, problems };
+}
+
+/** Shouts in dev, stays out of the way in production. */
+export function assertRunDeckIntegrity(runDeck: PlayingCard[], where: string): void {
+  const result = checkRunDeckIntegrity(runDeck);
+  if (!result.valid) {
+    console.error(`[run deck] integrità rotta in ${where}: ${result.problems.join(', ')}`);
+  }
 }
 
 /**
- * Swaps one card of the run deck for another, keeping the deck exactly the
- * size it was.
+ * Applies a booster upgrade to the card the player already owns.
  *
- * Two-player Briscola needs an even deck: the stock is dealt in pairs and the
- * face-up trump is the last card drawn. A 41-card run deck leaves one card over
- * at the end of the round and desynchronises the two hands, so a card taken
- * from a booster takes the place of one already there.
+ * A potenziata card is not a new card: it is the same identity wearing
+ * something. The 4 di Spade Vetro IS your 4 di Spade, so this finds it by suit
+ * and rank and rewrites that one entry, keeping its id and its place. The deck
+ * cannot grow, cannot shrink, and cannot end up with the same card twice.
  *
- * `removedCardId` is the card the player picked in the replacement screen. When
- * it is null - or names a card that is no longer in the deck - the fallback
- * above decides, so no code path can produce an invalid deck.
+ * An Azzardo replaces the one already there - a card carries at most one - while
+ * edition, seal and enhancement carry over unless the upgrade sets them.
  */
-export function replaceCardInRunDeck(
+export function upgradeCardInRunDeck(
   runDeck: PlayingCard[],
-  removedCardId: string | null,
-  newCard: PlayingCard
+  upgradedCard: PlayingCard
 ): PlayingCard[] {
-  if (runDeck.length === 0) return [newCard];
+  const index = runDeck.findIndex(
+    (card) => card.suit === upgradedCard.suit && card.rank === upgradedCard.rank
+  );
+  // A deck without that identity is already broken; refusing to write is the
+  // safe answer, since appending would put a second copy in circulation.
+  if (index === -1) return runDeck;
 
-  let index = removedCardId ? runDeck.findIndex((card) => card.id === removedCardId) : -1;
-  if (index === -1) {
-    const fallbackId = fallbackWeakestCardId(runDeck);
-    index = runDeck.findIndex((card) => card.id === fallbackId);
-  }
-  if (index === -1) index = 0;
-
-  // Ids address cards everywhere - hands, tricks, the forger's stamp - so two
-  // cards sharing one would make the deck ambiguous. The modifiers are the
-  // reason the card was taken and are never touched.
-  const collides = runDeck.some((card, i) => i !== index && card.id === newCard.id);
-  const inserted = collides
-    ? { ...newCard, id: `${newCard.suit}_${newCard.rank}_${Math.random().toString(36).substring(2, 9)}` }
-    : newCard;
-
+  const existing = runDeck[index];
   const next = [...runDeck];
-  next[index] = inserted;
+  next[index] = {
+    ...upgradedCard,
+    // The identity is the card in the deck, not the one the shop drew.
+    id: existing.id,
+    suit: existing.suit,
+    rank: existing.rank,
+    points: existing.points,
+    power: existing.power,
+  };
   return next;
 }
 
-/**
- * Kept for the paths that hand over a card with no screen to choose in.
- * The normal booster flow goes through replaceCardInRunDeck with the card the
- * player picked.
- */
-export function addCardToRunDeck(runDeck: PlayingCard[], newCard: PlayingCard): PlayingCard[] {
-  return replaceCardInRunDeck(runDeck, null, newCard);
+/** Strips the Azzardo from one card - a Vetro that broke - and nothing else. */
+export function clearSpecialInRunDeck(runDeck: PlayingCard[], cardId: string): PlayingCard[] {
+  return runDeck.map((card) => (card.id === cardId ? { ...card, special: 'none' as const } : card));
 }
 
 export function prepareRoundDeck(runDeck: PlayingCard[]): {
@@ -331,8 +358,10 @@ export function applyTrickResult(
     totalBriscolaPointsOpponent: playerWon
       ? snapshot.totalBriscolaPointsOpponent
       : snapshot.totalBriscolaPointsOpponent + trickPoints,
-    money: snapshot.money + bonusDollars,
-    totalMoneyEarned: snapshot.totalMoneyEarned + bonusDollars,
+    // An Azzardo can make this negative: it is capped at what the player has,
+    // so the till empties at worst. What was spent is not what was earned.
+    money: Math.max(0, snapshot.money + bonusDollars),
+    totalMoneyEarned: snapshot.totalMoneyEarned + Math.max(0, bonusDollars),
   };
 }
 

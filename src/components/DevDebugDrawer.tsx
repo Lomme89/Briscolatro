@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Joker, UnoCard, BossBlind, PlayingCard, Suit } from '../types/game';
+import { Joker, UnoCard, BossBlind, PlayingCard, Suit, CardSpecial } from '../types/game';
+import { SPECIAL_INFO } from '../game/specialCards';
 import { ALL_JOKERS } from '../data/jokers';
 import { ALL_UNO_CARDS } from '../data/unoCards';
 import { ALL_BOSS_BLINDS } from '../data/bosses';
@@ -14,6 +15,8 @@ interface DevDebugDrawerProps {
   onJumpToEndgame: () => void;
   onWinRound: () => void;
   onChangeBriscola: (suit: Suit) => void;
+  /** Stamps an Azzardo on the first card in hand, to try it without a booster. */
+  onGiveSpecial: (special: Exclude<CardSpecial, 'none'>) => void;
 }
 
 export const DevDebugDrawer: React.FC<DevDebugDrawerProps> = ({
@@ -26,6 +29,7 @@ export const DevDebugDrawer: React.FC<DevDebugDrawerProps> = ({
   onJumpToEndgame,
   onWinRound,
   onChangeBriscola,
+  onGiveSpecial,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -141,6 +145,22 @@ export const DevDebugDrawer: React.FC<DevDebugDrawerProps> = ({
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Azzardo on the first card in hand */}
+            <div>
+              <span className="text-slate-400 block mb-1">Azzardo sulla 1ª carta in mano:</span>
+              <div className="grid grid-cols-2 gap-1">
+                {(Object.keys(SPECIAL_INFO) as Array<Exclude<CardSpecial, 'none'>>).map((id) => (
+                  <button
+                    key={id}
+                    onClick={() => onGiveSpecial(id)}
+                    className="bg-slate-900 border border-slate-700 text-amber-300 py-1 rounded text-[8px] cursor-pointer hover:border-amber-500"
+                  >
+                    {SPECIAL_INFO[id].badge}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Set Boss */}

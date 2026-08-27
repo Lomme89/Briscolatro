@@ -32,6 +32,20 @@ export type Enhancement = 'none' | 'bonus' | 'mult' | 'wild' | 'glass' | 'steel'
 // steel: x1.5 Mult if held in hand (not played)
 // stone: +50 Chips, no suit/rank
 
+/**
+ * Azzardo: the one modifier that can cost you something.
+ *
+ * Edition, Enhancement and Seal are all upside - a card that carries them is
+ * strictly the better version of itself. An Azzardo asks a question instead:
+ * the bonus is real and so is the price, and both are deterministic, so the
+ * player can see the trade before playing the card. A card carries at most one.
+ */
+export type CardSpecial = 'none' | 'segnata' | 'vetro' | 'debito' | 'traditrice';
+// segnata:    +15 Mult on a won trick, but the opponent knows you hold it
+// vetro:      x2 Mult on a won trick, breaks for good if the trick is lost
+// debito:     +100 Chips on a won trick, costs $1 every time you play it
+// traditrice: x2 Mult if it opens and wins, -$2 if it answers and loses
+
 export type JokerRarity = 'common' | 'uncommon' | 'rare' | 'legendary';
 
 export type GamePhase = 
@@ -57,6 +71,8 @@ export interface PlayingCard {
   edition: Edition;
   seal: Seal;
   enhancement: Enhancement;
+  /** At most one Azzardo per card: the new one replaces the old. */
+  special: CardSpecial;
   customBonusChips?: number;
   customBonusMult?: number;
   isDebuffed?: boolean;

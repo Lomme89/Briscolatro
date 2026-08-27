@@ -928,6 +928,36 @@ class SoundEngine {
     osc.stop(now + 0.24);
   }
 
+  /**
+   * A Vetro card breaking: the high crack, then the pieces.
+   *
+   * It plays on a lost trick, in the middle of the losing sound, so it sits
+   * above it rather than competing - short, bright, and clearly bad news.
+   */
+  public playCardShatter() {
+    if (this.isMuted || this.sfxVolume <= 0) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    // The crack.
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(2400, now);
+    osc.frequency.exponentialRampToValueAtTime(700, now + 0.09);
+    gain.gain.setValueAtTime(0.16 * this.sfxVolume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.14);
+
+    // The shards, scattering.
+    this.noiseBurst(0.35, 5200, 0.3, 3000);
+    setTimeout(() => this.noiseBurst(0.2, 4200, 0.22, 2400), 70);
+  }
+
   /** The door of the Bar Sport: two bells and you are inside. */
   public playShopEnter() {
     if (this.isMuted || this.sfxVolume <= 0) return;

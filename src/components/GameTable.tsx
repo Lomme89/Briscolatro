@@ -10,6 +10,7 @@ import { JokerSlot } from './JokerSlot';
 import { UnoCardSlot } from './UnoCardSlot';
 import { UnoConfirmModal } from './UnoConfirmModal';
 import { sound } from '../services/soundEngine';
+import { SPECIAL_INFO } from '../game/specialCards';
 import { getTableThemeForAnte } from '../data/tableThemes';
 import { getRegularForAnte } from '../data/opponents';
 import { TableFeltPattern } from './TableFeltPattern';
@@ -960,6 +961,23 @@ export const GameTable: React.FC<GameTableProps> = ({
               })}
             </AnimatePresence>
           </div>
+
+          {/* The Azzardo on the selected card, said out loud before it is
+              played. A Debito takes a dollar whatever happens, so the player
+              reads the price here rather than discovering it afterwards. */}
+          {selectedCard && selectedCard.special !== 'none' && (
+            <div className="w-full max-w-xs sm:max-w-sm text-center mb-1 px-2">
+              <span className="font-pixel text-[7px] text-amber-300">
+                {SPECIAL_INFO[selectedCard.special].badge}
+              </span>
+              <span className="font-retro text-[10px] text-slate-300 ml-1.5">
+                {SPECIAL_INFO[selectedCard.special].bonus}
+              </span>
+              <span className="font-retro text-[10px] text-rose-300 block leading-tight">
+                {SPECIAL_INFO[selectedCard.special].cost}
+              </span>
+            </div>
+          )}
 
           {/* Ergonomic Hand Action Buttons */}
           <div className="flex items-center gap-2 w-full max-w-xs sm:max-w-sm justify-center mb-0.5">
