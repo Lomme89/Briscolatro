@@ -290,24 +290,26 @@ export const ShopView: React.FC<ShopViewProps> = ({
               {Array.from({ length: maxJokers }).map((_, i) => {
                 const j = jokers[i] || null;
                 return (
-                  <div
-                    key={i}
-                    onClick={() => {
-                      if (j) {
+                  <div key={i}>
+                    <JokerSlot
+                      joker={j}
+                      size="sm"
+                      // The rail already opens the inspector on a tap, so the
+                      // slot's own tooltip only pinned itself over the neighbours.
+                      disableTooltip
+                      onClick={() => {
+                        if (!j) return;
                         setInspectedItem({
                           type: 'joker',
                           item: j,
                           isShop: false,
                           inventoryIndex: i,
                         });
-                      }
-                    }}
-                  >
-                    <JokerSlot
-                      joker={j}
-                      size="sm"
+                      }}
                       onSell={() => onSellJoker(i)}
-                      showSellButton={true}
+                      // The rail clips it in half anyway; VENDI lives in the
+                      // inspector the tap opens.
+                      showSellButton={false}
                     />
                   </div>
                 );
@@ -328,22 +330,22 @@ export const ShopView: React.FC<ShopViewProps> = ({
               {Array.from({ length: maxConsumables }).map((_, i) => {
                 const u = consumables[i] || null;
                 return (
-                  <div
-                    key={i}
-                    onClick={() => {
-                      if (u) {
-                        setInspectedItem({
-                          type: 'uno',
-                          item: u,
-                          isShop: false,
-                          inventoryIndex: i,
-                        });
-                      }
-                    }}
-                  >
+                  <div key={i}>
                     <UnoCardSlot
                       unoCard={u}
                       size="sm"
+                      disableTooltip
+                      onInspect={
+                        u
+                          ? () =>
+                              setInspectedItem({
+                                type: 'uno',
+                                item: u,
+                                isShop: false,
+                                inventoryIndex: i,
+                              })
+                          : undefined
+                      }
                       onSell={() => onSellUnoCard(i)}
                     />
                   </div>
@@ -685,24 +687,38 @@ export const ShopView: React.FC<ShopViewProps> = ({
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 15 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-slate-900 border-2 border-amber-400 rounded-2xl pixel-box p-4 max-w-xs w-full shadow-2xl flex flex-col items-center text-center"
+              className={`bg-slate-900 border-2 rounded-2xl pixel-box p-4 max-w-xs w-full shadow-2xl flex flex-col items-center text-center ${
+                inspectedItem.type === 'uno' ? 'border-red-500' : 'border-amber-400'
+              }`}
             >
               {inspectedArtUrl ? (
                 // The one place with room for it: the full illustration, big.
-                <div className="w-28 h-38 mb-2 rounded-lg overflow-hidden border-2 border-amber-500/50 pixel-box">
+                <div
+                  className={`w-28 h-38 mb-2 rounded-lg overflow-hidden border-2 pixel-box ${
+                    inspectedItem.type === 'uno' ? 'border-red-500/60' : 'border-amber-500/50'
+                  }`}
+                >
                   <CardFaceArt src={inspectedArtUrl} alt={inspectedItem.item.name} />
                 </div>
               ) : (
                 <span className="text-3xl mb-1">{inspectedItem.item.icon}</span>
               )}
-              <h3 className="font-pixel text-xs sm:text-sm text-amber-300 font-bold mb-1">
+              <h3
+                className={`font-pixel text-xs sm:text-sm font-bold mb-1 ${
+                  inspectedItem.type === 'uno' ? 'text-red-300' : 'text-amber-300'
+                }`}
+              >
                 {inspectedItem.item.name}
               </h3>
-              {'rarity' in inspectedItem.item && (
+              {'rarity' in inspectedItem.item ? (
                 <span className="font-pixel text-[7.5px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 uppercase mb-2 border border-amber-500/40">
                   {inspectedItem.item.rarity}
                 </span>
-              )}
+              ) : inspectedItem.type === 'uno' ? (
+                <span className="font-pixel text-[7.5px] px-2 py-0.5 rounded bg-red-600/20 text-red-300 uppercase mb-2 border border-red-500/40">
+                  Carta UNO
+                </span>
+              ) : null}
               <p className="font-retro text-xs text-slate-200 mb-4 leading-relaxed">
                 {inspectedItem.item.description}
               </p>
