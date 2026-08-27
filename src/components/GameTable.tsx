@@ -46,7 +46,7 @@ interface GameTableProps {
   opponentSpeech: string;
   onPlayCard: (card: PlayingCard) => void;
   onDiscardCard: (card: PlayingCard) => void;
-  onUseUnoCard: (card: UnoCard, targetCard?: PlayingCard) => void;
+  onUseUnoCard: (card: UnoCard, targetCard?: PlayingCard, chosenSuit?: Suit) => void;
   onOpenDeckViewer: () => void;
   onOpenTutorial: () => void;
   onOpenSettings: () => void;
@@ -173,14 +173,14 @@ export const GameTable: React.FC<GameTableProps> = ({
     setUnoPendingConfirm(unoCard);
   };
 
-  const confirmUnoCard = () => {
+  const confirmUnoCard = (chosenSuit?: Suit) => {
     const unoCard = unoPendingConfirm;
     if (!unoCard) return;
     setUnoPendingConfirm(null);
     if (unoCard.targetType === 'card_in_hand') {
       setActiveUnoToApply(unoCard);
     } else {
-      onUseUnoCard(unoCard);
+      onUseUnoCard(unoCard, undefined, chosenSuit);
     }
   };
 
@@ -996,6 +996,7 @@ export const GameTable: React.FC<GameTableProps> = ({
 
       <UnoConfirmModal
         unoCard={unoPendingConfirm}
+        briscolaSuit={briscolaSuit}
         onCancel={() => setUnoPendingConfirm(null)}
         onConfirm={confirmUnoCard}
       />

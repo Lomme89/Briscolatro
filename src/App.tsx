@@ -156,6 +156,17 @@ export function App() {
     }
   });
 
+  // Boss blinds beaten in this run, and Carte Sola spent across every run: the
+  // Mazzo Trevigiano and the Mazzo Sola are unlocked by these, not by the ante.
+  const [bossesDefeated, setBossesDefeated] = useState<number>(0);
+  const [solaCardsUsed, setSolaCardsUsed] = useState<number>(() => {
+    try {
+      return parseInt(localStorage.getItem('briscolatro_sola_used') || '0', 10) || 0;
+    } catch {
+      return 0;
+    }
+  });
+
   const [highScore, setHighScore] = useState<number>(() => {
     try {
       return parseInt(localStorage.getItem('briscolatro_highscore') || '0', 10);
@@ -168,9 +179,11 @@ export function App() {
   const handleResetProgress = () => {
     setHighScore(0);
     setUnlockedDeckIds(DEFAULT_UNLOCKED_DECKS);
+    setSolaCardsUsed(0);
     try {
       localStorage.removeItem('briscolatro_highscore');
       localStorage.removeItem('briscolatro_unlocked_decks');
+      localStorage.removeItem('briscolatro_sola_used');
     } catch {}
     sound.playCardFlick();
   };
@@ -226,6 +239,7 @@ export function App() {
   const [castingUno, setCastingUno] = useState<{
     unoCard: UnoCard;
     targetCard?: PlayingCard;
+    chosenSuit?: Suit;
   } | null>(null);
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [maxJokers, setMaxJokers] = useState<number>(5);
@@ -407,6 +421,7 @@ export function App() {
   const startNewRun = (deck: DeckDefinition = selectedDeck) => {
     setSelectedDeck(deck);
     setAnte(1);
+    setBossesDefeated(0);
     setRound(1);
     setMoney(deck.startingMoney);
     setDiscardsLeft(deck.startingDiscards);
@@ -675,6 +690,8 @@ export function App() {
       activeBoss,
       vouchers,
       activeJokers,
+      bossesDefeated,
+      solaCardsUsed,
     };
 
     // 1. Update scores & money deterministically
@@ -786,6 +803,7 @@ export function App() {
       }
 
       if (outcome.won) {
+        if (round === 3) setBossesDefeated((n) => n + 1);
         sound.playRoundWin();
         confetti({ particleCount: 70, spread: 80 });
 
@@ -901,7 +919,7 @@ export function App() {
 
     // Check Boss lead restriction (e.g. Il Cambiavalute)
     if (opponentTrickCard === null) {
-      const bossCheck = BOSS_RULES.canPlayerLeadCard(card, getEnforcedBoss());
+      const bossCheck = BOSS_RULES.canPlayerLeadCard(card, getEnforcedBoss(), playerHandRef.current);
       if (!bossCheck.allowed) {
         sound.playTrickLose();
         setOpponentSpeech(bossCheck.reason || 'Mossa non consentita!');
@@ -958,7 +976,7 @@ export function App() {
   };
 
   // --- Use UNO Action Card ---
-  const handleUseUnoCard = (unoCard: UnoCard, targetCard?: PlayingCard) => {
+  const handleUseUnoCard = (unoCard: UnoCard, targetCard?: PlayingCard, chosenSuit?: Suit) => {
     // UNO cards mutate hands and the stock, so they are only legal while the
     // player is actually on turn: firing one mid-resolution races the timers
     // that are already resolving the trick.
@@ -974,16 +992,26 @@ export function App() {
 
     // The card goes up first and the effect goes off when it lands, so you can
     // see what you spent before the numbers move.
-    setCastingUno({ unoCard, targetCard });
+    setCastingUno({ unoCard, targetCard, chosenSuit });
   };
 
   /** The landing frame of the cast: everything the card does happens here. */
-  const applyUnoCard = (unoCard: UnoCard, targetCard?: PlayingCard) => {
+  const applyUnoCard = (unoCard: UnoCard, targetCard?: PlayingCard, chosenSuit?: Suit) => {
     triggerScreenShake();
+
+    // The Mazzo Sola asks for five of these, across as many runs as it takes.
+    setSolaCardsUsed((used) => {
+      const next = used + 1;
+      try {
+        localStorage.setItem('briscolatro_sola_used', `${next}`);
+      } catch {}
+      return next;
+    });
 
     const ctx = {
       unoCard,
       targetCard,
+      chosenSuit,
       drawPile: drawPileRef.current,
       playerHand: playerHandRef.current,
       opponentHand: opponentHandRef.current,
@@ -1417,7 +1445,9 @@ export function App() {
           card={castingUno?.unoCard ?? null}
           fast={settings.fastMode}
           onImpact={() => {
-            if (castingUno) applyUnoCard(castingUno.unoCard, castingUno.targetCard);
+            if (castingUno) {
+              applyUnoCard(castingUno.unoCard, castingUno.targetCard, castingUno.chosenSuit);
+            }
           }}
           onDone={() => setCastingUno(null)}
         />

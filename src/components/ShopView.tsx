@@ -94,6 +94,15 @@ export const ShopView: React.FC<ShopViewProps> = ({
     const shuffled = [...ALL_BOOSTER_PACKS].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, 2);
   });
+  // The shelf used to be ALL_VOUCHERS.slice(0, 2), so Scarto Tattico and
+  // Tessera VIP existed in the data and never in a shop. Two are drawn from
+  // whatever you do not own yet - a roguelike offer, not a fixed catalogue.
+  const [shopVouchers] = useState<Voucher[]>(() => {
+    const owned = new Set(vouchers.filter((v) => v.bought).map((v) => v.id));
+    return ALL_VOUCHERS.filter((v) => !owned.has(v.id))
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 2);
+  });
   const [rerollCost, setRerollCost] = useState(5 - discount);
   // A booster card is picked at thumbnail size, so it opens in the inspector
   // first: the artwork at a readable size and every power written out.
@@ -619,7 +628,12 @@ export const ShopView: React.FC<ShopViewProps> = ({
                 <span>🏷️</span> TAGLIANDI PERMANENTI
               </div>
               <div className="space-y-1.5">
-                {ALL_VOUCHERS.slice(0, 2).map((voucher) => {
+                {shopVouchers.length === 0 && (
+                  <div className="font-retro text-[11px] text-slate-500 px-1 py-2">
+                    Hai già tutti i tagliandi. Il barista non sa più cosa venderti.
+                  </div>
+                )}
+                {shopVouchers.map((voucher) => {
                   const isBought = vouchers.some(v => v.id === voucher.id && v.bought);
                   const canAfford = money >= voucher.cost && !isBought;
                   return (

@@ -1,13 +1,19 @@
 import React from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { UnoCard } from '../types/game';
+import { Suit, UnoCard } from '../types/game';
 import { UnoCardSlot } from './UnoCardSlot';
+import { PixelSuitIcon } from './PixelSuitIcon';
+import { getSuitDisplayName } from '../game/briscola';
 
 interface UnoConfirmModalProps {
   unoCard: UnoCard | null;
+  /** The suit that is trump right now: picking it again would do nothing. */
+  briscolaSuit: Suit;
   onCancel: () => void;
-  onConfirm: () => void;
+  onConfirm: (chosenSuit?: Suit) => void;
 }
+
+const SUITS: Suit[] = ['denari', 'coppe', 'spade', 'bastoni'];
 
 /**
  * A UNO card is consumed the moment it is used, and several of them change the
@@ -16,10 +22,18 @@ interface UnoConfirmModalProps {
  */
 export const UnoConfirmModal: React.FC<UnoConfirmModalProps> = ({
   unoCard,
+  briscolaSuit,
   onCancel,
   onConfirm,
 }) => {
   const needsTarget = unoCard?.targetType === 'card_in_hand';
+  // "Il seme che preferisci" has to be a choice, so it is made here.
+  const needsSuit = unoCard?.id === 'uno_wild_suit';
+  const [chosenSuit, setChosenSuit] = React.useState<Suit | null>(null);
+
+  React.useEffect(() => {
+    setChosenSuit(null);
+  }, [unoCard]);
 
   return (
     <AnimatePresence>
@@ -41,7 +55,7 @@ export const UnoConfirmModal: React.FC<UnoConfirmModalProps> = ({
           >
             <div className="flex items-center gap-2 self-start">
               <span className="bg-red-600 text-white font-pixel text-[8px] px-1.5 py-0.5 rounded font-bold">
-                UNO
+                SOLA
               </span>
               <span className="font-pixel text-[10px] sm:text-xs text-red-300 font-bold">
                 Usare questa carta?
@@ -62,10 +76,45 @@ export const UnoConfirmModal: React.FC<UnoConfirmModalProps> = ({
               </div>
             </div>
 
+            {needsSuit && (
+              <div className="w-full">
+                <div className="font-pixel text-[9px] text-slate-400 mb-1.5">Scegli il seme:</div>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {SUITS.map((suit) => {
+                    const isCurrent = suit === briscolaSuit;
+                    const isChosen = suit === chosenSuit;
+                    return (
+                      <button
+                        key={suit}
+                        type="button"
+                        disabled={isCurrent}
+                        onClick={() => setChosenSuit(suit)}
+                        title={isCurrent ? 'È già la Briscola attuale' : getSuitDisplayName(suit)}
+                        className={`flex flex-col items-center gap-0.5 py-1.5 rounded-lg border-2 pixel-box transition-colors ${
+                          isChosen
+                            ? 'bg-amber-500/20 border-amber-400'
+                            : isCurrent
+                              ? 'bg-slate-900 border-slate-800 opacity-40 cursor-not-allowed'
+                              : 'bg-slate-900 border-slate-700 hover:border-slate-500 cursor-pointer'
+                        }`}
+                      >
+                        <PixelSuitIcon suit={suit} size={16} />
+                        <span className="font-pixel text-[6.5px] text-slate-300 uppercase">
+                          {getSuitDisplayName(suit)}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div className="w-full bg-slate-950/80 border border-slate-700 rounded-lg px-2.5 py-1.5 font-retro text-[10.5px] text-slate-400">
               {needsTarget
                 ? 'Dopo la conferma tocca una carta della tua mano per applicarla.'
-                : 'Ha effetto subito e la carta viene consumata.'}
+                : needsSuit
+                  ? 'La Briscola diventa il seme che scegli qui sopra.'
+                  : 'Ha effetto subito e la carta viene consumata.'}
             </div>
 
             <div className="w-full flex items-center gap-2">
@@ -78,9 +127,14 @@ export const UnoConfirmModal: React.FC<UnoConfirmModalProps> = ({
               </button>
               <button
                 type="button"
-                onClick={onConfirm}
+                onClick={() => onConfirm(chosenSuit ?? undefined)}
+                disabled={needsSuit && !chosenSuit}
                 data-testid="uno-confirm"
-                className="flex-1 bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-500 text-white font-pixel text-[10px] font-bold py-2.5 rounded-xl pixel-box shadow cursor-pointer"
+                className={`flex-1 font-pixel text-[10px] font-bold py-2.5 rounded-xl pixel-box shadow ${
+                  needsSuit && !chosenSuit
+                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-500 text-white cursor-pointer'
+                }`}
               >
                 {needsTarget ? 'SCEGLI CARTA' : 'USA'}
               </button>

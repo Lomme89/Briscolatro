@@ -25,6 +25,10 @@ export interface RoundStateSnapshot {
   activeBoss: BossBlind | null;
   vouchers: Voucher[];
   activeJokers: Joker[];
+  /** Boss blinds actually beaten in this run, not the ante you reached. */
+  bossesDefeated: number;
+  /** Carte Sola spent across every run: the Mazzo Sola counts them for good. */
+  solaCardsUsed: number;
 }
 
 export interface RoundOutcomeResult {
@@ -318,10 +322,24 @@ export function calculateRoundOutcome(
   const totalReward = won ? baseReward + interest + briscolaBonus : 0;
   const newHighScore = snapshot.totalScore > highScore;
 
+  // Every condition here has to be the one written on the deck in the picker.
+  // "Sconfiggi 3 Boss" used to be `ante >= 3`, which is two boss blinds, and the
+  // Mazzo Sola asked for five Carte Sola that nothing was counting.
   const newUnlockedDecks: string[] = [];
-  if (!unlockedDeckIds.includes('deck_denari') && snapshot.money + totalReward >= 30) newUnlockedDecks.push('deck_denari');
-  if (!unlockedDeckIds.includes('deck_spade') && snapshot.ante >= 3) newUnlockedDecks.push('deck_spade');
-  if (!unlockedDeckIds.includes('deck_baro') && snapshot.ante >= 5) newUnlockedDecks.push('deck_baro');
+  if (!unlockedDeckIds.includes('deck_denari') && snapshot.money + totalReward >= 30) {
+    newUnlockedDecks.push('deck_denari');
+  }
+  // The boss of this very round counts: you beat it a moment ago.
+  const bossesAfterThisRound = snapshot.bossesDefeated + (won && snapshot.round === 3 ? 1 : 0);
+  if (!unlockedDeckIds.includes('deck_spade') && bossesAfterThisRound >= 3) {
+    newUnlockedDecks.push('deck_spade');
+  }
+  if (!unlockedDeckIds.includes('deck_uno') && snapshot.solaCardsUsed >= 5) {
+    newUnlockedDecks.push('deck_uno');
+  }
+  if (!unlockedDeckIds.includes('deck_baro') && snapshot.ante >= 5) {
+    newUnlockedDecks.push('deck_baro');
+  }
 
   return {
     won,

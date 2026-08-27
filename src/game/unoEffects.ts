@@ -17,6 +17,8 @@ export interface UnoActionContext {
   bossDebuffActive: boolean;
   activeUnoMultiplier: number;
   isReverseActive: boolean;
+  /** The suit the player picked, for the cards that say the player picks. */
+  chosenSuit?: Suit;
 }
 
 export interface UnoActionResult {
@@ -190,9 +192,15 @@ export const UNO_EFFECT_HANDLERS: Record<
 
   // Cambio Colore (Wild Seme): Change Briscola to random other suit
   uno_wild_suit: (ctx) => {
+    // The card promises "il seme che preferisci" and used to roll a die. The
+    // player picks it in the confirmation, and only falls back to a random one
+    // if somehow nothing was chosen.
     const suits: Suit[] = ['denari', 'coppe', 'spade', 'bastoni'];
     const otherSuits = suits.filter((s) => s !== ctx.briscolaSuit);
-    const newSuit = otherSuits[Math.floor(Math.random() * otherSuits.length)];
+    const newSuit =
+      ctx.chosenSuit && ctx.chosenSuit !== ctx.briscolaSuit
+        ? ctx.chosenSuit
+        : otherSuits[Math.floor(Math.random() * otherSuits.length)];
     return {
       newDrawPile: ctx.drawPile,
       newPlayerHand: ctx.playerHand,
@@ -349,7 +357,7 @@ export const UNO_EFFECT_HANDLERS: Record<
       newBossDebuffActive: ctx.bossDebuffActive,
       newActiveUnoMultiplier: ctx.activeUnoMultiplier,
       newIsReverseActive: ctx.isReverseActive,
-      feedbackMessage: 'Carta dorata creata! Regala +$3 extra alla fine del round.',
+      feedbackMessage: 'Carta dorata creata! +$1 quando la giochi, +$2 se la catturi.',
       cardUpgradedInRunDeck: { id: targetId, updates: { edition: 'gold' } },
     };
   },

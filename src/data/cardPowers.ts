@@ -82,7 +82,7 @@ const SEAL_POWERS: Record<Exclude<Seal, 'none'>, CardPower> = {
   },
   blue: {
     label: 'Sigillo Blu',
-    description: 'Vincendo la presa, 20% di ricevere una carta UNO gratis.',
+    description: 'Vincendo la presa, 20% di ricevere una Carta Sola gratis.',
     className: 'bg-blue-950 border-blue-400 text-blue-200',
   },
   purple: {

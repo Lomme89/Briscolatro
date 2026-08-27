@@ -14,9 +14,18 @@ export const BOSS_RULES = {
   /**
    * Checks if player is allowed to lead with a specific card.
    */
-  canPlayerLeadCard(card: PlayingCard, boss: BossBlind | null): { allowed: boolean; reason?: string } {
+  canPlayerLeadCard(
+    card: PlayingCard,
+    boss: BossBlind | null,
+    hand: PlayingCard[] = []
+  ): { allowed: boolean; reason?: string } {
     if (!boss) return { allowed: true };
     if (boss.debuffType === 'no_denari_first' && card.suit === 'denari') {
+      // A hand of nothing but Denari would have no legal lead at all, and the
+      // round would sit there forever. The ban only bites while you have a way
+      // to obey it.
+      const hasOtherSuit = hand.some((c) => c.suit !== 'denari');
+      if (!hasOtherSuit) return { allowed: true };
       return {
         allowed: false,
         reason: 'Il banco proibisce di aprire la presa con carte di Denari!',
