@@ -5,7 +5,7 @@ interface Props {
   rank: number;
   suit: Suit;
   style?: CardStyle;
-  size?: 'xs' | 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'pick' | 'md' | 'lg';
 }
 
 export const NeapolitanCardIllustration: React.FC<Props> = ({

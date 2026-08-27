@@ -37,14 +37,14 @@ export const CardInspectorModal: React.FC<CardInspectorModalProps> = ({
   onConfirm,
   confirmLabel = 'SCEGLI',
 }) => {
-  const dragX = useMotionValue(0);
-  const dragY = useMotionValue(0);
+  const panX = useMotionValue(0);
+  const panY = useMotionValue(0);
 
-  const rotateY = useSpring(useTransform(dragX, [-160, 160], [-32, 32]), {
+  const rotateY = useSpring(useTransform(panX, [-160, 160], [-32, 32]), {
     stiffness: 180,
     damping: 16,
   });
-  const rotateX = useSpring(useTransform(dragY, [-160, 160], [24, -24]), {
+  const rotateX = useSpring(useTransform(panY, [-160, 160], [24, -24]), {
     stiffness: 180,
     damping: 16,
   });
@@ -53,10 +53,10 @@ export const CardInspectorModal: React.FC<CardInspectorModalProps> = ({
 
   useEffect(() => {
     if (!card) {
-      dragX.set(0);
-      dragY.set(0);
+      panX.set(0);
+      panY.set(0);
     }
-  }, [card, dragX, dragY]);
+  }, [card, panX, panY]);
 
   useEffect(() => {
     if (!card) return;
@@ -96,11 +96,18 @@ export const CardInspectorModal: React.FC<CardInspectorModalProps> = ({
               className="touch-none h-[220px] sm:h-[250px] w-full flex items-center justify-center"
             >
               <motion.div
-                drag
-                dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-                dragElastic={0.55}
-                dragMomentum={false}
-                style={{ x: dragX, y: dragY, rotateX, rotateY, transformStyle: 'preserve-3d' }}
+                // A pan, not a drag: the finger drives the rotation and the card
+                // stays where it is. Dragging slid it around the panel instead of
+                // turning it, which is not what "trascina per girarla" promises.
+                onPan={(_, info) => {
+                  panX.set(info.offset.x);
+                  panY.set(info.offset.y);
+                }}
+                onPanEnd={() => {
+                  panX.set(0);
+                  panY.set(0);
+                }}
+                style={{ rotateX, rotateY, transformStyle: 'preserve-3d' }}
                 whileTap={{ cursor: 'grabbing' }}
                 animate={{ y: [0, -6, 0] }}
                 transition={{ y: { repeat: Infinity, duration: 3.6, ease: 'easeInOut' } }}

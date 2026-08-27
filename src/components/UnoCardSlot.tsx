@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { UnoCard } from '../types/game';
 import { sound } from '../services/soundEngine';
 import { CardFaceArt, getUnoArtUrl } from './CardFaceArt';
+import { PICKER_CARD_BOX } from './cardSizing';
 
 interface UnoCardSlotProps {
   unoCard: UnoCard | null;
@@ -14,7 +15,11 @@ interface UnoCardSlotProps {
   buyCost?: number;
   canUse?: boolean;
   isSelected?: boolean;
-  size?: 'sm' | 'md';
+  size?: 'sm' | 'pick' | 'md';
+  /** Pickers open a proper inspector, so the inline tooltip only gets in the way. */
+  disableTooltip?: boolean;
+  /** Overrides the "use it now" tap, e.g. to inspect the card in a booster. */
+  onInspect?: () => void;
 }
 
 export const UnoCardSlot: React.FC<UnoCardSlotProps> = ({
@@ -28,13 +33,17 @@ export const UnoCardSlot: React.FC<UnoCardSlotProps> = ({
   canUse = true,
   isSelected = false,
   size = 'md',
+  disableTooltip = false,
+  onInspect,
 }) => {
   const [showTooltip, setShowTooltip] = useState(false);
 
-  const isSmall = size === 'sm';
-  const sizeClasses = isSmall 
-    ? 'w-11 sm:w-16 h-15 sm:h-22 p-1 text-[8px]' 
-    : 'w-16 sm:w-20 h-22 sm:h-28 p-1.5 text-xs';
+  const isSmall = size !== 'md';
+  const sizeClasses = {
+    sm: 'w-11 sm:w-16 h-15 sm:h-22 p-1 text-[8px]',
+    pick: `${PICKER_CARD_BOX} p-1 text-[8px]`,
+    md: 'w-16 sm:w-20 h-22 sm:h-28 p-1.5 text-xs',
+  }[size];
 
   if (!unoCard) {
     return (
@@ -105,6 +114,9 @@ export const UnoCardSlot: React.FC<UnoCardSlotProps> = ({
   // The illustrated faces are already whole UNO cards - fondo, ovale e simbolo -
   // so when one exists it replaces the drawn emblem instead of sitting inside it.
   const artUrl = getUnoArtUrl(unoCard.id);
+  // In a picker there is nothing to use and nothing to pay: the card face says
+  // everything, so it gets shown whole instead of under two badges.
+  const bareFace = size === 'pick' && Boolean(artUrl);
 
   return (
     <div className="relative group shrink-0" id={`uno-card-${unoCard.id}`}>
@@ -112,12 +124,18 @@ export const UnoCardSlot: React.FC<UnoCardSlotProps> = ({
         whileHover={{ scale: 1.08, y: -4 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => {
+          if (onInspect) {
+            sound.playCardSelect();
+            onInspect();
+            return;
+          }
           if (!isShopItem && onUse) {
             sound.playUnoSound();
             onUse();
           }
         }}
         onMouseEnter={() => {
+          if (disableTooltip) return;
           sound.playCardSelect();
           setShowTooltip(true);
         }}
@@ -132,7 +150,9 @@ export const UnoCardSlot: React.FC<UnoCardSlotProps> = ({
             <div className="absolute inset-0 pointer-events-none">
               <CardFaceArt src={artUrl} alt={unoCard.name} />
             </div>
-            <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-black/55 via-transparent to-black/70" />
+            {!bareFace && (
+              <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-black/55 via-transparent to-black/70" />
+            )}
           </>
         )}
 
@@ -147,7 +167,9 @@ export const UnoCardSlot: React.FC<UnoCardSlotProps> = ({
         )}
 
         {/* Top bar: Corner mini symbol */}
-        <div className="flex items-center justify-between z-10 leading-none">
+        <div
+          className={`flex items-center justify-between z-10 leading-none ${bareFace ? 'hidden' : ''}`}
+        >
           <span className="font-pixel text-[7px] sm:text-[8px] font-black tracking-tighter drop-shadow-sm px-0.5 sm:px-1 py-0.2 rounded bg-black/40 border border-white/20">
             {unoCard.badgeText || unoCard.symbol}
           </span>
@@ -174,7 +196,11 @@ export const UnoCardSlot: React.FC<UnoCardSlotProps> = ({
         </div>
 
         {/* Bottom Bar: Action / Name */}
-        <div className="z-10 flex items-center justify-between text-[6px] sm:text-[6.5px] font-pixel pt-0.5 border-t border-white/20 text-white/90">
+        <div
+          className={`z-10 flex items-center justify-between text-[6px] sm:text-[6.5px] font-pixel pt-0.5 border-t border-white/20 text-white/90 ${
+            bareFace ? 'hidden' : ''
+          }`}
+        >
           <span className="truncate max-w-[40px] font-bold">{unoCard.badgeText || 'UNO'}</span>
           <span className="font-mono font-bold text-amber-300">
             {isShopItem ? `$${buyCost || unoCard.cost}` : 'USA'}

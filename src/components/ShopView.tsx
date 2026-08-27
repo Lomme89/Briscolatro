@@ -8,6 +8,8 @@ import { JokerSlot } from './JokerSlot';
 import { UnoCardSlot } from './UnoCardSlot';
 import { PixelCard } from './PixelCard';
 import { CardInspectorModal } from './CardInspectorModal';
+import { InspectableItem, ItemInspectorModal } from './ItemInspectorModal';
+import { PICKER_CARD_BOX } from './cardSizing';
 import { CardFaceArt, getJokerArtUrl, getUnoArtUrl } from './CardFaceArt';
 import { sound } from '../services/soundEngine';
 import confetti from 'canvas-confetti';
@@ -96,6 +98,9 @@ export const ShopView: React.FC<ShopViewProps> = ({
   // A booster card is picked at thumbnail size, so it opens in the inspector
   // first: the artwork at a readable size and every power written out.
   const [inspectedCard, setInspectedCard] = useState<PlayingCard | null>(null);
+  // Same idea for the jolly and the carte UNO of a booster: their slots carry a
+  // tooltip built for the table, which in a grid covers the neighbours.
+  const [inspectedBoosterItem, setInspectedBoosterItem] = useState<InspectableItem | null>(null);
   const [mobileTab, setMobileTab] = useState<'cards' | 'packs'>('cards');
 
   // Selected item inspection modal on mobile
@@ -141,23 +146,30 @@ export const ShopView: React.FC<ShopViewProps> = ({
     sound.playBoosterRip();
     onReroll(cost);
 
-    let cards: PlayingCard[] = [];
-    let unoCards: UnoCard[] = [];
-    let generatedJokers: Joker[] = [];
+    // The mega pack used to roll packSize of *each* type: fifteen options for
+    // two picks, which is where the scrolling came from. packSize is how many
+    // options the pack offers in total.
+    const shuffle = <T,>(items: T[]): T[] => [...items].sort(() => Math.random() - 0.5);
+    const drawTypes = (): Array<BoosterPack['type']> => {
+      if (pack.type !== 'celeste') return Array(pack.packSize).fill(pack.type);
+      // One of each is guaranteed, so an All-Star always looks like an All-Star.
+      const mix: Array<BoosterPack['type']> = ['cards', 'uno', 'joker'];
+      while (mix.length < pack.packSize) {
+        mix.push((['cards', 'uno', 'joker'] as const)[Math.floor(Math.random() * 3)]);
+      }
+      return shuffle(mix).slice(0, pack.packSize);
+    };
 
-    if (pack.type === 'cards' || pack.type === 'celeste') {
-      const fullDeck = createStandardDeck();
-      cards = fullDeck.slice(0, pack.packSize).map(c => upgradeBoosterCard(c));
-    }
+    const types = drawTypes();
+    const countOf = (type: BoosterPack['type']) => types.filter((t) => t === type).length;
 
-    if (pack.type === 'uno' || pack.type === 'celeste') {
-      const shuffled = [...ALL_UNO_CARDS].sort(() => Math.random() - 0.5);
-      unoCards = shuffled.slice(0, pack.packSize);
-    }
-
-    if (pack.type === 'joker' || pack.type === 'celeste') {
-      generatedJokers = getRandomJokers(pack.packSize);
-    }
+    // The deck came out in dealing order, so the Napoletana pack offered the
+    // same three cards every time.
+    const cards: PlayingCard[] = shuffle(createStandardDeck())
+      .slice(0, countOf('cards'))
+      .map((c) => upgradeBoosterCard(c));
+    const unoCards: UnoCard[] = shuffle(ALL_UNO_CARDS).slice(0, countOf('uno'));
+    const generatedJokers: Joker[] = getRandomJokers(countOf('joker'));
 
     setActiveBooster({
       pack,
@@ -427,7 +439,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
                         <span className="text-[9px] text-slate-400">ⓘ Info</span>
                       </div>
 
-                      <div className="w-12 h-14 sm:w-14 sm:h-16 rounded-lg bg-slate-900 border border-slate-700 flex flex-col items-center justify-center overflow-hidden my-0.5">
+                      <div className={`${PICKER_CARD_BOX} rounded-lg bg-slate-900 border border-slate-700 flex flex-col items-center justify-center overflow-hidden my-0.5`}>
                         {getJokerArtUrl(joker.id) ? (
                           <CardFaceArt src={getJokerArtUrl(joker.id)!} alt={joker.name} />
                         ) : (
@@ -501,7 +513,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
                         <span className="text-[9px] text-slate-400">ⓘ Info</span>
                       </div>
 
-                      <div className="w-12 h-14 sm:w-14 sm:h-16 rounded-lg bg-slate-900 border border-red-800 flex flex-col items-center justify-center overflow-hidden my-0.5">
+                      <div className={`${PICKER_CARD_BOX} rounded-lg bg-slate-900 border border-red-800 flex flex-col items-center justify-center overflow-hidden my-0.5`}>
                         {getUnoArtUrl(unoCard.id) ? (
                           <CardFaceArt src={getUnoArtUrl(unoCard.id)!} alt={unoCard.name} />
                         ) : (
@@ -731,7 +743,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-3 overflow-y-auto"
+            className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-3"
           >
             <motion.div
               initial={{ scale: 0.85, y: 20 }}
@@ -743,8 +755,12 @@ export const ShopView: React.FC<ShopViewProps> = ({
               <h3 className="font-pixel text-xs sm:text-base text-purple-300 font-bold mb-1">
                 {activeBooster.pack.name}
               </h3>
-              <p className="font-retro text-xs text-slate-300 mb-4">
-                Scegli {activeBooster.pack.selectCount - activeBooster.selectedCount} carta!
+              <p className="font-retro text-xs text-slate-300 mb-3">
+                Scegli {activeBooster.pack.selectCount - activeBooster.selectedCount}{' '}
+                {activeBooster.pack.selectCount - activeBooster.selectedCount === 1 ? 'carta' : 'carte'}!
+                <span className="block text-[10px] text-slate-400 mt-1">
+                  Tocca una carta per guardarla da vicino.
+                </span>
                 {activeBooster.cards.length > 0 && (
                   <span className="block text-[10px] text-slate-400 mt-1">
                     Ogni carta scelta prende il posto della carta più debole del mazzo (il mazzo resta di 40 carte).
@@ -752,13 +768,14 @@ export const ShopView: React.FC<ShopViewProps> = ({
                 )}
               </p>
 
-              {/* Cards options grid */}
-              <div className="flex gap-2.5 sm:gap-4 flex-wrap justify-center mb-5 max-h-[50vh] overflow-y-auto p-1">
+              {/* Cards options grid. Every option is the same box, whatever it
+                  is, and the whole pack fits on a phone without scrolling. */}
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-x-2 gap-y-3 justify-items-center mb-4">
                 {activeBooster.cards.map((card) => (
-                  <div key={card.id} className="flex flex-col items-center">
+                  <div key={card.id} className="flex flex-col items-center gap-1.5">
                     <PixelCard
                       card={card}
-                      size="sm"
+                      size="pick"
                       onClick={() => {
                         sound.playCardSelect();
                         setInspectedCard(card);
@@ -766,7 +783,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
                     />
                     <button
                       onClick={() => handleSelectBoosterCard(card)}
-                      className="mt-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-pixel text-[8px] sm:text-[9px] font-bold px-2.5 py-1.5 rounded-lg pixel-box shadow cursor-pointer"
+                      className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-pixel text-[8px] font-bold px-2 py-1 rounded-lg pixel-box shadow cursor-pointer"
                     >
                       SCEGLI
                     </button>
@@ -774,11 +791,16 @@ export const ShopView: React.FC<ShopViewProps> = ({
                 ))}
 
                 {activeBooster.unoCards.map((unoCard) => (
-                  <div key={unoCard.id} className="flex flex-col items-center">
-                    <UnoCardSlot unoCard={unoCard} size="sm" />
+                  <div key={unoCard.id} className="flex flex-col items-center gap-1.5">
+                    <UnoCardSlot
+                      unoCard={unoCard}
+                      size="pick"
+                      disableTooltip
+                      onInspect={() => setInspectedBoosterItem({ kind: 'uno', item: unoCard })}
+                    />
                     <button
                       onClick={() => handleSelectBoosterUnoCard(unoCard)}
-                      className="mt-2 bg-red-600 hover:bg-red-500 text-white font-pixel text-[8px] sm:text-[9px] font-bold px-2.5 py-1.5 rounded-lg pixel-box shadow cursor-pointer"
+                      className="bg-red-600 hover:bg-red-500 text-white font-pixel text-[8px] font-bold px-2 py-1 rounded-lg pixel-box shadow cursor-pointer"
                     >
                       SCEGLI
                     </button>
@@ -786,11 +808,17 @@ export const ShopView: React.FC<ShopViewProps> = ({
                 ))}
 
                 {activeBooster.jokers.map((joker) => (
-                  <div key={joker.id} className="flex flex-col items-center">
-                    <JokerSlot joker={joker} size="sm" showSellButton={false} />
+                  <div key={joker.id} className="flex flex-col items-center gap-1.5">
+                    <JokerSlot
+                      joker={joker}
+                      size="pick"
+                      showSellButton={false}
+                      disableTooltip
+                      onClick={() => setInspectedBoosterItem({ kind: 'joker', item: joker })}
+                    />
                     <button
                       onClick={() => handleSelectBoosterJoker(joker)}
-                      className="mt-2 bg-rose-600 hover:bg-rose-500 text-white font-pixel text-[8px] sm:text-[9px] font-bold px-2.5 py-1.5 rounded-lg pixel-box shadow cursor-pointer"
+                      className="bg-rose-600 hover:bg-rose-500 text-white font-pixel text-[8px] font-bold px-2 py-1 rounded-lg pixel-box shadow cursor-pointer"
                     >
                       SCEGLI
                     </button>
@@ -818,6 +846,20 @@ export const ShopView: React.FC<ShopViewProps> = ({
           const card = inspectedCard;
           setInspectedCard(null);
           handleSelectBoosterCard(card);
+        }}
+        confirmLabel="SCEGLI QUESTA"
+      />
+
+      {/* Same, for a personaggio or a carta UNO out of a booster */}
+      <ItemInspectorModal
+        entry={inspectedBoosterItem}
+        onClose={() => setInspectedBoosterItem(null)}
+        onConfirm={() => {
+          const entry = inspectedBoosterItem;
+          if (!entry) return;
+          setInspectedBoosterItem(null);
+          if (entry.kind === 'joker') handleSelectBoosterJoker(entry.item);
+          else handleSelectBoosterUnoCard(entry.item);
         }}
         confirmLabel="SCEGLI QUESTA"
       />

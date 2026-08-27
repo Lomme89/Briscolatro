@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Joker } from '../types/game';
 import { CardFaceArt, getJokerArtUrl } from './CardFaceArt';
+import { PICKER_CARD_BOX } from './cardSizing';
 
 interface JokerSlotProps {
   joker: Joker | null;
@@ -13,7 +14,9 @@ interface JokerSlotProps {
   buyCost?: number;
   onBuy?: () => void;
   canAfford?: boolean;
-  size?: 'sm' | 'md';
+  size?: 'sm' | 'pick' | 'md';
+  /** Pickers open a proper inspector, so the inline tooltip only gets in the way. */
+  disableTooltip?: boolean;
 }
 
 export const JokerSlot: React.FC<JokerSlotProps> = ({
@@ -27,18 +30,21 @@ export const JokerSlot: React.FC<JokerSlotProps> = ({
   onBuy,
   canAfford = true,
   size = 'md',
+  disableTooltip = false,
 }) => {
   // Hover is a desktop luxury: on a phone the only way in is a tap, so the card
   // toggles its own details. Without this you cannot read what your jokers do
   // during a match, nor reach the sell button.
   const [showTooltip, setShowTooltip] = useState(false);
   const [pinned, setPinned] = useState(false);
-  const isOpen = showTooltip || pinned;
+  const isOpen = !disableTooltip && (showTooltip || pinned);
 
-  const isSmall = size === 'sm';
-  const sizeClasses = isSmall 
-    ? 'w-11 sm:w-16 h-15 sm:h-22 p-1 text-[8px]' 
-    : 'w-16 sm:w-20 h-22 sm:h-28 p-1.5 text-xs';
+  const isSmall = size !== 'md';
+  const sizeClasses = {
+    sm: 'w-11 sm:w-16 h-15 sm:h-22 p-1 text-[8px]',
+    pick: `${PICKER_CARD_BOX} p-1 text-[8px]`,
+    md: 'w-16 sm:w-20 h-22 sm:h-28 p-1.5 text-xs',
+  }[size];
 
   if (!joker) {
     return (

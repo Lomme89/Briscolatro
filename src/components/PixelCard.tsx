@@ -8,6 +8,7 @@ import { CARD_PAPER, getCardArtUrl, NeapolitanCardArt } from './NeapolitanCardAr
 import { PixelCardSprite, useSpritesheet } from './PixelCardSprite';
 import { useCardStyle } from '../context/CardStyleContext';
 import { getCardStyleDefinition } from '../data/cardStyles';
+import { PICKER_CARD_BOX } from './cardSizing';
 
 const ENHANCEMENT_BADGES: Record<
   Exclude<PlayingCard['enhancement'], 'none'>,
@@ -27,7 +28,7 @@ interface PixelCardProps {
   selected?: boolean;
   disabled?: boolean;
   faceDown?: boolean;
-  size?: 'xs' | 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'pick' | 'md' | 'lg';
   isBriscola?: boolean;
   /** The floating "BRISCOLA" ribbon overflows the card; hide it in tight spots. */
   showBriscolaBadge?: boolean;
@@ -77,6 +78,7 @@ export const PixelCard: React.FC<PixelCardProps> = ({
   // Card dimensions based on size with generous, readable hand dimensions
   const sizeClasses = {
     xs: 'w-11 sm:w-13 h-16 sm:h-18 text-[8px] sm:text-[9px]',
+    pick: `${PICKER_CARD_BOX} text-[9px] sm:text-[10px]`,
     sm: 'w-14 sm:w-18 h-20 sm:h-26 text-[9px] sm:text-xs',
     md: 'w-20 sm:w-24 md:w-26 h-28 sm:h-34 md:h-38 text-xs sm:text-sm',
     lg: 'w-[96px] sm:w-[114px] md:w-[128px] lg:w-[140px] h-[138px] sm:h-[164px] md:h-[184px] lg:h-[200px] text-xs sm:text-sm',
@@ -175,7 +177,8 @@ export const PixelCard: React.FC<PixelCardProps> = ({
     );
   }
 
-  const cornerSuitSize = size === 'lg' ? 15 : size === 'md' ? 12 : size === 'sm' ? 10 : 8;
+  const cornerSuitSize =
+    size === 'lg' ? 15 : size === 'md' ? 12 : size === 'sm' || size === 'pick' ? 10 : 8;
 
   return (
     <motion.div
