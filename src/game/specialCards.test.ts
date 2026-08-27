@@ -43,10 +43,10 @@ function score(playerCard: PlayingCard, opponentCard: PlayingCard, money = 10, p
 }
 
 describe('Vetro', () => {
-  it('doubles the Mult on a won trick', () => {
+  it('multiplies the Mult on a won trick', () => {
     const plain = score(card('none'), createCard('coppe', 2));
     const vetro = score(card('vetro'), createCard('coppe', 2));
-    expect(vetro.xMult).toBe(plain.xMult * 2);
+    expect(vetro.xMult).toBeCloseTo(plain.xMult * 2.2, 5);
     expect(vetro.special.brokenSpecialCardId).toBeNull();
   });
 
@@ -73,10 +73,10 @@ describe('Vetro', () => {
 });
 
 describe('Segnata', () => {
-  it('adds 15 Mult on a won trick', () => {
+  it('adds its Mult on a won trick', () => {
     const plain = score(card('none'), createCard('coppe', 2));
     const segnata = score(card('segnata'), createCard('coppe', 2));
-    expect(segnata.bonusMult - plain.bonusMult).toBe(15);
+    expect(segnata.bonusMult - plain.bonusMult).toBe(18);
   });
 
   it('is the only thing the opponent gets to see of the hand', () => {
@@ -139,10 +139,10 @@ describe('Segnata', () => {
 });
 
 describe('A Debito', () => {
-  it('pays a dollar and hands over 100 Chips on a won trick', () => {
+  it('pays a dollar and hands over its Chips on a won trick', () => {
     const plain = score(card('none'), createCard('coppe', 2), 5);
     const debito = score(card('debito'), createCard('coppe', 2), 5);
-    expect(debito.bonusChips - plain.bonusChips).toBe(100);
+    expect(debito.bonusChips - plain.bonusChips).toBe(120);
     expect(debito.special.dollarsToAdd).toBe(-1);
   });
 
@@ -170,10 +170,10 @@ describe('A Debito', () => {
 });
 
 describe('Traditrice', () => {
-  it('doubles the Mult when it opens the trick and wins', () => {
+  it('multiplies the Mult when it opens the trick and wins', () => {
     const plain = score(card('none'), createCard('coppe', 2), 10, true);
     const traditrice = score(card('traditrice'), createCard('coppe', 2), 10, true);
-    expect(traditrice.xMult).toBe(plain.xMult * 2);
+    expect(traditrice.xMult).toBeCloseTo(plain.xMult * 2.2, 5);
   });
 
   it('gives nothing when it wins as an answer', () => {

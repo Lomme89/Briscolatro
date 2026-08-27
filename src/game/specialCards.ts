@@ -26,7 +26,7 @@ export const SPECIAL_INFO: Record<Exclude<CardSpecial, 'none'>, SpecialInfo> = {
     id: 'segnata',
     name: 'Segnata',
     badge: 'SEGNATA',
-    bonus: '+15 Mult se contribuisce a una presa vinta',
+    bonus: '+18 Mult se contribuisce a una presa vinta',
     cost: "L'avversario sa che ce l'hai in mano",
     flavor: "Il dorso ha una piega che conosci solo tu. E anche lui.",
     className: 'bg-amber-600 text-white border-amber-300',
@@ -35,7 +35,7 @@ export const SPECIAL_INFO: Record<Exclude<CardSpecial, 'none'>, SpecialInfo> = {
     id: 'vetro',
     name: 'Vetro',
     badge: 'VETRO',
-    bonus: 'x2 Mult se contribuisce a una presa vinta',
+    bonus: 'x2.2 Mult se contribuisce a una presa vinta',
     cost: 'Se la giochi e perdi la presa, il Vetro si spezza per sempre',
     flavor: 'Regge finché vinci. Il giorno che perdi, si sente il rumore.',
     className: 'bg-cyan-500 text-slate-900 border-cyan-200',
@@ -44,7 +44,7 @@ export const SPECIAL_INFO: Record<Exclude<CardSpecial, 'none'>, SpecialInfo> = {
     id: 'debito',
     name: 'A Debito',
     badge: 'DEBITO',
-    bonus: '+100 Chips se contribuisce a una presa vinta',
+    bonus: '+120 Chips se contribuisce a una presa vinta',
     cost: 'Ti costa $1 ogni volta che la giochi, vinca o perda',
     flavor: 'Il barista segna sul quaderno. Prima o poi passa a riscuotere.',
     className: 'bg-emerald-600 text-white border-emerald-300',
@@ -53,7 +53,7 @@ export const SPECIAL_INFO: Record<Exclude<CardSpecial, 'none'>, SpecialInfo> = {
     id: 'traditrice',
     name: 'Traditrice',
     badge: 'TRADITRICE',
-    bonus: 'x2 Mult se apre la presa e la vince',
+    bonus: 'x2.2 Mult se apre la presa e la vince',
     cost: 'Se risponde e perde la presa, ti costa $2',
     flavor: 'In mano tua è una bandiera. In mano sua è un coltello.',
     className: 'bg-rose-600 text-white border-rose-300',
@@ -116,15 +116,15 @@ export function resolveSpecialForTrick(ctx: SpecialTrickContext): SpecialTrickOu
       // The price was paid before the card was played: the opponent already
       // knew it was coming.
       if (playerWon) {
-        out.multToAdd += 15;
-        out.reasons.push('Segnata +15 Mult');
+        out.multToAdd += 18;
+        out.reasons.push('Segnata +18 Mult');
       }
       break;
 
     case 'vetro':
       if (playerWon) {
-        out.xMultToMultiply *= 2;
-        out.reasons.push('Vetro x2 Mult');
+        out.xMultToMultiply *= 2.2;
+        out.reasons.push('Vetro x2.2 Mult');
       } else {
         out.brokenSpecialCardId = card.id;
         out.reasons.push('Vetro spezzato');
@@ -138,8 +138,8 @@ export function resolveSpecialForTrick(ctx: SpecialTrickContext): SpecialTrickOu
         out.dollarsToAdd -= 1;
         out.reasons.push('A Debito -$1');
         if (playerWon) {
-          out.chipsToAdd += 100;
-          out.reasons.push('A Debito +100 Chips');
+          out.chipsToAdd += 120;
+          out.reasons.push('A Debito +120 Chips');
         }
       } else {
         out.unpaidDebt = true;
@@ -149,8 +149,8 @@ export function resolveSpecialForTrick(ctx: SpecialTrickContext): SpecialTrickOu
 
     case 'traditrice':
       if (playerLed && playerWon) {
-        out.xMultToMultiply *= 2;
-        out.reasons.push('Traditrice x2 Mult');
+        out.xMultToMultiply *= 2.2;
+        out.reasons.push('Traditrice x2.2 Mult');
       } else if (!playerLed && !playerWon) {
         // Capped at what is actually in the till: no negative money, ever.
         const charged = Math.min(2, Math.max(0, money));

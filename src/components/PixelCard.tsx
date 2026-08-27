@@ -14,11 +14,11 @@ const ENHANCEMENT_BADGES: Record<
   Exclude<PlayingCard['enhancement'], 'none'>,
   { label: string; title: string; className: string }
 > = {
-  bonus: { label: '+30', title: 'Bonus: +30 Chips', className: 'bg-sky-600 text-white border-sky-300' },
-  mult: { label: '+4x', title: 'Mult: +4 Mult', className: 'bg-red-600 text-white border-red-300' },
+  bonus: { label: '+40', title: 'Bonus: +40 Chips', className: 'bg-sky-600 text-white border-sky-300' },
+  mult: { label: '+5x', title: 'Mult: +5 Mult', className: 'bg-red-600 text-white border-red-300' },
   wild: { label: 'JOLLY', title: 'Wild: vale sempre come Briscola', className: 'bg-fuchsia-600 text-white border-fuchsia-300' },
-  steel: { label: 'X1.5', title: 'Acciaio: x1.5 Mult mentre resta in mano', className: 'bg-slate-400 text-slate-900 border-slate-200' },
-  stone: { label: 'PIETRA', title: 'Pietra: +50 Chips, nessun seme', className: 'bg-stone-500 text-white border-stone-300' },
+  steel: { label: 'X1.6', title: 'Acciaio: x1.6 Mult mentre resta in mano', className: 'bg-slate-400 text-slate-900 border-slate-200' },
+  stone: { label: 'PIETRA', title: 'Pietra: +60 Chips, nessun seme', className: 'bg-stone-500 text-white border-stone-300' },
 };
 
 interface PixelCardProps {

@@ -85,11 +85,11 @@ export function calculateTrickScore(
   for (let pass = 0; pass < retriggers; pass++) {
     // Editions
     if (playerCard.edition === 'foil') {
-      bonusChips += 50;
+      bonusChips += 60;
     } else if (playerCard.edition === 'holo') {
-      bonusMult += 10;
+      bonusMult += 12;
     } else if (playerCard.edition === 'polychrome') {
-      xMult *= 1.5;
+      xMult *= 1.6;
     } else if (playerCard.edition === 'gold') {
       bonusDollars += 1;
     }
@@ -97,13 +97,13 @@ export function calculateTrickScore(
     // Enhancements
     switch (playerCard.enhancement) {
       case 'bonus':
-        bonusChips += 30;
+        bonusChips += 40;
         break;
       case 'mult':
-        bonusMult += 4;
+        bonusMult += 5;
         break;
       case 'stone':
-        bonusChips += 50;
+        bonusChips += 60;
         break;
       default:
         break;
@@ -119,14 +119,14 @@ export function calculateTrickScore(
 
   // Steel pays for being HELD, not played.
   for (const held of jokerContext.playerHand) {
-    if (held.enhancement === 'steel') xMult *= 1.5;
+    if (held.enhancement === 'steel') xMult *= 1.6;
   }
 
   // --- The captured card ---------------------------------------------------
   if (clashResult.playerWon) {
-    if (opponentCard.edition === 'foil') bonusChips += 25;
-    if (opponentCard.edition === 'holo') bonusMult += 5;
-    if (opponentCard.edition === 'polychrome') xMult *= 1.25;
+    if (opponentCard.edition === 'foil') bonusChips += 30;
+    if (opponentCard.edition === 'holo') bonusMult += 6;
+    if (opponentCard.edition === 'polychrome') xMult *= 1.3;
     if (opponentCard.edition === 'gold') bonusDollars += 2;
 
     // Seals pay out on capture, on either card in the trick.

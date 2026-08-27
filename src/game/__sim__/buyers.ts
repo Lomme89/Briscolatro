@@ -62,6 +62,8 @@ export const ECONOMY_FIRST: BuyerPolicy = {
       const cost = Math.max(1, pack.cost - discount);
       if (room(cost)) actions.openPack(pack, cost);
     }
+
+    if (seeded) spendTheChange(state, offer, actions, discount);
   },
 };
 
@@ -150,8 +152,54 @@ export const DECK_UPGRADES: BuyerPolicy = {
         if (state.money >= cost + 5) actions.buyJoker(joker, cost);
       }
     }
+
+    spendTheChange(state, offer, actions, discount);
   },
 };
+
+/**
+ * What to do with money that has stopped earning.
+ *
+ * The first version of these policies sat on a hundred and fifty dollars at
+ * ante 8 - past the interest cap, where a held dollar is worth exactly nothing.
+ * Vouchers first because they are permanent, then a reroll to go looking, then
+ * whatever the fresh shelf turned up.
+ */
+function spendTheChange(
+  state: Parameters<BuyerPolicy['shop']>[0],
+  offer: Parameters<BuyerPolicy['shop']>[1],
+  actions: Parameters<BuyerPolicy['shop']>[2],
+  discount: number
+): void {
+  const cap = state.vouchers.some((v) => v.id === 'v_interessi') ? 10 : 5;
+  const idle = () => state.money - cap * 5;
+
+  for (const voucher of [...offer.vouchers]) {
+    if (idle() >= voucher.cost) actions.buyVoucher(voucher);
+  }
+
+  let guard = 0;
+  while (idle() >= offer.rerollCost + 6 && guard < 5) {
+    guard++;
+    if (!actions.reroll()) break;
+
+    const ranked = [...offer.jokers].sort((a, b) => jokerAppeal(b) - jokerAppeal(a));
+    for (const joker of ranked) {
+      const cost = Math.max(1, joker.cost - discount);
+      if (state.jokers.length < state.maxJokers && idle() >= cost) {
+        actions.buyJoker(joker, cost);
+      }
+    }
+    for (const pack of [...offer.packs]) {
+      const cost = Math.max(1, pack.cost - discount);
+      if (idle() >= cost) actions.openPack(pack, cost);
+    }
+    for (const card of [...offer.unoCards]) {
+      const cost = Math.max(1, card.cost - discount);
+      if (idle() >= cost) actions.buyUno(card, cost);
+    }
+  }
+}
 
 /**
  * D. Un po' di tutto.
@@ -186,6 +234,8 @@ export const BALANCED: BuyerPolicy = {
       const cost = Math.max(1, card.cost - discount);
       if (state.money >= cost + 12) actions.buyUno(card, cost);
     }
+
+    spendTheChange(state, offer, actions, discount);
   },
 };
 

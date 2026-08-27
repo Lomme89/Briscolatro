@@ -17,17 +17,17 @@ export interface CardPower {
 const EDITION_POWERS: Record<Exclude<Edition, 'standard'>, CardPower> = {
   foil: {
     label: 'Lamina',
-    description: '+50 Chips quando la giochi (+25 se la catturi dall\'avversario).',
+    description: '+60 Chips quando la giochi (+30 se la catturi dall\'avversario).',
     className: 'bg-sky-950 border-sky-400 text-sky-200',
   },
   holo: {
     label: 'Olografica',
-    description: '+10 Mult quando la giochi (+5 se la catturi).',
+    description: '+12 Mult quando la giochi (+6 se la catturi).',
     className: 'bg-fuchsia-950 border-fuchsia-400 text-fuchsia-200',
   },
   polychrome: {
     label: 'Policroma',
-    description: 'x1.5 Mult quando la giochi (x1.25 se la catturi).',
+    description: 'x1.6 Mult quando la giochi (x1.3 se la catturi).',
     className: 'bg-purple-950 border-purple-400 text-purple-200',
   },
   gold: {
@@ -40,12 +40,12 @@ const EDITION_POWERS: Record<Exclude<Edition, 'standard'>, CardPower> = {
 const ENHANCEMENT_POWERS: Record<Exclude<Enhancement, 'none'>, CardPower> = {
   bonus: {
     label: 'Bonus',
-    description: '+30 Chips ogni volta che la giochi.',
+    description: '+40 Chips ogni volta che la giochi.',
     className: 'bg-sky-950 border-sky-400 text-sky-200',
   },
   mult: {
     label: 'Mult',
-    description: '+4 Mult ogni volta che la giochi.',
+    description: '+5 Mult ogni volta che la giochi.',
     className: 'bg-red-950 border-red-400 text-red-200',
   },
   wild: {
@@ -55,12 +55,12 @@ const ENHANCEMENT_POWERS: Record<Exclude<Enhancement, 'none'>, CardPower> = {
   },
   steel: {
     label: 'Acciaio',
-    description: 'x1.5 Mult finché resta in mano: paga se NON la giochi.',
+    description: 'x1.6 Mult finché resta in mano: paga se NON la giochi.',
     className: 'bg-slate-800 border-slate-400 text-slate-200',
   },
   stone: {
     label: 'Pietra',
-    description: '+50 Chips, ma non ha seme: non prende mai per seme né per Briscola.',
+    description: '+60 Chips, ma non ha seme: non prende mai per seme né per Briscola.',
     className: 'bg-stone-800 border-stone-400 text-stone-200',
   },
 };

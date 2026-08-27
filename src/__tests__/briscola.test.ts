@@ -151,7 +151,7 @@ describe('Briscola Core Game Rules & Invariants', () => {
 });
 
 describe('Joker & Scoring Engine', () => {
-  it('correctly applies Carrettiere (+8 Mult on Bastoni) and Orafo (+35 Chips & +$1 on Denari)', () => {
+  it('correctly applies Carrettiere (Mult on Bastoni) and Orafo (Chips & $1 on Denari)', () => {
     const carrettiere = ALL_JOKERS.find((j) => j.id === 'j_carrettiere')!;
     const orafo = ALL_JOKERS.find((j) => j.id === 'j_orafo')!;
 
@@ -177,8 +177,8 @@ describe('Joker & Scoring Engine', () => {
       }
     );
 
-    expect(score.bonusMult).toBe(8); // Carrettiere triggered
-    expect(score.bonusChips).toBe(35); // Orafo triggered
+    expect(score.bonusMult).toBe(10); // Carrettiere triggered
+    expect(score.bonusChips).toBe(45); // Orafo triggered
     expect(score.bonusDollars).toBe(1); // Orafo +$1
     expect(score.finalScore).toBeGreaterThan(0);
   });

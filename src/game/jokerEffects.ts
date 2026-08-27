@@ -81,17 +81,6 @@ export const JOKER_EFFECTS = {
       }
 
       // ON-CARD-SCORED JOKERS
-      if (joker.id === 'j_cavaliere_nero') {
-        let cavalliCount = 0;
-        if (playerCard.rank === 9) cavalliCount++;
-        if (opponentCard.rank === 9) cavalliCount++;
-        if (cavalliCount > 0) {
-          chipsToAdd += cavalliCount * 80;
-          multToAdd += cavalliCount * 4;
-          didTrigger = true;
-        }
-      }
-
       if (joker.id === 'j_sovrano_briscolatro') {
         // A legendary should be an engine by itself, not a slightly bigger common.
         chipsToAdd += 100 + (joker.stats?.accumulatedChips || 0);
@@ -144,11 +133,16 @@ export const JOKER_EFFECTS = {
             break;
 
           case 'j_briscola_folle': {
-            let briscolaCount = 0;
-            if (playerCard.suit === briscolaSuit) briscolaCount++;
-            if (opponentCard.suit === briscolaSuit) briscolaCount++;
-            if (briscolaCount > 0) {
-              chipsToAdd += briscolaCount * (joker.chipsBonus || 60);
+            // It paid sixty Chips for a Briscola being in the trick, which is
+            // the same money for taking an Asso and for burning a trump on a
+            // liscia - and the second one is bad Briscola. Now it pays for what
+            // the Briscola actually brought home, so a trump spent on nothing
+            // earns nothing.
+            const wonWithBriscola = clashResult.playerIsBriscola;
+            const capturedBriscola = clashResult.opponentIsBriscola;
+            if ((wonWithBriscola || capturedBriscola) && clashResult.points > 0) {
+              chipsToAdd += clashResult.points * 8;
+              if (capturedBriscola) chipsToAdd += 30;
               didTrigger = true;
             }
             break;
@@ -162,12 +156,41 @@ export const JOKER_EFFECTS = {
             break;
 
           case 'j_re_mida': {
-            let reCount = 0;
-            if (playerCard.rank === 10) reCount++;
-            if (opponentCard.rank === 10) reCount++;
-            if (reCount > 0) {
-              chipsToAdd += reCount * (joker.chipsBonus || 120);
-              dollarsToAdd += reCount * (joker.dollarsBonus || 2);
+            // It used to pay for a Re being in the trick at all, your own
+            // included, which made "cash the Re" a scoring move rather than a
+            // Briscola one. Now it pays for taking THEIR Re off them; your own
+            // Re still counts, but only when the trick actually captured
+            // something beyond the Re itself.
+            let value = 0;
+            if (opponentCard.rank === 10) value += joker.chipsBonus || 150;
+            if (playerCard.rank === 10 && clashResult.points > 4) {
+              value += Math.round((joker.chipsBonus || 150) / 2);
+            }
+            if (value > 0) {
+              chipsToAdd += value;
+              if (opponentCard.rank === 10) dollarsToAdd += joker.dollarsBonus || 2;
+              didTrigger = true;
+            }
+            break;
+          }
+
+          case 'j_cavaliere_nero': {
+            // This one used to fire on LOST tricks too: dropping a Cavallo under
+            // a trick you were throwing away paid full price. Same rule as the
+            // Re Mida now - the capture is what is worth something.
+            let chips = 0;
+            let mult = 0;
+            if (opponentCard.rank === 9) {
+              chips += 90;
+              mult += 5;
+            }
+            if (playerCard.rank === 9 && clashResult.points > 3) {
+              chips += 45;
+              mult += 2;
+            }
+            if (chips > 0) {
+              chipsToAdd += chips;
+              multToAdd += mult;
               didTrigger = true;
             }
             break;
@@ -180,13 +203,18 @@ export const JOKER_EFFECTS = {
             // Conditional on purpose - unconditional growth outruns any curve.
             const banked = joker.stats?.accumulatedMult || 0;
             multToAdd += banked;
-            const tookBriscola =
-              clashResult.playerIsBriscola || clashResult.opponentIsBriscola;
-            if (tookBriscola) {
+            // Growth is earned by a Briscola that TOOK something. Burning a
+            // trump on a worthless trick used to bank the same permanent Mult
+            // as winning the Asso with it, which rewarded the worse play and
+            // let the engine spin up far too fast in the first antes.
+            const briscolaEarnedIt =
+              (clashResult.playerIsBriscola || clashResult.opponentIsBriscola) &&
+              clashResult.points > 0;
+            if (briscolaEarnedIt) {
               multToAdd += 1;
               statGrowth.push({ jokerId: joker.id, addMult: 1 });
             }
-            didTrigger = banked > 0 || tookBriscola;
+            didTrigger = banked > 0 || briscolaEarnedIt;
             break;
           }
 
