@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { duel, pointShare } from './duel';
 import { seedRandom } from './sim';
 import { AI_PROFILES, NEUTRAL_PROFILE, OpponentAiProfile } from '../aiProfiles';
+import { readPlayerThreat } from '../opponentThreat';
+import { ALL_JOKERS } from '../../data/jokers';
 import { chooseOpponentFollow, chooseOpponentLead } from '../ai';
 import { createStandardDeck } from '../briscola';
 import { prepareRoundDeck as dealRound } from '../gameState';
@@ -154,5 +156,99 @@ describe('noise is a person having an off moment, not a coin flip', () => {
     // Rocco wanders, but only ever to his second choice.
     expect(run(AI_PROFILES.rocco, 11)).toBeGreaterThan(1);
     expect(run(AI_PROFILES.rocco, 11)).toBeLessThanOrEqual(2);
+  });
+});
+
+describe('reading the build across the table', () => {
+  const build = () =>
+    readPlayerThreat(
+      ['j_carrettiere', 'j_cacciatore_carichi', 'j_barone_briscola'].map(
+        (id) => ALL_JOKERS.find((j) => j.id === id)!
+      ),
+      { briscolaSuit: 'denari', streak: 1, remainingTricks: 10, boss: null }
+    );
+
+  it('costs the player something, but nothing like a hard counter', () => {
+    const restore = seedRandom(2024);
+    const blind = pointShare(duel(NEUTRAL_PROFILE, AI_PROFILES.esposito, 150));
+    const aware = pointShare(duel(NEUTRAL_PROFILE, AI_PROFILES.esposito, 150, undefined, build()));
+    restore();
+
+    const cost = blind - aware;
+    console.log(
+      'COSTO DELLA LETTURA',
+      `senza ${Math.round(blind * 100)}% · con ${Math.round(aware * 100)}% · differenza ${Math.round(cost * 1000) / 10} punti`
+    );
+
+    // It has to do something...
+    expect(cost).toBeGreaterThan(0);
+    // ...and it has to stay a thumb on the scale. A build the opponent can
+    // switch off is a build that was not worth assembling.
+    expect(cost).toBeLessThan(0.06);
+  });
+
+  it('how much a profile notices is exactly what the knob says', () => {
+    // Point share over a few hundred rounds is too noisy to read a knob this
+    // small off, so measure the thing directly: how often does putting the
+    // build on the table change what this profile plays?
+    function noticeRate(profile: OpponentAiProfile): number {
+      const restore = seedRandom(808);
+      let changed = 0;
+      let total = 0;
+      for (let i = 0; i < 150; i++) {
+        const deal = dealRound(createStandardDeck());
+        const base = { briscolaSuit: deal.briscolaSuit, profile: { ...profile, noise: 0 } };
+        const blind = chooseOpponentFollow(deal.opponentHand, deal.playerHand[0], base)!;
+        const aware = chooseOpponentFollow(deal.opponentHand, deal.playerHand[0], {
+          ...base,
+          playerThreat: build(),
+        })!;
+        if (blind.id !== aware.id) changed++;
+        total++;
+      }
+      restore();
+      return changed / total;
+    }
+
+    const rates = Object.fromEntries(
+      ['esposito', 'gennaro_rivale', 'assunta', 'neutral', 'salvatore', 'mimi', 'rocco'].map((id) => [
+        id,
+        noticeRate(id === 'neutral' ? NEUTRAL_PROFILE : AI_PROFILES[id]),
+      ])
+    );
+    console.log(
+      'QUANTO SE NE ACCORGONO',
+      Object.entries(rates).map(([id, r]) => `${id}:${Math.round(r * 100)}%`).join(' ')
+    );
+
+    // The counters react, the showmen barely do, and nobody reacts to
+    // everything: a card is still a card.
+    expect(rates.esposito).toBeGreaterThan(rates.mimi);
+    expect(rates.gennaro_rivale).toBeGreaterThan(rates.rocco);
+    expect(rates.esposito).toBeLessThan(0.5);
+  });
+
+  it('deciding a trick stays cheap enough to be invisible', () => {
+    const deal = dealRound(createStandardDeck());
+    const ctx = {
+      briscolaSuit: deal.briscolaSuit,
+      profile: AI_PROFILES.gennaro_rivale,
+      playedCards: deal.roundDrawPile.slice(0, 24),
+      playerThreat: build(),
+    };
+
+    const ITERATIONS = 20000;
+    const started = performance.now();
+    for (let i = 0; i < ITERATIONS; i++) {
+      chooseOpponentLead(deal.opponentHand, ctx);
+      chooseOpponentFollow(deal.opponentHand, deal.playerHand[0], ctx);
+    }
+    const perDecision = (performance.now() - started) / (ITERATIONS * 2);
+
+    console.log('TEMPO PER DECISIONE', `${(perDecision * 1000).toFixed(1)} microsecondi`);
+    // The opponent takes about half a second of animation to play a card. A
+    // decision has to disappear inside that, and this leaves three orders of
+    // magnitude of room.
+    expect(perDecision).toBeLessThan(0.5);
   });
 });

@@ -1,6 +1,7 @@
 import { CardRank, PlayingCard, Suit } from '../types/game';
 import { resolveTrick } from './briscola';
 import { NEUTRAL_PROFILE, OpponentAiProfile } from './aiProfiles';
+import { giftValue, PlayerThreat } from './opponentThreat';
 
 export interface OpponentAiContext {
   briscolaSuit: Suit;
@@ -19,10 +20,32 @@ export interface OpponentAiContext {
    * memory reads: nothing here reveals a card that has not already been seen.
    */
   playedCards?: PlayingCard[];
+  /**
+   * What the player's build pays them for, read off their face-up jolly by
+   * readPlayerThreat. Absent means an opponent that is not looking.
+   */
+  playerThreat?: PlayerThreat;
 }
 
 function profileOf(context: OpponentAiContext): OpponentAiProfile {
   return context.profile ?? NEUTRAL_PROFILE;
+}
+
+/**
+ * What handing this card to the player is worth to their build, in points, as
+ * far as this opponent is willing to notice.
+ *
+ * One multiplication and a couple of lookups: the threat itself was read once
+ * for the whole trick, so this stays cheap enough to call for every candidate.
+ */
+function gift(
+  card: PlayingCard,
+  context: OpponentAiContext,
+  profile: OpponentAiProfile
+): number {
+  const threat = context.playerThreat;
+  if (!threat) return 0;
+  return giftValue(card, threat, context.briscolaSuit) * profile.denial;
 }
 
 function isTrump(card: PlayingCard, briscolaSuit: Suit): boolean {
@@ -189,6 +212,10 @@ export function chooseOpponentLead(
       value -= (60 + discardCost(card, context.briscolaSuit, profile) * 0.9) * profile.memory;
     }
 
+    // Opening with it is not the same as handing it over - it only feeds them
+    // if they take the trick - so the same fear applies at a discount.
+    value += gift(card, context, profile) * 12;
+
     value += markedCardRisk(card, context);
     return value;
   };
@@ -228,10 +255,13 @@ export function chooseOpponentFollow(
     ),
   }));
 
-  const losers = [...hand].sort(
-    (a, b) =>
-      discardCost(a, context.briscolaSuit, profile) - discardCost(b, context.briscolaSuit, profile)
-  );
+  // A card thrown under a lost trick lands in their pile and feeds whatever is
+  // printed on their jolly, so what it is worth to THEM is part of what it
+  // costs to throw. Same currency as its points, so it just adds on.
+  const throwCost = (card: PlayingCard) =>
+    discardCost(card, context.briscolaSuit, profile) + gift(card, context, profile) * 20;
+
+  const losers = [...hand].sort((a, b) => throwCost(a) - throwCost(b));
 
   const winners = evaluated
     .filter(({ result }) => !result.playerWon)

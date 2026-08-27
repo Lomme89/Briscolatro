@@ -61,6 +61,19 @@ export interface OpponentAiProfile {
    * tenth trick and spent it all on tricks he wanted.
    */
   pointSpending: number;
+  /**
+   * How much attention it pays to what it is feeding.
+   *
+   * The player's jolly are face-up on the felt, and someone in that chair would
+   * eventually notice that every Bastone they hand over is worth eight Mult.
+   * High: notices, and stops handing them over when there is another way. Low:
+   * is looking at their own cards, not at yours.
+   *
+   * It is a thumb on the scale and nothing more - deliberately too small to
+   * counter a build, because a build the opponent can switch off was not worth
+   * assembling.
+   */
+  denial: number;
   /** The suit it keeps coming back to. Flavour you can see in the opening. */
   favouriteSuit?: Suit;
 }
@@ -83,6 +96,7 @@ export const NEUTRAL_PROFILE: OpponentAiProfile = {
   memory: 0.3,
   noise: 0.08,
   pointSpending: 0.6,
+  denial: 0.45,
 };
 
 export const AI_PROFILES: Record<string, OpponentAiProfile> = {
@@ -100,6 +114,7 @@ export const AI_PROFILES: Record<string, OpponentAiProfile> = {
     memory: 0.6,
     noise: 0.1,
     pointSpending: 0.55,
+    denial: 0.5,
   },
 
   assunta: {
@@ -114,6 +129,7 @@ export const AI_PROFILES: Record<string, OpponentAiProfile> = {
     memory: 0.8,
     noise: 0.04,
     pointSpending: 0.2,
+    denial: 0.75,
   },
 
   mimi: {
@@ -128,6 +144,7 @@ export const AI_PROFILES: Record<string, OpponentAiProfile> = {
     memory: 0.25,
     noise: 0.18,
     pointSpending: 0.85,
+    denial: 0.15,
     favouriteSuit: 'coppe',
   },
 
@@ -143,6 +160,7 @@ export const AI_PROFILES: Record<string, OpponentAiProfile> = {
     memory: 0.9,
     noise: 0.01,
     pointSpending: 0.35,
+    denial: 0.7,
   },
 
   salvatore: {
@@ -157,6 +175,7 @@ export const AI_PROFILES: Record<string, OpponentAiProfile> = {
     memory: 0.3,
     noise: 0.12,
     pointSpending: 0.7,
+    denial: 0.3,
     favouriteSuit: 'spade',
   },
 
@@ -172,6 +191,7 @@ export const AI_PROFILES: Record<string, OpponentAiProfile> = {
     memory: 0.1,
     noise: 0.2,
     pointSpending: 0.85,
+    denial: 0.1,
     favouriteSuit: 'bastoni',
   },
 
@@ -187,6 +207,7 @@ export const AI_PROFILES: Record<string, OpponentAiProfile> = {
     memory: 0.7,
     noise: 0.03,
     pointSpending: 0.3,
+    denial: 0.9,
     favouriteSuit: 'denari',
   },
 
@@ -202,6 +223,7 @@ export const AI_PROFILES: Record<string, OpponentAiProfile> = {
     memory: 0.95,
     noise: 0.03,
     pointSpending: 0.3,
+    denial: 0.85,
   },
 };
 

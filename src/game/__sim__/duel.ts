@@ -3,6 +3,7 @@ import { createStandardDeck, resolveTrick } from '../briscola';
 import { drawNextTrickCards, prepareRoundDeck } from '../gameState';
 import { chooseOpponentFollow, chooseOpponentLead } from '../ai';
 import { OpponentAiProfile } from '../aiProfiles';
+import { PlayerThreat } from '../opponentThreat';
 
 export interface DuelResult {
   /** Briscola points taken by the seat on the left, out of 120 per round. */
@@ -27,7 +28,13 @@ export function duel(
   left: OpponentAiProfile,
   right: OpponentAiProfile,
   rounds: number,
-  deckFor: () => PlayingCard[] = createStandardDeck
+  deckFor: () => PlayingCard[] = createStandardDeck,
+  /**
+   * A build the RIGHT seat can see on the left seat's side of the table. Used
+   * to measure what the denial heuristic actually costs the player: the left
+   * seat plays identically either way, only the right seat's reading changes.
+   */
+  leftBuild?: PlayerThreat
 ): DuelResult {
   const out: DuelResult = {
     leftPoints: 0,
@@ -53,7 +60,7 @@ export function duel(
 
     while (leftHand.length > 0 && rightHand.length > 0) {
       const leftCtx = { briscolaSuit, profile: left, playedCards };
-      const rightCtx = { briscolaSuit, profile: right, playedCards };
+      const rightCtx = { briscolaSuit, profile: right, playedCards, playerThreat: leftBuild };
 
       let leftCard: PlayingCard;
       let rightCard: PlayingCard;

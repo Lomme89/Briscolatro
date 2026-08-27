@@ -44,6 +44,7 @@ import { TableFeltPattern } from './components/TableFeltPattern';
 import { getTableThemeForAnte } from './data/tableThemes';
 import { getOpponentIntro } from './data/opponents';
 import { getAiProfile } from './game/aiProfiles';
+import { readPlayerThreat } from './game/opponentThreat';
 import { ShopView } from './components/ShopView';
 import { BlindSelectView } from './components/BlindSelectView';
 import { ScoreTallyOverlay } from './components/ScoreTallyOverlay';
@@ -497,6 +498,22 @@ export function App() {
     sound.playCardFlick();
   };
 
+  /**
+   * What the player's board is paying them for right now.
+   *
+   * Read fresh each trick from things that are face-up on the screen anyway -
+   * the jolly, the streak, the boss rule, the tricks left - so the opponent can
+   * notice it is feeding a build without ever seeing a card in hand.
+   */
+  const readThreat = () =>
+    readPlayerThreat(activeJokers, {
+      briscolaSuit: briscolaSuitRef.current,
+      streak: consecutiveWinStreak,
+      remainingTricks:
+        Math.floor(drawPileRef.current.length / 2) + playerHandRef.current.length,
+      boss: getEnforcedBoss(),
+    });
+
   // --- Opponent Lead AI ---
   const triggerOpponentLead = (overrideHand?: PlayingCard[], overrideSuit?: Suit) => {
     const currentHand = overrideHand || opponentHandRef.current;
@@ -511,6 +528,7 @@ export function App() {
       knownPlayerCards: visiblePlayerCards(playerHandRef.current),
       profile: opponentProfileRef.current,
       playedCards: playedCardsRef.current,
+      playerThreat: readThreat(),
     });
 
     if (!chosenCard) {
@@ -544,6 +562,7 @@ export function App() {
       knownPlayerCards: visiblePlayerCards(playerHandRef.current),
       profile: opponentProfileRef.current,
       playedCards: playedCardsRef.current,
+      playerThreat: readThreat(),
     });
 
     if (!chosenCard) {
