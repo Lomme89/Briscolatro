@@ -169,6 +169,14 @@ export const PixelCard: React.FC<PixelCardProps> = ({
   const cornerSuitSize =
     size === 'lg' ? 15 : size === 'md' ? 12 : size === 'sm' || size === 'pick' ? 10 : 8;
 
+  const artPadding = {
+    xs: 'p-[4px]',
+    sm: 'p-[5px]',
+    pick: 'p-[5px]',
+    md: 'p-[7px]',
+    lg: 'p-[9px] sm:p-[11px]',
+  }[size];
+
   return (
     <motion.div
       layoutId={layoutId}
@@ -209,9 +217,11 @@ export const PixelCard: React.FC<PixelCardProps> = ({
           className="absolute inset-0 rounded-md overflow-hidden pointer-events-none"
           style={{ backgroundColor: CARD_PAPER }}
         >
-          {/* A printed card keeps a margin of paper around the figure. Edge to
-              edge the art ran into the border and the card looked stretched. */}
-          <div className="w-full h-full p-[3px] sm:p-[5px]">
+          {/* A printed card keeps a margin of paper around the figure, and the
+              margin is where the index lives: too little of it and the rank
+              lands on the figure. Scaled by card size, so a thumbnail does not
+              lose half its art to padding. */}
+          <div className={`w-full h-full ${artPadding}`}>
             <NeapolitanCardArt
               suit={card.suit}
               rank={card.rank}
