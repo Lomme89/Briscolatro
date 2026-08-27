@@ -5,8 +5,10 @@ import { ALL_BOSS_BLINDS } from '../../data/bosses';
 import { ALL_DECKS } from '../../data/decks';
 import {
   createRunDeck,
-  getBlindBaseReward,
+  ENCOUNTERS_PER_ANTE,
   getBlindTargetScore,
+  getEncounterReward,
+  isBossEncounter,
   upgradeCardInRunDeck,
 } from '../gameState';
 import { BOSS_RULES } from '../bossRules';
@@ -172,13 +174,16 @@ export function simulateRun(
     state.ante = ante;
     reachedAnte = ante;
 
-    for (let round = 1; round <= 3; round++) {
+    // Tavolo, then Boss. Two encounters an ante, both full games of Briscola.
+    for (let round = 1; round <= ENCOUNTERS_PER_ANTE; round++) {
       state.round = round;
-      const boss: BossBlind | null =
-        round === 3 ? ALL_BOSS_BLINDS.find((b) => b.ante === ante) ?? null : null;
+      const isBoss = isBossEncounter(round);
+      const boss: BossBlind | null = isBoss
+        ? ALL_BOSS_BLINDS.find((b) => b.ante === ante) ?? null
+        : null;
 
       const target = getBlindTargetScore(ante, round, {
-        bossMultiplier: round === 3 ? BOSS_RULES.getTargetScoreMultiplier(boss) : 1,
+        bossMultiplier: isBoss ? BOSS_RULES.getTargetScoreMultiplier(boss) : 1,
       });
 
       // Carte Sola held at the start of the blind get spent in it.
@@ -209,7 +214,7 @@ export function simulateRun(
         const interestCap = state.vouchers.some((v) => v.id === 'v_interessi') ? 10 : 5;
         const interest = Math.min(interestCap, Math.floor(state.money / 5));
         const briscolaBonus = report.briscolaPoints > 60 ? 4 : 0;
-        state.money += getBlindBaseReward(ante) + interest + briscolaBonus;
+        state.money += getEncounterReward(ante, round) + interest + briscolaBonus;
       }
 
       rounds.push({
@@ -238,7 +243,11 @@ export function simulateRun(
         };
       }
 
-      if (ante === 8 && round === 3) completed = true;
+      // Clearing the Ante 8 Boss ends the run: no shop after the last hand.
+      if (ante === 8 && isBoss) {
+        completed = true;
+        break;
+      }
       visitShop(state, buyer);
     }
   }
@@ -261,9 +270,9 @@ function visitShop(state: RunState, buyer: BuyerPolicy): void {
   const ownedVouchers = new Set(state.vouchers.map((v) => v.id));
 
   const offer: ShopOffer = {
-    jokers: getRandomJokers(2),
+    jokers: getRandomJokers(3),
     unoCards: shuffle([...ALL_UNO_CARDS]).slice(0, 2),
-    packs: shuffle([...ALL_BOOSTER_PACKS]).slice(0, 2),
+    packs: shuffle([...ALL_BOOSTER_PACKS]).slice(0, 3),
     vouchers: shuffle(ALL_VOUCHERS.filter((v) => !ownedVouchers.has(v.id))).slice(0, 2),
     rerollCost: 5 - discount,
   };
@@ -302,7 +311,7 @@ function visitShop(state: RunState, buyer: BuyerPolicy): void {
       if (state.money < offer.rerollCost) return false;
       state.money -= offer.rerollCost;
       state.rerolls++;
-      offer.jokers = getRandomJokers(2);
+      offer.jokers = getRandomJokers(3);
       offer.unoCards = shuffle([...ALL_UNO_CARDS]).slice(0, 2);
       offer.rerollCost += 1;
       return true;

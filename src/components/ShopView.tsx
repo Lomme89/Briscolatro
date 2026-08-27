@@ -58,14 +58,20 @@ export const ShopView: React.FC<ShopViewProps> = ({
   const hasSconto = vouchers.some(v => v.id === 'v_sconto' && v.bought);
   const discount = hasSconto ? 2 : 0;
 
-  const [shopJokers, setShopJokers] = useState<Joker[]>(() => getRandomJokers(2));
+  // Three on the shelf, not two.
+  //
+  // The run went from twenty-three shops to fifteen when the Ante lost its
+  // middle blind, and a measured run came out with a third fewer jolly and half
+  // the upgraded cards. The answer is more to choose from, not more money:
+  // prices, rewards and interest are all untouched.
+  const [shopJokers, setShopJokers] = useState<Joker[]>(() => getRandomJokers(3));
   const [shopUnoCards, setShopUnoCards] = useState<UnoCard[]>(() => {
     const shuffled = [...ALL_UNO_CARDS].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, 2);
   });
   const [shopPacks] = useState<BoosterPack[]>(() => {
     const shuffled = [...ALL_BOOSTER_PACKS].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, 2);
+    return shuffled.slice(0, 3);
   });
   // The shelf used to be ALL_VOUCHERS.slice(0, 2), so Scarto Tattico and
   // Tessera VIP existed in the data and never in a shop. Two are drawn from
@@ -117,7 +123,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
     if (money < rerollCost) return;
     sound.playCardFlick();
     onReroll(rerollCost);
-    setShopJokers(getRandomJokers(2));
+    setShopJokers(getRandomJokers(3));
     const shuffledUno = [...ALL_UNO_CARDS].sort(() => Math.random() - 0.5);
     setShopUnoCards(shuffledUno.slice(0, 2));
     setRerollCost(prev => prev + 1);

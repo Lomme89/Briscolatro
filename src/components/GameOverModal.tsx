@@ -1,4 +1,5 @@
 import React from 'react';
+import { isBossEncounter } from '../game/gameState';
 import { motion } from 'motion/react';
 import { sound } from '../services/soundEngine';
 import { Joker, DeckDefinition } from '../types/game';
@@ -95,7 +96,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
           >
             {won
               ? 'HAI COMPLETATO TUTTI GLI 8 ANTE DEL TORNEO!'
-              : `ELIMINATO AD ANTE ${ante} • ROUND ${round}/3`}
+              : `ELIMINATO AD ANTE ${ante} • ${isBossEncounter(round) ? 'BOSS' : 'TAVOLO'}`}
           </div>
 
           <p className="font-retro text-xs text-slate-300 mt-2 max-w-md mx-auto">
@@ -127,7 +128,10 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
           <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-2.5 text-center flex flex-col justify-between">
             <span className="text-[8px] sm:text-[9px] text-slate-400 uppercase">ANTE MASSIMO</span>
             <span className="text-sm sm:text-base text-purple-300 font-bold mt-1">
-              Ante {ante} <span className="text-[9px] text-purple-400">({round}/3)</span>
+              Ante {ante}{' '}
+              <span className="text-[9px] text-purple-400">
+                ({isBossEncounter(round) ? 'Boss' : 'Tavolo'})
+              </span>
             </span>
           </div>
 

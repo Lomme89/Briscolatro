@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { isBossEncounter } from '../game/gameState';
 import {
   BRISCOLA_TARGET_POINTS,
   VICTORY_MODES,
@@ -14,7 +15,8 @@ import { PixelSuitIcon } from './PixelSuitIcon';
 
 export interface RoundSummaryData {
   ante: number;
-  round: number; // 1: Small Blind, 2: Big Blind, 3: Boss
+  /** 1 = Tavolo, 2 = Boss: i due incontri di un Ante. */
+  round: number;
   targetScore: number;
   achievedScore: number;
   playerTrickPoints: number; // e.g. 68/120 points from Briscola values
@@ -48,12 +50,9 @@ export const RoundSummaryModal: React.FC<RoundSummaryModalProps> = ({
 }) => {
   if (!isOpen || !data) return null;
 
-  const roundTypeName =
-    data.round === 1
-      ? 'Piccolo Buio (Small Blind)'
-      : data.round === 2
-      ? 'Grande Buio (Big Blind)'
-      : `Scontro Boss: ${data.bossName || 'Il Campione'}`;
+  const roundTypeName = isBossEncounter(data.round)
+    ? `Scontro Boss: ${data.bossName || 'Il Campione'}`
+    : 'Il Tavolo';
 
   const isBriscolaMajority = data.playerTrickPoints >= BRISCOLA_TARGET_POINTS;
   const scoreExceeded = data.victory.chipsPassed;
@@ -99,7 +98,7 @@ export const RoundSummaryModal: React.FC<RoundSummaryModalProps> = ({
             </div>
           </div>
           <span className="inline-block mt-2 font-pixel text-[8.5px] sm:text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
-            ANTE {data.ante} • ROUND {data.round}/3
+            ANTE {data.ante} • {isBossEncounter(data.round) ? 'BOSS' : 'TAVOLO'}
           </span>
         </div>
 

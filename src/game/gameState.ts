@@ -70,16 +70,65 @@ export interface RoundOutcomeResult {
  */
 export const ANTE_BASE_TARGETS = [300, 900, 4000, 11000, 28000, 70000, 150000, 300000];
 
-/** Small blind, big blind, boss blind. */
-export const BLIND_TARGET_MULTIPLIERS: Record<number, number> = { 1: 1, 2: 1.5, 3: 2 };
+/**
+ * Un Ante, due incontri.
+ *
+ * The run used to be Small Blind, Big Blind, Boss - three matches an ante,
+ * twenty-four across a run. Once the blind can be won on sixty-one of the
+ * hundred and twenty points, every match has to be a real game of Briscola:
+ * forty cards, twenty tricks, one copy of each identity. So the run gets
+ * shorter by dropping the redundant match, not by cutting the game down.
+ *
+ * Eight antes, two encounters each: sixteen full games instead of twenty-four.
+ */
+export type EncounterType = 'table' | 'boss';
+
+export const ENCOUNTERS_PER_ANTE = 2;
+
+/** Which of the two you are sitting down to. 1 = Tavolo, 2 = Boss. */
+export function encounterFor(round: number): EncounterType {
+  return round >= ENCOUNTERS_PER_ANTE ? 'boss' : 'table';
+}
+
+export function isBossEncounter(round: number): boolean {
+  return encounterFor(round) === 'boss';
+}
 
 /**
- * Cash a cleared blind pays, before interest and the Briscola bonus. The blind
- * reveal screen shows this, so it has to be the same number calculateRoundOutcome
+ * The Tavolo replaces both old blinds and sits between them: harder than the
+ * Small it absorbed, clearly softer than the Boss that follows.
+ */
+export const ENCOUNTER_TARGET_MULTIPLIERS: Record<EncounterType, number> = {
+  table: 1.25,
+  boss: 2,
+};
+
+/**
+ * Cash a cleared encounter pays, before interest and the Briscola bonus. The
+ * reveal screen shows this, so it has to be the number calculateRoundOutcome
  * actually pays out.
  */
 export function getBlindBaseReward(ante: number): number {
   return 4 + ante;
+}
+
+/**
+ * Two encounters now pay what three used to.
+ *
+ * The Tavolo takes 1.25 of the ante's base and the Boss takes what is left of
+ * the old three-blind total - about 1.75, and exactly the remainder rather than
+ * a second rounded multiplier, so an ante hands over the same cash it always
+ * did down to the dollar. Losing a match cost the economy nothing, and it
+ * needed no new source to make up for it.
+ */
+export const TABLE_REWARD_MULTIPLIER = 1.25;
+/** What an ante paid across its three old blinds, and still pays across two. */
+const ANTE_REWARD_MULTIPLIER = 3;
+
+export function getEncounterReward(ante: number, round: number): number {
+  const base = getBlindBaseReward(ante);
+  const table = Math.round(base * TABLE_REWARD_MULTIPLIER);
+  return isBossEncounter(round) ? base * ANTE_REWARD_MULTIPLIER - table : table;
 }
 
 export function getBlindTargetScore(
@@ -92,7 +141,7 @@ export function getBlindTargetScore(
   // Endless antes beyond the table keep climbing at the final ratio.
   for (let extra = ANTE_BASE_TARGETS.length; extra < ante; extra++) base *= 1.7;
 
-  const blind = BLIND_TARGET_MULTIPLIERS[round] ?? 1;
+  const blind = ENCOUNTER_TARGET_MULTIPLIERS[encounterFor(round)];
   const boss = options.bossMultiplier ?? 1;
   const deck = options.deckMultiplier ?? 1;
   return Math.round(base * blind * boss * deck);
@@ -405,7 +454,7 @@ export function calculateRoundOutcome(
   // it is one bonus, read off the same number, exactly as before.
   const briscolaMajority = snapshot.roundPointsTaken > 60;
   const briscolaBonus = briscolaMajority ? 4 : 0;
-  const baseReward = getBlindBaseReward(snapshot.ante);
+  const baseReward = getEncounterReward(snapshot.ante, snapshot.round);
   const interestCap = snapshot.vouchers.some((voucher) => voucher.id === 'v_interessi' && voucher.bought) ? 10 : 5;
   const interest = Math.min(interestCap, Math.floor(snapshot.money / 5));
   const totalReward = won ? baseReward + interest + briscolaBonus : 0;
@@ -419,7 +468,8 @@ export function calculateRoundOutcome(
     newUnlockedDecks.push('deck_denari');
   }
   // The boss of this very round counts: you beat it a moment ago.
-  const bossesAfterThisRound = snapshot.bossesDefeated + (won && snapshot.round === 3 ? 1 : 0);
+  const bossesAfterThisRound =
+    snapshot.bossesDefeated + (won && isBossEncounter(snapshot.round) ? 1 : 0);
   if (!unlockedDeckIds.includes('deck_spade') && bossesAfterThisRound >= 3) {
     newUnlockedDecks.push('deck_spade');
   }
@@ -440,6 +490,6 @@ export function calculateRoundOutcome(
     totalReward,
     newHighScore,
     newUnlockedDecks,
-    isAnte8Victory: won && snapshot.ante >= 8 && snapshot.round === 3,
+    isAnte8Victory: won && snapshot.ante >= 8 && isBossEncounter(snapshot.round),
   };
 }

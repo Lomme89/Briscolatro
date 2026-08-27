@@ -10,24 +10,26 @@ describe('opponents', () => {
     expect(names[7]).toBe('Gennaro');
   });
 
-  it('keeps the boss on round 3 and the regular on the other two', () => {
+  it('il Tavolo e del locale, il Boss e il Boss', () => {
     for (let ante = 1; ante <= 8; ante++) {
-      const boss = getOpponentIntro(ante, 3);
+      const table = getOpponentIntro(ante, 1);
+      expect(table.isBoss).toBe(false);
+      expect(table.name).toBe(getRegularForAnte(ante).name);
+      expect(table.banter.length).toBeGreaterThan(0);
+      expect(table.quote.length).toBeGreaterThan(0);
+
+      const boss = getOpponentIntro(ante, 2);
       expect(boss.isBoss).toBe(true);
       expect(boss.name).toBe(ALL_BOSS_BLINDS.find((b) => b.ante === ante)!.name);
-
-      for (const round of [1, 2]) {
-        const regular = getOpponentIntro(ante, round);
-        expect(regular.isBoss).toBe(false);
-        expect(regular.name).toBe(getRegularForAnte(ante).name);
-        expect(regular.banter.length).toBeGreaterThan(0);
-      }
     }
   });
 
-  it('does not repeat the same line across the two blinds of an ante', () => {
+  it('ogni Ante ha esattamente due incontri: Tavolo e Boss', () => {
     for (let ante = 1; ante <= 8; ante++) {
-      expect(getOpponentIntro(ante, 1).quote).not.toBe(getOpponentIntro(ante, 2).quote);
+      // Nothing beyond the second encounter exists any more; asking for a
+      // third would land on the Boss, which is where the loop already stops.
+      expect(getOpponentIntro(ante, 1).isBoss).toBe(false);
+      expect(getOpponentIntro(ante, 2).isBoss).toBe(true);
     }
   });
 });

@@ -51,7 +51,7 @@ describe('deck unlocks say what they do', () => {
     reachable.add(
       calculateRoundOutcome(snapshot({ money: 40 }), 0, DEFAULT_UNLOCKED).newUnlockedDecks[0]
     );
-    calculateRoundOutcome(snapshot({ round: 3, bossesDefeated: 2 }), 0, DEFAULT_UNLOCKED)
+    calculateRoundOutcome(snapshot({ round: 2, bossesDefeated: 2 }), 0, DEFAULT_UNLOCKED)
       .newUnlockedDecks.forEach((id) => reachable.add(id));
     calculateRoundOutcome(snapshot({ solaCardsUsed: 5 }), 0, DEFAULT_UNLOCKED)
       .newUnlockedDecks.forEach((id) => reachable.add(id));
@@ -82,7 +82,7 @@ describe('deck unlocks say what they do', () => {
 
     // Beating the boss of this very round is the third one: now.
     const third = calculateRoundOutcome(
-      snapshot({ ante: 3, round: 3, bossesDefeated: 2 }),
+      snapshot({ ante: 3, round: 2, bossesDefeated: 2 }),
       0,
       DEFAULT_UNLOCKED
     );
@@ -90,7 +90,7 @@ describe('deck unlocks say what they do', () => {
 
     // A boss round that was lost does not count.
     const lost = calculateRoundOutcome(
-      snapshot({ ante: 3, round: 3, bossesDefeated: 2, currentRoundScore: 10 }),
+      snapshot({ ante: 3, round: 2, bossesDefeated: 2, currentRoundScore: 10 }),
       0,
       DEFAULT_UNLOCKED
     );

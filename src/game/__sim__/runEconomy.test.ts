@@ -157,7 +157,8 @@ describe('il macroloop, run intere', () => {
       for (const result of byPolicy.get(buyer.id)!) {
         const lost = result.rounds.findIndex((b) => !b.won);
         if (lost === -1) {
-          expect(result.rounds).toHaveLength(24);
+          // Eight antes, two encounters each: sixteen full games of Briscola.
+          expect(result.rounds).toHaveLength(16);
           expect(result.completed).toBe(true);
         } else {
           expect(lost).toBe(result.rounds.length - 1);

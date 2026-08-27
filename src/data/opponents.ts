@@ -1,6 +1,7 @@
 import { BossBlind } from '../types/game';
 import { ALL_BOSS_BLINDS } from './bosses';
 import { getTableThemeForAnte } from './tableThemes';
+import { isBossEncounter } from '../game/gameState';
 
 export interface OpponentIntro {
   /** Matches a PixelAvatar character. */
@@ -22,8 +23,14 @@ interface Regular {
   epithet: string;
   /** Which temperament in aiProfiles.ts sits behind the face. */
   aiProfileId: string;
-  /** [primo blind, secondo blind]: la seconda è sempre una battuta da rivincita. */
-  intro: [string, string];
+  /**
+   * La battuta con cui si siede al Tavolo.
+   *
+   * Era una coppia, una per il Piccolo Buio e una di rivincita per il Grande:
+   * con un solo Tavolo per Ante la seconda non aveva piu' un momento in cui
+   * dirla.
+   */
+  intro: string;
   banter: string[];
 }
 
@@ -43,10 +50,7 @@ const REGULARS: Regular[] = [
     name: 'Gennaro',
     epithet: "L'Habitué",
     aiProfileId: 'gennaro_habitue',
-    intro: [
-      'Ancora tu? Siediti, offro io il primo giro... e ti spenno.',
-      'Ti è andata bene prima. Adesso però faccio sul serio.',
-    ],
+    intro: 'Ancora tu? Siediti, offro io il primo giro... e ti spenno.',
     banter: [
       'Questo mazzo lo conosco meglio di mia moglie.',
       'Gioca, gioca. Tanto la Briscola ce l’ho io.',
@@ -59,10 +63,7 @@ const REGULARS: Regular[] = [
     name: 'Nonna Assunta',
     epithet: 'La Bocciofila',
     aiProfileId: 'assunta',
-    intro: [
-      'Qui i vecchietti giocano da cinquant’anni. Io da sessanta.',
-      'Hanno smesso tutti di guardare le bocce per guardare noi due.',
-    ],
+    intro: 'Qui i vecchietti giocano da cinquant’anni. Io da sessanta.',
     banter: [
       'Piano con quella carta, che me la ricordo.',
       'Ho cresciuto sei figli: mi vuoi bluffare tu?',
@@ -74,10 +75,7 @@ const REGULARS: Regular[] = [
     name: 'Mimì Fiordaliso',
     epithet: 'La Soubrette',
     aiProfileId: 'mimi',
-    intro: [
-      'Il palco è mio, tesoro. Il tavolo pure, se non ti dispiace.',
-      'Bis richiesto dal pubblico: stavolta però ti faccio piangere.',
-    ],
+    intro: 'Il palco è mio, tesoro. Il tavolo pure, se non ti dispiace.',
     banter: [
       'Sorridi, che ci guardano dalla galleria.',
       'Le luci sono mie e anche l’ultima presa.',
@@ -89,10 +87,7 @@ const REGULARS: Regular[] = [
     name: "'O Muto",
     epithet: 'Quello che non parla',
     aiProfileId: 'o_muto',
-    intro: [
-      'Meno chiacchiere. Carte.',
-      'Ancora tu. Zitto e gioca.',
-    ],
+    intro: 'Meno chiacchiere. Carte.',
     banter: [
       '...',
       'Mh.',
@@ -104,10 +99,7 @@ const REGULARS: Regular[] = [
     name: 'Cadetto Salvatore',
     epithet: 'La Lama Giovane',
     aiProfileId: 'salvatore',
-    intro: [
-      'Ho imparato a giocare tra queste lame. Tu no.',
-      'Ogni presa qui si paga con qualcosa. Vediamo con cosa paghi tu.',
-    ],
+    intro: 'Ho imparato a giocare tra queste lame. Tu no.',
     banter: [
       'In guardia: sto per calare il Tre.',
       'Il maestro dice che sono impaziente. Ha ragione.',
@@ -119,10 +111,7 @@ const REGULARS: Regular[] = [
     name: 'Rocco Spaccalegna',
     epithet: 'Il Boscaiolo',
     aiProfileId: 'rocco',
-    intro: [
-      'Il tavolo è di quercia: regge tutto, anche le tue sconfitte.',
-      'Un bastone, una carta. La differenza la fa il polso.',
-    ],
+    intro: 'Il tavolo è di quercia: regge tutto, anche le tue sconfitte.',
     banter: [
       'Questa la spacco in due come un ceppo.',
       'Ho le mani grosse, non la testa dura.',
@@ -134,10 +123,7 @@ const REGULARS: Regular[] = [
     name: 'Ragionier Esposito',
     epithet: 'Il Contabile',
     aiProfileId: 'esposito',
-    intro: [
-      'Qui dentro impegnano pure la fede nuziale. Occhio al portafogli.',
-      'Ho riaperto il registro apposta per te. Seconda riga.',
-    ],
+    intro: 'Qui dentro impegnano pure la fede nuziale. Occhio al portafogli.',
     banter: [
       'Segno tutto, anche quello che perdi.',
       'Trentatré punti a me. Controlla pure.',
@@ -149,10 +135,7 @@ const REGULARS: Regular[] = [
     name: 'Gennaro',
     epithet: 'Il Rivale di Sempre',
     aiProfileId: 'gennaro_rivale',
-    intro: [
-      'Siamo arrivati fin qui insieme. Ma solo uno entra dal Sovrano.',
-      'Ultimo giro, amico mio. Poi tocca a lui.',
-    ],
+    intro: 'Siamo arrivati fin qui insieme. Ma solo uno entra dal Sovrano.',
     banter: [
       'Dall’osteria al Gran Casinò. Chi l’avrebbe detto.',
       'Ti ho visto imparare. Non basta.',
@@ -167,7 +150,7 @@ export function getRegularForAnte(ante: number): Regular {
 }
 
 export function getOpponentIntro(ante: number, round: number): OpponentIntro {
-  if (round === 3) {
+  if (isBossEncounter(round)) {
     const boss =
       ALL_BOSS_BLINDS.find((candidate) => candidate.ante === ante) || ALL_BOSS_BLINDS[0];
     return {
@@ -190,7 +173,7 @@ export function getOpponentIntro(ante: number, round: number): OpponentIntro {
     aiProfileId: regular.aiProfileId,
     name: regular.name,
     title: `${regular.epithet} · ${getTableThemeForAnte(ante).name}`,
-    quote: regular.intro[round === 2 ? 1 : 0],
+    quote: regular.intro,
     isBoss: false,
     boss: null,
     banter: regular.banter,

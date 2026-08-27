@@ -4,7 +4,11 @@ import { PixelAvatar } from './PixelAvatar';
 import { TableFeltPattern } from './TableFeltPattern';
 import { getTableThemeForAnte } from '../data/tableThemes';
 import { getOpponentIntro } from '../data/opponents';
-import { getBlindBaseReward, getBlindTargetScore } from '../game/gameState';
+import {
+  getBlindTargetScore,
+  getEncounterReward,
+  isBossEncounter,
+} from '../game/gameState';
 import { BRISCOLA_TARGET_POINTS, VICTORY_MODES, VictoryMode } from '../game/victoryModes';
 import { BOSS_RULES } from '../game/bossRules';
 import { ALL_BOSS_BLINDS } from '../data/bosses';
@@ -20,10 +24,16 @@ interface BlindSelectViewProps {
   onSitDown: () => void;
 }
 
-const BLIND_LABELS: Record<number, { name: string; tag: string; multiplier: string }> = {
-  1: { name: 'Piccolo Buio', tag: 'SMALL', multiplier: '×1' },
-  2: { name: 'Grande Buio', tag: 'BIG', multiplier: '×1.5' },
-  3: { name: 'Sfida al Boss', tag: 'BOSS', multiplier: '×2' },
+/**
+ * I due incontri di un Ante.
+ *
+ * Erano tre - Piccolo Buio, Grande Buio, Boss - e il secondo era il primo
+ * un'altra volta. Ogni incontro qui e' una Briscola intera, quindi accorciare
+ * la run significa toglierne uno, non tagliare la partita.
+ */
+const ENCOUNTER_LABELS: Record<number, { name: string; tag: string; multiplier: string }> = {
+  1: { name: 'Il Tavolo', tag: 'TAVOLO', multiplier: '×1.25' },
+  2: { name: 'Sfida al Boss', tag: 'BOSS', multiplier: '×2' },
 };
 
 /**
@@ -75,14 +85,13 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
 
   const targetFor = (blindRound: number) =>
     getBlindTargetScore(ante, blindRound, {
-      bossMultiplier: blindRound === 3 ? BOSS_RULES.getTargetScoreMultiplier(boss) : 1,
+      bossMultiplier: isBossEncounter(blindRound) ? BOSS_RULES.getTargetScoreMultiplier(boss) : 1,
       deckMultiplier,
     });
 
-  // Every blind of an ante pays the same base reward; interest and the Briscola
-  // bonus are earned at the table, not promised here.
-  const blindReward = getBlindBaseReward(ante);
-
+  // The two encounters pay differently now - 1.25 and 1.75 of the ante's base -
+  // so each card carries its own figure. Interest and the Briscola bonus are
+  // earned at the table, not promised here.
   const modeInfo = VICTORY_MODES[victoryMode];
 
   return (
@@ -210,15 +219,15 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
           </div>
         </div>
 
-        {/* The three blinds of the Ante: where you are and what is coming. */}
+        {/* The two encounters of the Ante: where you are and what is coming. */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25, duration: 0.35 }}
-          className="grid grid-cols-3 gap-1.5 sm:gap-2 shrink-0"
+          className="grid grid-cols-2 gap-1.5 sm:gap-2 shrink-0"
         >
-          {[1, 2, 3].map((blindRound) => {
-            const info = BLIND_LABELS[blindRound];
+          {[1, 2].map((blindRound) => {
+            const info = ENCOUNTER_LABELS[blindRound];
             const isCurrent = blindRound === round;
             const isDone = blindRound < round;
             return (
@@ -226,7 +235,7 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
                 key={blindRound}
                 className={`rounded-xl border-2 p-2 sm:p-2.5 pixel-box flex flex-col gap-1 transition-colors ${
                   isCurrent
-                    ? blindRound === 3
+                    ? isBossEncounter(blindRound)
                       ? 'bg-red-950/80 border-red-500 shadow-lg shadow-red-900/40'
                       : 'bg-amber-950/70 border-amber-400 shadow-lg shadow-amber-900/30'
                     : isDone
@@ -237,7 +246,7 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
                 <div className="flex items-center justify-between gap-1">
                   <span
                     className={`font-pixel text-[7.5px] sm:text-[9px] font-bold uppercase ${
-                      blindRound === 3 ? 'text-red-300' : 'text-amber-300'
+                      isBossEncounter(blindRound) ? 'text-red-300' : 'text-amber-300'
                     }`}
                   >
                     {info.tag}
@@ -278,7 +287,7 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
                   </div>
                 )}
                 <div className="font-pixel text-[7.5px] sm:text-[8.5px] text-amber-500/90">
-                  Premio ${blindReward}
+                  Premio ${getEncounterReward(ante, blindRound)}
                 </div>
               </div>
             );
@@ -322,7 +331,7 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
           className={`rounded-xl border-2 px-3 py-2 flex items-start gap-2.5 shrink-0 ${
-            round === 3
+            isBossEncounter(round)
               ? 'bg-gradient-to-r from-red-950/95 via-red-900/85 to-red-950/95 border-red-500/80'
               : 'bg-slate-950/70 border-slate-700/70'
           }`}
@@ -331,14 +340,14 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
           <div className="min-w-0">
             <div
               className={`font-pixel text-[8px] sm:text-[9.5px] font-bold uppercase tracking-wide ${
-                round === 3 ? 'text-red-300' : 'text-slate-400'
+                isBossEncounter(round) ? 'text-red-300' : 'text-slate-400'
               }`}
             >
-              {round === 3 ? 'Malus attivo' : `In fondo all'Ante · ${boss.name}`}
+              {isBossEncounter(round) ? 'Malus attivo' : `In fondo all'Ante · ${boss.name}`}
             </div>
             <div
               className={`font-retro text-[11px] sm:text-xs leading-tight mt-0.5 ${
-                round === 3 ? 'text-red-100' : 'text-slate-300'
+                isBossEncounter(round) ? 'text-red-100' : 'text-slate-300'
               }`}
             >
               {boss.debuffDescription}
@@ -359,12 +368,12 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
             onSitDown();
           }}
           className={`w-full font-pixel text-xs sm:text-base font-bold py-3.5 sm:py-4 rounded-xl pixel-box shadow-xl cursor-pointer flex items-center justify-center gap-2 shrink-0 transition-transform hover:scale-[1.01] ${
-            round === 3
+            isBossEncounter(round)
               ? 'bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-500 text-white'
               : 'bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 text-slate-950'
           }`}
         >
-          <span>{round === 3 ? 'AFFRONTA IL BOSS' : 'SIEDITI AL TAVOLO'}</span>
+          <span>{isBossEncounter(round) ? 'AFFRONTA IL BOSS' : 'SIEDITI AL TAVOLO'}</span>
           <span>➔</span>
         </motion.button>
       </div>

@@ -28,6 +28,7 @@ import {
   applyTrickResult,
   calculateRoundOutcome,
   RoundStateSnapshot,
+  isBossEncounter,
 } from './game/gameState';
 import { createCard, resolveTrick } from './game/briscola';
 import { chooseOpponentFollow, chooseOpponentLead } from './game/ai';
@@ -272,7 +273,8 @@ export function App() {
   const [phase, setPhase] = useState<GamePhase>('title');
   const [selectedDeck, setSelectedDeck] = useState<DeckDefinition>(ALL_DECKS[0]);
   const [ante, setAnte] = useState<number>(1);
-  const [round, setRound] = useState<number>(1); // 1 = Small Blind, 2 = Big Blind, 3 = Boss
+  /** 1 = Tavolo, 2 = Boss. Two encounters an Ante, both full games of Briscola. */
+  const [round, setRound] = useState<number>(1);
   const [money, setMoney] = useState<number>(4);
   const [discardsLeft, setDiscardsLeft] = useState<number>(1);
   const [targetScore, setTargetScore] = useState<number>(300);
@@ -485,9 +487,9 @@ export function App() {
     forcedTrickWinRef.current = false;
     setTallyData(null);
 
-    // Check if Boss round (Round 3)
+    // The second encounter of every Ante is the Boss.
     let bossToSet: BossBlind | null = null;
-    if (currentRoundNum === 3) {
+    if (isBossEncounter(currentRoundNum)) {
       bossToSet = ALL_BOSS_BLINDS.find((b) => b.ante === currentAnte) || ALL_BOSS_BLINDS[0];
       setActiveBoss(bossToSet);
       activeBossRef.current = bossToSet;
@@ -1038,7 +1040,7 @@ export function App() {
       }
 
       if (outcome.won) {
-        if (round === 3) setBossesDefeated((n) => n + 1);
+        if (isBossEncounter(round)) setBossesDefeated((n) => n + 1);
         sound.playRoundWin();
         confetti({ particleCount: 70, spread: 80 });
 
@@ -1324,7 +1326,7 @@ export function App() {
 
     if (roundSummary.won) {
       setRoundSummary(null);
-      if (ante >= 8 && round === 3) {
+      if (ante >= 8 && isBossEncounter(round)) {
         setPhase('game_over');
       } else {
         sound.playShopEnter();
@@ -1385,8 +1387,10 @@ export function App() {
   };
 
   const handleNextRoundFromShop = () => {
-    const nextAnte = round >= 3 ? ante + 1 : ante;
-    const nextRound = round >= 3 ? 1 : round + 1;
+    // Tavolo, shop, Boss, shop, next Ante. The Ante 8 Boss never reaches here:
+    // clearing it ends the run.
+    const nextAnte = isBossEncounter(round) ? ante + 1 : ante;
+    const nextRound = isBossEncounter(round) ? 1 : round + 1;
     setAnte(nextAnte);
     setRound(nextRound);
     setPendingRound({ ante: nextAnte, round: nextRound, deck: selectedDeck, runDeck });
