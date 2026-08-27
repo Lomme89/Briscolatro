@@ -3,6 +3,7 @@ import { createCard, resolveTrick } from './briscola';
 import { resolveSpecialForTrick, SPECIAL_INFO, visiblePlayerCards } from './specialCards';
 import { calculateTrickScore } from './scoring';
 import { chooseOpponentLead } from './ai';
+import { NEUTRAL_PROFILE } from './aiProfiles';
 import { applyTrickResult, RoundStateSnapshot } from './gameState';
 import { PlayingCard, CardSpecial } from '../types/game';
 
@@ -108,10 +109,13 @@ describe('Segnata', () => {
       createCard('coppe', 9, 'standard', 'none', 'none', 'cavallo_segnato', 'segnata'),
     ];
 
-    const blind = chooseOpponentLead(oppHand, { briscolaSuit: 'denari' });
+    // noise 0: this hand has one right answer and the test is about which.
+    const steady = { ...NEUTRAL_PROFILE, noise: 0 };
+    const blind = chooseOpponentLead(oppHand, { briscolaSuit: 'denari', profile: steady });
     const informed = chooseOpponentLead(oppHand, {
       briscolaSuit: 'denari',
       knownPlayerCards: marked,
+      profile: steady,
     });
 
     expect(blind!.id).toBe('fante_coppe');
@@ -128,6 +132,7 @@ describe('Segnata', () => {
     const informed = chooseOpponentLead(oppHand, {
       briscolaSuit: 'denari',
       knownPlayerCards: visiblePlayerCards(hidden),
+      profile: { ...NEUTRAL_PROFILE, noise: 0 },
     });
     expect(informed!.id).toBe('fante_coppe');
   });

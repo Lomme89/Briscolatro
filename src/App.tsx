@@ -43,6 +43,7 @@ import { PixelCard } from './components/PixelCard';
 import { TableFeltPattern } from './components/TableFeltPattern';
 import { getTableThemeForAnte } from './data/tableThemes';
 import { getOpponentIntro } from './data/opponents';
+import { getAiProfile } from './game/aiProfiles';
 import { ShopView } from './components/ShopView';
 import { BlindSelectView } from './components/BlindSelectView';
 import { ScoreTallyOverlay } from './components/ScoreTallyOverlay';
@@ -256,6 +257,22 @@ export function App() {
   const [isReverseActive, setIsReverseActive] = useState<boolean>(false);
   const [bossDebuffNeutralized, setBossDebuffNeutralized] = useState<boolean>(false);
   const [tricksPlayedInRound, setTricksPlayedInRound] = useState<number>(0);
+  /**
+   * Every card that has been face-up on this table this round, both sides.
+   *
+   * A ref rather than state: nothing renders from it, and the AI reads it from
+   * inside a delayed callback where state would be stale. It is the same record
+   * a player keeps in their head, which is the point - an opponent with a good
+   * memory reads this, and there is nothing else for it to read.
+   */
+  const playedCardsRef = useRef<PlayingCard[]>([]);
+  /**
+   * The temperament of tonight's opponent, fixed when the round starts.
+   *
+   * A ref because the AI runs from delayed callbacks where state would be one
+   * render behind, and because who is sitting there cannot change mid-round.
+   */
+  const opponentProfileRef = useRef(getAiProfile('neutral'));
   const [consecutiveWinStreak, setConsecutiveWinStreak] = useState<number>(0);
   const [capturedDenariRanksThisRound, setCapturedDenariRanksThisRound] = useState<Set<number>>(
     new Set()
@@ -353,6 +370,11 @@ export function App() {
     setPlayerTrickCard(null);
     setOpponentTrickCard(null);
     setTricksPlayedInRound(0);
+    playedCardsRef.current = [];
+    // Who you are playing tonight decides how they play, for the whole round.
+    opponentProfileRef.current = getAiProfile(
+      getOpponentIntro(currentAnte, currentRoundNum).aiProfileId
+    );
     setConsecutiveWinStreak(0);
     setCapturedDenariRanksThisRound(new Set());
     setActiveUnoMultiplier(1.0);
@@ -487,6 +509,8 @@ export function App() {
       // A Segnata card is the only thing it gets to know, and it knows it the
       // whole time that card is in hand.
       knownPlayerCards: visiblePlayerCards(playerHandRef.current),
+      profile: opponentProfileRef.current,
+      playedCards: playedCardsRef.current,
     });
 
     if (!chosenCard) {
@@ -518,6 +542,8 @@ export function App() {
       bossDebuff: getActiveBossDebuff(),
       isReverse: isReverseActiveRef.current,
       knownPlayerCards: visiblePlayerCards(playerHandRef.current),
+      profile: opponentProfileRef.current,
+      playedCards: playedCardsRef.current,
     });
 
     if (!chosenCard) {
@@ -552,6 +578,10 @@ export function App() {
     leadIsPlayer: boolean
   ) => {
     setTrickPhase('resolving');
+
+    // Both cards are face-up now, so both go into the public record. Memory is
+    // built only from here.
+    playedCardsRef.current = [...playedCardsRef.current, playerCard, oppCard];
 
     // Refs, not state: this runs from a delayed callback, and the boss that
     // rotates the Briscola changes these values between the play and the clash.

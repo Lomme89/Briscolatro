@@ -5,6 +5,8 @@ import { getTableThemeForAnte } from './tableThemes';
 export interface OpponentIntro {
   /** Matches a PixelAvatar character. */
   characterId: string;
+  /** The AI temperament to play this opponent with. */
+  aiProfileId: string;
   name: string;
   title: string;
   quote: string;
@@ -18,6 +20,8 @@ interface Regular {
   characterId: string;
   name: string;
   epithet: string;
+  /** Which temperament in aiProfiles.ts sits behind the face. */
+  aiProfileId: string;
   /** [primo blind, secondo blind]: la seconda è sempre una battuta da rivincita. */
   intro: [string, string];
   banter: string[];
@@ -38,6 +42,7 @@ const REGULARS: Regular[] = [
     characterId: 'gennaro',
     name: 'Gennaro',
     epithet: "L'Habitué",
+    aiProfileId: 'gennaro_habitue',
     intro: [
       'Ancora tu? Siediti, offro io il primo giro... e ti spenno.',
       'Ti è andata bene prima. Adesso però faccio sul serio.',
@@ -53,6 +58,7 @@ const REGULARS: Regular[] = [
     characterId: 'assunta',
     name: 'Nonna Assunta',
     epithet: 'La Bocciofila',
+    aiProfileId: 'assunta',
     intro: [
       'Qui i vecchietti giocano da cinquant’anni. Io da sessanta.',
       'Hanno smesso tutti di guardare le bocce per guardare noi due.',
@@ -67,6 +73,7 @@ const REGULARS: Regular[] = [
     characterId: 'mimi',
     name: 'Mimì Fiordaliso',
     epithet: 'La Soubrette',
+    aiProfileId: 'mimi',
     intro: [
       'Il palco è mio, tesoro. Il tavolo pure, se non ti dispiace.',
       'Bis richiesto dal pubblico: stavolta però ti faccio piangere.',
@@ -81,6 +88,7 @@ const REGULARS: Regular[] = [
     characterId: 'o_muto',
     name: "'O Muto",
     epithet: 'Quello che non parla',
+    aiProfileId: 'o_muto',
     intro: [
       'Meno chiacchiere. Carte.',
       'Ancora tu. Zitto e gioca.',
@@ -95,6 +103,7 @@ const REGULARS: Regular[] = [
     characterId: 'salvatore',
     name: 'Cadetto Salvatore',
     epithet: 'La Lama Giovane',
+    aiProfileId: 'salvatore',
     intro: [
       'Ho imparato a giocare tra queste lame. Tu no.',
       'Ogni presa qui si paga con qualcosa. Vediamo con cosa paghi tu.',
@@ -109,6 +118,7 @@ const REGULARS: Regular[] = [
     characterId: 'rocco',
     name: 'Rocco Spaccalegna',
     epithet: 'Il Boscaiolo',
+    aiProfileId: 'rocco',
     intro: [
       'Il tavolo è di quercia: regge tutto, anche le tue sconfitte.',
       'Un bastone, una carta. La differenza la fa il polso.',
@@ -123,6 +133,7 @@ const REGULARS: Regular[] = [
     characterId: 'esposito',
     name: 'Ragionier Esposito',
     epithet: 'Il Contabile',
+    aiProfileId: 'esposito',
     intro: [
       'Qui dentro impegnano pure la fede nuziale. Occhio al portafogli.',
       'Ho riaperto il registro apposta per te. Seconda riga.',
@@ -137,6 +148,7 @@ const REGULARS: Regular[] = [
     characterId: 'gennaro',
     name: 'Gennaro',
     epithet: 'Il Rivale di Sempre',
+    aiProfileId: 'gennaro_rivale',
     intro: [
       'Siamo arrivati fin qui insieme. Ma solo uno entra dal Sovrano.',
       'Ultimo giro, amico mio. Poi tocca a lui.',
@@ -165,6 +177,9 @@ export function getOpponentIntro(ante: number, round: number): OpponentIntro {
       quote: boss.bossQuote,
       isBoss: true,
       boss,
+      // Bosses already bend the rules of the round; a temperament on top would
+      // make it impossible to tell which of the two is beating you.
+      aiProfileId: 'neutral',
       banter: [boss.bossQuote],
     };
   }
@@ -172,6 +187,7 @@ export function getOpponentIntro(ante: number, round: number): OpponentIntro {
   const regular = getRegularForAnte(ante);
   return {
     characterId: regular.characterId,
+    aiProfileId: regular.aiProfileId,
     name: regular.name,
     title: `${regular.epithet} · ${getTableThemeForAnte(ante).name}`,
     quote: regular.intro[round === 2 ? 1 : 0],
