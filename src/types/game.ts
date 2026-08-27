@@ -24,11 +24,10 @@ export type Seal = 'none' | 'red' | 'blue' | 'gold' | 'purple';
 // gold: +$2 when captured
 // purple: create a free discard
 
-export type Enhancement = 'none' | 'bonus' | 'mult' | 'wild' | 'glass' | 'steel' | 'stone';
+export type Enhancement = 'none' | 'bonus' | 'mult' | 'wild' | 'steel' | 'stone';
 // bonus: +30 Chips
 // mult: +4 Mult
 // wild: Can count as any suit in combinations
-// glass: x2.0 Mult, 1 in 4 chance to shatter
 // steel: x1.5 Mult if held in hand (not played)
 // stone: +50 Chips, no suit/rank
 

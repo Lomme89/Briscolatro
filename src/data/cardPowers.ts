@@ -53,13 +53,6 @@ const ENHANCEMENT_POWERS: Record<Exclude<Enhancement, 'none'>, CardPower> = {
     description: 'Vale sempre come carta di Briscola, qualunque sia il seme.',
     className: 'bg-fuchsia-950 border-fuchsia-400 text-fuchsia-200',
   },
-  glass: {
-    // Not handed out any more: the Azzardo Vetro replaced it, and two things
-    // called Vetro would be one too many. Cards that already carry it keep it.
-    label: 'Fragile',
-    description: 'x2 Mult, ma 1 volta su 4 si spezza e perde il potenziamento.',
-    className: 'bg-cyan-950 border-cyan-400 text-cyan-200',
-  },
   steel: {
     label: 'Acciaio',
     description: 'x1.5 Mult finché resta in mano: paga se NON la giochi.',

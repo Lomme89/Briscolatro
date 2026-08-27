@@ -41,7 +41,7 @@ it('ante 1 is beatable without any joker, later antes are not', () => {
 
 it('the curve tracks what a real build can actually score', () => {
   const restore = seedRandom(999);
-  const TRIALS = 30;
+  const TRIALS = 300;
 
   const builds: [string, string[], number][] = [
     ['reference', ['j_carrettiere', 'j_vesuvio', 'j_briscola_folle', 'j_barone_briscola', 'j_cacciatore_carichi'], 1],

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createCard } from './briscola';
+import { isCardModifierCombinationValid, rollCardUpgrade } from './cardUpgrades';
 import {
   checkRunDeckIntegrity,
   clearSpecialInRunDeck,
@@ -125,6 +126,37 @@ describe('upgrading the 4 di Spade upgrades YOUR 4 di Spade', () => {
 
     expect(deck).toHaveLength(40);
     expect(deck.find((c) => c.id === target.id)!.special).toBe('none');
+    expect(checkRunDeckIntegrity(deck).valid).toBe(true);
+  });
+});
+
+describe('a whole run of upgrades never breaks the deck', () => {
+  it('two hundred booster picks leave forty unique identities, all legal', () => {
+    let deck = napoletano();
+    for (let i = 0; i < 200; i++) {
+      const drawn = deck[Math.floor(Math.random() * deck.length)];
+      const offer = rollCardUpgrade(drawn);
+      expect(isCardModifierCombinationValid(offer).valid).toBe(true);
+      deck = upgradeCardInRunDeck(deck, offer);
+      expect(checkRunDeckIntegrity(deck).problems).toEqual([]);
+    }
+
+    expect(deck).toHaveLength(40);
+    expect(new Set(deck.map((c) => `${c.suit}_${c.rank}`)).size).toBe(40);
+    // Nothing in the deck ended up in a combination the game refuses to make.
+    for (const card of deck) {
+      expect(isCardModifierCombinationValid(card).valid).toBe(true);
+      expect(card.enhancement as string).not.toBe('glass');
+    }
+  });
+
+  it('hammering the same card two hundred times still leaves one of it', () => {
+    let deck = napoletano();
+    for (let i = 0; i < 200; i++) {
+      const mine = deck.find((c) => c.suit === 'spade' && c.rank === 4)!;
+      deck = upgradeCardInRunDeck(deck, rollCardUpgrade(mine));
+      expect(deck.filter((c) => c.suit === 'spade' && c.rank === 4)).toHaveLength(1);
+    }
     expect(checkRunDeckIntegrity(deck).valid).toBe(true);
   });
 });

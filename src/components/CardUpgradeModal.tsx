@@ -27,7 +27,6 @@ const ENHANCEMENT_LABEL: Record<Enhancement, string> = {
   bonus: 'Bonus (+30 Chips)',
   mult: 'Mult (+4 Mult)',
   wild: 'Jolly (vale come Briscola)',
-  glass: 'Fragile (x2 Mult, può spezzarsi)',
   steel: 'Acciaio (x1.5 Mult in mano)',
   stone: 'Pietra (+50 Chips, senza seme)',
 };
@@ -149,6 +148,19 @@ export const CardUpgradeModal: React.FC<CardUpgradeModalProps> = ({
                   </p>
                   <p className="font-retro text-[10px] text-slate-500 italic leading-snug mt-1.5">
                     {newSpecial.flavor}
+                  </p>
+                </div>
+              )}
+
+              {/* The other half of the deal, said out loud: an upgrade with no
+                  Azzardo carries no risk at all, and that is a category, not an
+                  omission. */}
+              {!newSpecial && (
+                <div className="mt-3 border-2 border-slate-800 rounded-xl p-2.5 bg-slate-950/60 text-center">
+                  <span className="font-pixel text-[8px] text-sky-300">POTENZIAMENTO SICURO</span>
+                  <p className="font-retro text-[10px] text-slate-400 leading-snug mt-1">
+                    Nessun rischio e nessun costo: questa carta diventa
+                    semplicemente più forte.
                   </p>
                 </div>
               )}

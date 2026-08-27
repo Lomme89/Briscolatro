@@ -17,7 +17,6 @@ const ENHANCEMENT_BADGES: Record<
   bonus: { label: '+30', title: 'Bonus: +30 Chips', className: 'bg-sky-600 text-white border-sky-300' },
   mult: { label: '+4x', title: 'Mult: +4 Mult', className: 'bg-red-600 text-white border-red-300' },
   wild: { label: 'JOLLY', title: 'Wild: vale sempre come Briscola', className: 'bg-fuchsia-600 text-white border-fuchsia-300' },
-  glass: { label: 'X2', title: 'Fragile: x2 Mult, 1 su 4 si spezza', className: 'bg-cyan-500 text-slate-900 border-cyan-200' },
   steel: { label: 'X1.5', title: 'Acciaio: x1.5 Mult mentre resta in mano', className: 'bg-slate-400 text-slate-900 border-slate-200' },
   stone: { label: 'PIETRA', title: 'Pietra: +50 Chips, nessun seme', className: 'bg-stone-500 text-white border-stone-300' },
 };

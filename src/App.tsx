@@ -601,7 +601,7 @@ export function App() {
       );
 
       // Seals: a blue seal can roll a free UNO card, a purple one refunds a
-      // discard, and a glass card that shattered loses its enhancement for good.
+      // discard.
       const seals = scoreResult.sealEvents;
       if (seals.extraDiscards > 0) {
         setDiscardsLeft((d) => d + seals.extraDiscards);
@@ -614,13 +614,6 @@ export function App() {
         });
         setOpponentSpeech('Sigillo Blu: una Carta Sola gratis!');
       }
-      if (seals.shatteredCardIds.length > 0) {
-        const shattered = new Set(seals.shatteredCardIds);
-        setRunDeck((prev) =>
-          prev.map((c) => (shattered.has(c.id) ? { ...c, enhancement: 'none' as const } : c))
-        );
-      }
-
       // The Azzardo's dollars ride along in scoreResult.bonusDollars, which
       // handleTallyComplete pays out: charging again here would take it twice.
       if (scoreResult.special.unpaidDebt) {

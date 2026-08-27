@@ -129,7 +129,11 @@ export function stats(runs: RoundSim[]) {
 export function upgradedRunDeck(count: number): PlayingCard[] {
   const deck = createStandardDeck();
   const editions = ['foil', 'holo', 'polychrome'] as const;
-  const enhancements = ['bonus', 'mult', 'steel', 'glass'] as const;
+  // Glass used to hold the fourth slot here. It is gone from the game, and the
+  // Azzardi that replaced it are deliberately not modelled: this fixture is the
+  // safe half of the shop, so the curve is measured against upgrades that carry
+  // no risk of their own.
+  const enhancements = ['bonus', 'mult', 'steel'] as const;
   const seals = ['red', 'gold', 'none', 'none'] as const;
   for (let i = 0; i < Math.min(count, deck.length); i++) {
     deck[i] = {

@@ -9,8 +9,6 @@ export interface SealEvents {
   spawnUnoCard: boolean;
   /** A purple seal on the played card refunded a discard. */
   extraDiscards: number;
-  /** Glass cards that shattered and must lose their enhancement in the run deck. */
-  shatteredCardIds: string[];
 }
 
 export interface TrickScoreCalculation {
@@ -78,7 +76,7 @@ export function calculateTrickScore(
     (figureCaptured > 0 ? 1 : 0) +
     (clashResult.playerWon && clashResult.playerIsBriscola ? 1 : 0);
 
-  const sealEvents: SealEvents = { spawnUnoCard: false, extraDiscards: 0, shatteredCardIds: [] };
+  const sealEvents: SealEvents = { spawnUnoCard: false, extraDiscards: 0 };
 
   // --- The played card's own contribution ---------------------------------
   // A red seal retriggers it, exactly once, the way Balatro's does.
@@ -107,9 +105,6 @@ export function calculateTrickScore(
       case 'stone':
         bonusChips += 50;
         break;
-      case 'glass':
-        xMult *= 2;
-        break;
       default:
         break;
     }
@@ -118,13 +113,6 @@ export function calculateTrickScore(
     if (pass > 0) bonusChips += playerCard.points * 3;
     bonusChips += playerCard.customBonusChips || 0;
     bonusMult += playerCard.customBonusMult || 0;
-  }
-
-  // The old glass enhancement is a coin flip on every play. It stays in the
-  // engine for cards that already carry it, but nothing hands it out any more:
-  // the Azzardo Vetro says exactly when it breaks, which is the point.
-  if (playerCard.enhancement === 'glass' && Math.random() < 0.25) {
-    sealEvents.shatteredCardIds.push(playerCard.id);
   }
 
   if (playerCard.seal === 'purple') sealEvents.extraDiscards += 1;

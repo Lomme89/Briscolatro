@@ -970,12 +970,22 @@ export const GameTable: React.FC<GameTableProps> = ({
               <span className="font-pixel text-[7px] text-amber-300">
                 {SPECIAL_INFO[selectedCard.special].badge}
               </span>
-              <span className="font-retro text-[10px] text-slate-300 ml-1.5">
-                {SPECIAL_INFO[selectedCard.special].bonus}
-              </span>
-              <span className="font-retro text-[10px] text-rose-300 block leading-tight">
-                {SPECIAL_INFO[selectedCard.special].cost}
-              </span>
+              {/* With an empty till A Debito simply does not fire: the player
+                  has to know that before playing it, not after. */}
+              {selectedCard.special === 'debito' && money < 1 ? (
+                <span className="font-retro text-[10px] text-slate-400 ml-1.5">
+                  Non hai $1: la carta si gioca normalmente, senza bonus e senza costo.
+                </span>
+              ) : (
+                <>
+                  <span className="font-retro text-[10px] text-slate-300 ml-1.5">
+                    {SPECIAL_INFO[selectedCard.special].bonus}
+                  </span>
+                  <span className="font-retro text-[10px] text-rose-300 block leading-tight">
+                    {SPECIAL_INFO[selectedCard.special].cost}
+                  </span>
+                </>
+              )}
             </div>
           )}
 
