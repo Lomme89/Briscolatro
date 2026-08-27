@@ -106,28 +106,70 @@ export function createRunDeck(deckDef: DeckDefinition): PlayingCard[] {
 }
 
 /**
- * Adds a shop/booster card to the persistent run deck by REPLACING the least
- * valuable plain card instead of appending.
+ * The card the engine would drop if nobody chose: the cheapest plain one.
  *
- * Two-player Briscola needs an even deck: the stock is dealt in pairs and the
- * face-up trump is the last card drawn. A 41-card run deck leaves one card
- * over at the end of the round and desynchronises the two hands, so cards
- * bought in the shop take the place of an existing one.
+ * This is the safety net, not the normal path. A low card is not a bad card -
+ * a liscia of the right suit is what makes a Jolly work - so the choice
+ * belongs to the player, and this only covers the paths that never ask.
  */
-export function addCardToRunDeck(runDeck: PlayingCard[], newCard: PlayingCard): PlayingCard[] {
-  if (runDeck.length === 0) return [newCard];
+export function fallbackWeakestCardId(runDeck: PlayingCard[]): string | null {
+  if (runDeck.length === 0) return null;
 
   const isPlain = (card: PlayingCard) =>
     card.edition === 'standard' && card.seal === 'none' && card.enhancement === 'none';
 
   const candidates = runDeck.filter(isPlain);
   const pool = candidates.length > 0 ? candidates : runDeck;
-  const weakest = [...pool].sort((a, b) => a.points - b.points || a.power - b.power)[0];
+  return [...pool].sort((a, b) => a.points - b.points || a.power - b.power)[0].id;
+}
 
-  const index = runDeck.findIndex((card) => card.id === weakest.id);
+/**
+ * Swaps one card of the run deck for another, keeping the deck exactly the
+ * size it was.
+ *
+ * Two-player Briscola needs an even deck: the stock is dealt in pairs and the
+ * face-up trump is the last card drawn. A 41-card run deck leaves one card over
+ * at the end of the round and desynchronises the two hands, so a card taken
+ * from a booster takes the place of one already there.
+ *
+ * `removedCardId` is the card the player picked in the replacement screen. When
+ * it is null - or names a card that is no longer in the deck - the fallback
+ * above decides, so no code path can produce an invalid deck.
+ */
+export function replaceCardInRunDeck(
+  runDeck: PlayingCard[],
+  removedCardId: string | null,
+  newCard: PlayingCard
+): PlayingCard[] {
+  if (runDeck.length === 0) return [newCard];
+
+  let index = removedCardId ? runDeck.findIndex((card) => card.id === removedCardId) : -1;
+  if (index === -1) {
+    const fallbackId = fallbackWeakestCardId(runDeck);
+    index = runDeck.findIndex((card) => card.id === fallbackId);
+  }
+  if (index === -1) index = 0;
+
+  // Ids address cards everywhere - hands, tricks, the forger's stamp - so two
+  // cards sharing one would make the deck ambiguous. The modifiers are the
+  // reason the card was taken and are never touched.
+  const collides = runDeck.some((card, i) => i !== index && card.id === newCard.id);
+  const inserted = collides
+    ? { ...newCard, id: `${newCard.suit}_${newCard.rank}_${Math.random().toString(36).substring(2, 9)}` }
+    : newCard;
+
   const next = [...runDeck];
-  next[index] = newCard;
+  next[index] = inserted;
   return next;
+}
+
+/**
+ * Kept for the paths that hand over a card with no screen to choose in.
+ * The normal booster flow goes through replaceCardInRunDeck with the card the
+ * player picked.
+ */
+export function addCardToRunDeck(runDeck: PlayingCard[], newCard: PlayingCard): PlayingCard[] {
+  return replaceCardInRunDeck(runDeck, null, newCard);
 }
 
 export function prepareRoundDeck(runDeck: PlayingCard[]): {

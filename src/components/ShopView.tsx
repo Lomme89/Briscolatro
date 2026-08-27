@@ -8,6 +8,7 @@ import { JokerSlot } from './JokerSlot';
 import { UnoCardSlot } from './UnoCardSlot';
 import { PixelCard } from './PixelCard';
 import { CardInspectorModal } from './CardInspectorModal';
+import { DeckReplaceModal } from './DeckReplaceModal';
 import { InspectableItem, ItemInspectorModal } from './ItemInspectorModal';
 import { PICKER_CARD_BOX } from './cardSizing';
 import { CardFaceArt, getJokerArtUrl, getUnoArtUrl } from './CardFaceArt';
@@ -26,7 +27,9 @@ interface ShopViewProps {
   onBuyVoucher: (voucher: Voucher) => void;
   onSellJoker: (index: number) => void;
   onSellUnoCard: (index: number) => void;
-  onAddCardToDeck: (card: PlayingCard) => void;
+  /** The player picks both the card that enters and the one it replaces. */
+  onAddCardToDeck: (card: PlayingCard, removedCardId: string) => void;
+  runDeck: PlayingCard[];
   onNextRound: () => void;
   onReroll: (cost: number) => void;
   ante: number;
@@ -77,6 +80,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
   onSellJoker,
   onSellUnoCard,
   onAddCardToDeck,
+  runDeck,
   onNextRound,
   onReroll,
   ante,
@@ -107,6 +111,8 @@ export const ShopView: React.FC<ShopViewProps> = ({
   // A booster card is picked at thumbnail size, so it opens in the inspector
   // first: the artwork at a readable size and every power written out.
   const [inspectedCard, setInspectedCard] = useState<PlayingCard | null>(null);
+  // The booster card waiting for the player to say which card it replaces.
+  const [pendingDeckCard, setPendingDeckCard] = useState<PlayingCard | null>(null);
   // Same idea for the jolly and the carte UNO of a booster: their slots carry a
   // tooltip built for the table, which in a grid covers the neighbours.
   const [inspectedBoosterItem, setInspectedBoosterItem] = useState<InspectableItem | null>(null);
@@ -189,10 +195,23 @@ export const ShopView: React.FC<ShopViewProps> = ({
     });
   };
 
+  // Picking the card is only half of it: the deck has a fixed size, so the
+  // player now says which card leaves. Nothing is spent until they confirm -
+  // cancelling drops back into the pack with every option still on the table.
   const handleSelectBoosterCard = (card: PlayingCard) => {
     if (!activeBooster) return;
+    if (runDeck.length === 0) {
+      commitBoosterCard(card, '');
+      return;
+    }
+    sound.playCardSelect();
+    setPendingDeckCard(card);
+  };
+
+  const commitBoosterCard = (card: PlayingCard, removedCardId: string) => {
+    if (!activeBooster) return;
     sound.playCashChime();
-    onAddCardToDeck(card);
+    onAddCardToDeck(card, removedCardId);
 
     const nextCount = activeBooster.selectedCount + 1;
     if (nextCount >= activeBooster.pack.selectCount) {
@@ -793,7 +812,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
                 </span>
                 {activeBooster.cards.length > 0 && (
                   <span className="block text-[10px] text-slate-400 mt-1">
-                    Ogni carta scelta prende il posto della carta più debole del mazzo (il mazzo resta di 40 carte).
+                    Ogni carta scelta prende il posto di una carta del mazzo: scegli tu quale (il mazzo resta di {runDeck.length} carte).
                   </span>
                 )}
               </p>
@@ -866,6 +885,18 @@ export const ShopView: React.FC<ShopViewProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* The card is chosen, now the deck says who leaves. */}
+      <DeckReplaceModal
+        newCard={pendingDeckCard}
+        runDeck={runDeck}
+        onConfirm={(removedCardId) => {
+          const card = pendingDeckCard;
+          setPendingDeckCard(null);
+          if (card) commitBoosterCard(card, removedCardId);
+        }}
+        onCancel={() => setPendingDeckCard(null)}
+      />
 
       {/* Card inspector, opened by tapping a booster card */}
       <CardInspectorModal

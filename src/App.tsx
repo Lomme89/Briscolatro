@@ -17,7 +17,7 @@ import { ALL_BOSS_BLINDS } from './data/bosses';
 import { ALL_UNO_CARDS, ALL_VOUCHERS } from './data/unoCards';
 import {
   createRunDeck,
-  addCardToRunDeck,
+  replaceCardInRunDeck,
   getBlindTargetScore,
   prepareRoundDeck,
   performExchangeDiscard,
@@ -1124,10 +1124,12 @@ export function App() {
     setConsumables((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleAddCardToDeck = (card: PlayingCard) => {
+  const handleAddCardToDeck = (card: PlayingCard, removedCardId?: string) => {
     // Replaces a card instead of growing the deck: an odd run deck breaks the
-    // paired stock draw and desynchronises the two hands mid-round.
-    setRunDeck((prev) => addCardToRunDeck(prev, card));
+    // paired stock draw and desynchronises the two hands mid-round. Which card
+    // leaves is the player's call; a missing id falls back to the weakest one
+    // rather than letting the deck end up the wrong size.
+    setRunDeck((prev) => replaceCardInRunDeck(prev, removedCardId ?? null, card));
   };
 
   const handleNextRoundFromShop = () => {
@@ -1375,6 +1377,7 @@ export function App() {
             onSellJoker={handleSellJoker}
             onSellUnoCard={handleSellUnoCard}
             onAddCardToDeck={handleAddCardToDeck}
+            runDeck={runDeck}
             onNextRound={handleNextRoundFromShop}
             onReroll={(cost) => setMoney((m) => Math.max(0, m - cost))}
             ante={ante}
