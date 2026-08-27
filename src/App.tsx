@@ -44,6 +44,13 @@ import { TableFeltPattern } from './components/TableFeltPattern';
 import { getTableThemeForAnte } from './data/tableThemes';
 import { getOpponentIntro } from './data/opponents';
 import { getAiProfile } from './game/aiProfiles';
+import {
+  DEFAULT_VICTORY_MODE,
+  parseVictoryMode,
+  VICTORY_MODES,
+  VictoryCheck,
+  VictoryMode,
+} from './game/victoryModes';
 import { readPlayerThreat } from './game/opponentThreat';
 import { ShopView } from './components/ShopView';
 import { BlindSelectView } from './components/BlindSelectView';
@@ -52,6 +59,7 @@ import { RoundSummaryModal, RoundSummaryData } from './components/RoundSummaryMo
 import { GameOverModal, GameOverSummaryData } from './components/GameOverModal';
 import { TutorialModal } from './components/TutorialModal';
 import { DeckSelectModal } from './components/DeckSelectModal';
+import { VictoryModeSelectModal } from './components/VictoryModeSelectModal';
 import { DeckViewerModal } from './components/DeckViewerModal';
 import { SettingsModal } from './components/SettingsModal';
 import { UnoCastOverlay } from './components/UnoCastOverlay';
@@ -172,6 +180,68 @@ export function App() {
     }
   });
 
+  /**
+   * Which rules this run is being played under.
+   *
+   * A save from before modes existed has no key, and lands in Briscolatro:
+   * that is the game it was playing. Nothing else about the save is touched.
+   */
+  const [victoryMode, setVictoryMode] = useState<VictoryMode>(() => {
+    try {
+      return parseVictoryMode(localStorage.getItem('briscolatro_victory_mode'));
+    } catch {
+      return DEFAULT_VICTORY_MODE;
+    }
+  });
+  /** Best total score per mode: four rules, four records, never compared. */
+  const [highScores, setHighScores] = useState<Record<VictoryMode, number>>(() => {
+    const read = (key: string) => {
+      try {
+        return parseInt(localStorage.getItem(key) || '0', 10) || 0;
+      } catch {
+        return 0;
+      }
+    };
+    return {
+      // The historical record moves here and nowhere else: the old game asked
+      // for the Chips target, which is exactly what Briscolatro asks for.
+      briscolatro: read(VICTORY_MODES.briscolatro.highScoreKey),
+      sbaraglio: read(VICTORY_MODES.sbaraglio.highScoreKey),
+      traditional: read(VICTORY_MODES.traditional.highScoreKey),
+      double_challenge: read(VICTORY_MODES.double_challenge.highScoreKey),
+    };
+  });
+  /** Runs cleared per mode, for the title screen. */
+  const [modeWins, setModeWins] = useState<Record<VictoryMode, number>>(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem('briscolatro_mode_wins') || '{}');
+      return {
+        briscolatro: raw.briscolatro ?? 0,
+        sbaraglio: raw.sbaraglio ?? 0,
+        traditional: raw.traditional ?? 0,
+        double_challenge: raw.double_challenge ?? 0,
+      };
+    } catch {
+      return { briscolatro: 0, sbaraglio: 0, traditional: 0, double_challenge: 0 };
+    }
+  });
+  /** Highest Ante reached per mode. */
+  const [modeBestAnte, setModeBestAnte] = useState<Record<VictoryMode, number>>(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem('briscolatro_mode_ante') || '{}');
+      return {
+        briscolatro: raw.briscolatro ?? 0,
+        sbaraglio: raw.sbaraglio ?? 0,
+        traditional: raw.traditional ?? 0,
+        double_challenge: raw.double_challenge ?? 0,
+      };
+    } catch {
+      return { briscolatro: 0, sbaraglio: 0, traditional: 0, double_challenge: 0 };
+    }
+  });
+  /** The verdict on the round just played, for the summary and the HUD. */
+  const [lastVictory, setLastVictory] = useState<VictoryCheck | null>(null);
+
   const [highScore, setHighScore] = useState<number>(() => {
     try {
       return parseInt(localStorage.getItem('briscolatro_highscore') || '0', 10);
@@ -185,10 +255,15 @@ export function App() {
     setHighScore(0);
     setUnlockedDeckIds(DEFAULT_UNLOCKED_DECKS);
     setSolaCardsUsed(0);
+    setHighScores({ briscolatro: 0, sbaraglio: 0, traditional: 0, double_challenge: 0 });
+    setModeWins({ briscolatro: 0, sbaraglio: 0, traditional: 0, double_challenge: 0 });
+    setModeBestAnte({ briscolatro: 0, sbaraglio: 0, traditional: 0, double_challenge: 0 });
     try {
-      localStorage.removeItem('briscolatro_highscore');
       localStorage.removeItem('briscolatro_unlocked_decks');
       localStorage.removeItem('briscolatro_sola_used');
+      localStorage.removeItem('briscolatro_mode_wins');
+      localStorage.removeItem('briscolatro_mode_ante');
+      for (const info of Object.values(VICTORY_MODES)) localStorage.removeItem(info.highScoreKey);
     } catch {}
     sound.playCardFlick();
   };
@@ -302,6 +377,8 @@ export function App() {
   const [gameOverSummary, setGameOverSummary] = useState<GameOverSummaryData | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
   const [showDeckSelect, setShowDeckSelect] = useState(false);
+  /** The deck chosen, waiting on the rule the run will be played under. */
+  const [pendingDeck, setPendingDeck] = useState<DeckDefinition | null>(null);
   const [showDeckViewer, setShowDeckViewer] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
@@ -455,7 +532,12 @@ export function App() {
   };
 
   // --- Start a New Run ---
-  const startNewRun = (deck: DeckDefinition = selectedDeck) => {
+  const startNewRun = (deck: DeckDefinition = selectedDeck, mode: VictoryMode = victoryMode) => {
+    setVictoryMode(mode);
+    try {
+      localStorage.setItem('briscolatro_victory_mode', mode);
+    } catch {}
+    setLastVictory(null);
     setSelectedDeck(deck);
     setAnte(1);
     setBossesDefeated(0);
@@ -507,6 +589,12 @@ export function App() {
     setPendingRound({ ante: 1, round: 1, deck, runDeck: newRunDeck });
     setPhase('blind_select');
     sound.playCardFlick();
+  };
+
+  /** Deck first, then the rule, then the table. */
+  const handleDeckChosen = (deck: DeckDefinition) => {
+    setShowDeckSelect(false);
+    setPendingDeck(deck);
   };
 
   /**
@@ -789,6 +877,7 @@ export function App() {
       activeJokers,
       bossesDefeated,
       solaCardsUsed,
+      victoryMode,
     };
 
     // 1. Update scores & money deterministically
@@ -893,10 +982,26 @@ export function App() {
       // Evaluate outcome
       const outcome = calculateRoundOutcome(nextSnapshot, highScore, unlockedDeckIds);
 
-      if (outcome.newHighScore) {
-        setHighScore(nextSnapshot.totalScore);
+      setLastVictory(outcome.victory);
+
+      // Four rules mean four records: a Briscola run and a Briscolatro run are
+      // not the same achievement and must never overwrite each other.
+      if (nextSnapshot.totalScore > highScores[victoryMode]) {
+        setHighScores((prev) => ({ ...prev, [victoryMode]: nextSnapshot.totalScore }));
         try {
-          localStorage.setItem('briscolatro_highscore', `${nextSnapshot.totalScore}`);
+          localStorage.setItem(
+            VICTORY_MODES[victoryMode].highScoreKey,
+            `${nextSnapshot.totalScore}`
+          );
+        } catch {}
+      }
+      if (outcome.newHighScore) setHighScore(nextSnapshot.totalScore);
+
+      if (ante > modeBestAnte[victoryMode]) {
+        const updatedAnte = { ...modeBestAnte, [victoryMode]: ante };
+        setModeBestAnte(updatedAnte);
+        try {
+          localStorage.setItem('briscolatro_mode_ante', JSON.stringify(updatedAnte));
         } catch {}
       }
 
@@ -932,6 +1037,7 @@ export function App() {
           opponentTricksWon: nextSnapshot.roundTricksLost,
           totalTricks: nextSnapshot.roundTricksWon + nextSnapshot.roundTricksLost,
           won: true,
+          victory: outcome.victory,
           bossName: activeBoss?.name,
           bossAvatar: activeBoss?.avatar,
           cashEarned: outcome.baseReward,
@@ -943,6 +1049,11 @@ export function App() {
 
         if (outcome.isAnte8Victory) {
           // The whole run, not just a blind: this is what the fanfare is for.
+          const wins = { ...modeWins, [victoryMode]: modeWins[victoryMode] + 1 };
+          setModeWins(wins);
+          try {
+            localStorage.setItem('briscolatro_mode_wins', JSON.stringify(wins));
+          } catch {}
           sound.playVictoryFanfare();
           setGameOverSummary({
             won: true,
@@ -976,6 +1087,7 @@ export function App() {
           opponentTricksWon: nextSnapshot.roundTricksLost,
           totalTricks: nextSnapshot.roundTricksWon + nextSnapshot.roundTricksLost,
           won: false,
+          victory: outcome.victory,
           bossName: activeBoss?.name,
           bossAvatar: activeBoss?.avatar,
           cashEarned: 0,
@@ -1429,6 +1541,7 @@ export function App() {
             deckMultiplier={
               pendingRound.deck.specialDeckPerk === 'high_stakes_vision' ? 1.25 : 1
             }
+            victoryMode={victoryMode}
             onSitDown={handleSitDown}
           />
         )}
@@ -1464,6 +1577,7 @@ export function App() {
             currentBoss={activeBoss}
             forcedLeadSuit={forcedLeadSuit}
             silencedJokerIndex={disabledJokerIndex}
+            victoryMode={victoryMode}
             bossDebuffNeutralized={bossDebuffNeutralized}
             opponentSpeech={opponentSpeech}
             onPlayCard={handlePlayCard}
@@ -1547,9 +1661,21 @@ export function App() {
           isOpen={showDeckSelect}
           onClose={() => setShowDeckSelect(false)}
           unlockedDeckIds={unlockedDeckIds}
-          onSelectDeck={(deck) => {
-            setShowDeckSelect(false);
-            startNewRun(deck);
+          onSelectDeck={handleDeckChosen}
+        />
+
+        <VictoryModeSelectModal
+          isOpen={pendingDeck !== null}
+          deck={pendingDeck}
+          highScores={highScores}
+          onBack={() => {
+            setPendingDeck(null);
+            setShowDeckSelect(true);
+          }}
+          onSelect={(mode) => {
+            const deck = pendingDeck;
+            setPendingDeck(null);
+            if (deck) startNewRun(deck, mode);
           }}
         />
 
@@ -1613,6 +1739,20 @@ export function App() {
           }}
           onWinRound={() => {
             setCurrentRoundScore((s) => s + targetScore);
+          }}
+          victoryMode={victoryMode}
+          onSetVictoryMode={(mode) => {
+            setVictoryMode(mode);
+            try {
+              localStorage.setItem('briscolatro_victory_mode', mode);
+            } catch {}
+          }}
+          onForceOutcome={(chips, briscola) => {
+            // Drops the round straight into one of the four corners of the two
+            // conditions, so every mode's verdict can be seen in a few clicks.
+            setCurrentRoundScore(chips ? targetScore : 0);
+            setRoundPointsTaken(briscola ? 61 : 40);
+            setOpponentPointsTaken(briscola ? 59 : 80);
           }}
           onGiveSpecial={(special) => {
             const target = playerHandRef.current[0];

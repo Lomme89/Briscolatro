@@ -1,5 +1,11 @@
 import { PlayingCard, Suit, CardRank, DeckDefinition, BossBlind, Voucher, Joker } from '../types/game';
 import { createStandardDeck, shuffleDeck } from './briscola';
+import {
+  DEFAULT_VICTORY_MODE,
+  evaluateVictoryCondition,
+  VictoryCheck,
+  VictoryMode,
+} from './victoryModes';
 
 export interface RoundStateSnapshot {
   currentRoundScore: number;
@@ -29,10 +35,14 @@ export interface RoundStateSnapshot {
   bossesDefeated: number;
   /** Carte Sola spent across every run: the Mazzo Sola counts them for good. */
   solaCardsUsed: number;
+  /** Which rules this run is being played under. Absent means the old game. */
+  victoryMode?: VictoryMode;
 }
 
 export interface RoundOutcomeResult {
   won: boolean;
+  /** The full verdict: which requirements passed, and by which route. */
+  victory: VictoryCheck;
   /** Took more than 60 of the 120 Briscola points: pays a cash bonus. */
   briscolaMajority: boolean;
   briscolaBonus: number;
@@ -379,12 +389,20 @@ export function calculateRoundOutcome(
   highScore: number,
   unlockedDeckIds: string[]
 ): RoundOutcomeResult {
-  // ONE win condition. Taking the majority of the Briscola points used to be an
-  // alternative victory, which made the target score decorative at low antes and
-  // the only survivable route at high ones; neither number carried any tension.
-  // The Briscola match is now scored for money instead: it still decides how the
-  // run is funded, without deciding the blind.
-  const won = snapshot.currentRoundScore >= snapshot.targetScore;
+  // The blind is decided in exactly one place, and this is the call to it.
+  // Briscolatro - the mode every old save lands in - is the historical rule,
+  // score >= target, unchanged.
+  const victory = evaluateVictoryCondition({
+    mode: snapshot.victoryMode ?? DEFAULT_VICTORY_MODE,
+    score: snapshot.currentRoundScore,
+    targetScore: snapshot.targetScore,
+    playerBriscolaPoints: snapshot.roundPointsTaken,
+  });
+  const won = victory.won;
+
+  // Taking the majority of the points pays $4 and has always paid $4. In
+  // Traditional it is also the win condition, which does NOT make it pay twice:
+  // it is one bonus, read off the same number, exactly as before.
   const briscolaMajority = snapshot.roundPointsTaken > 60;
   const briscolaBonus = briscolaMajority ? 4 : 0;
   const baseReward = getBlindBaseReward(snapshot.ante);
@@ -414,6 +432,7 @@ export function calculateRoundOutcome(
 
   return {
     won,
+    victory,
     briscolaMajority,
     briscolaBonus,
     baseReward,

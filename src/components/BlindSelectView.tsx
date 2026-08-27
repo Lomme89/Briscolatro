@@ -5,6 +5,7 @@ import { TableFeltPattern } from './TableFeltPattern';
 import { getTableThemeForAnte } from '../data/tableThemes';
 import { getOpponentIntro } from '../data/opponents';
 import { getBlindBaseReward, getBlindTargetScore } from '../game/gameState';
+import { BRISCOLA_TARGET_POINTS, VICTORY_MODES, VictoryMode } from '../game/victoryModes';
 import { BOSS_RULES } from '../game/bossRules';
 import { ALL_BOSS_BLINDS } from '../data/bosses';
 import { sound } from '../services/soundEngine';
@@ -14,6 +15,8 @@ interface BlindSelectViewProps {
   round: number;
   money: number;
   deckMultiplier: number;
+  /** The rule this run is played under: it decides what clearing means. */
+  victoryMode: VictoryMode;
   onSitDown: () => void;
 }
 
@@ -36,6 +39,7 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
   round,
   money,
   deckMultiplier,
+  victoryMode,
   onSitDown,
 }) => {
   const theme = getTableThemeForAnte(ante);
@@ -78,6 +82,8 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
   // Every blind of an ante pays the same base reward; interest and the Briscola
   // bonus are earned at the table, not promised here.
   const blindReward = getBlindBaseReward(ante);
+
+  const modeInfo = VICTORY_MODES[victoryMode];
 
   return (
     <div
@@ -257,12 +263,57 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
                     {targetFor(blindRound).toLocaleString('it-IT')}
                   </span>
                 </div>
+                {modeInfo.needsBriscola && (
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-[7px] sm:text-[8px] font-pixel text-slate-500">
+                      {modeInfo.needsChips ? (modeInfo.eitherIsEnough ? 'O' : 'E') : '🃏'}
+                    </span>
+                    <span
+                      className={`font-pixel text-[9px] sm:text-xs font-bold tabular-nums ${
+                        isCurrent ? 'text-emerald-300' : 'text-slate-400'
+                      }`}
+                    >
+                      {BRISCOLA_TARGET_POINTS} punti
+                    </span>
+                  </div>
+                )}
                 <div className="font-pixel text-[7.5px] sm:text-[8.5px] text-amber-500/90">
                   Premio ${blindReward}
                 </div>
               </div>
             );
           })}
+        </motion.div>
+
+        {/* How this table is won, before anyone sits down. */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.35 }}
+          className="rounded-xl border-2 border-amber-500/70 bg-amber-950/40 px-3 py-2 flex items-center gap-2.5 shrink-0"
+        >
+          <span className="text-base sm:text-lg shrink-0">🏆</span>
+          <div className="min-w-0 flex-1">
+            <div className="font-pixel text-[8px] sm:text-[9.5px] text-amber-300 font-bold uppercase tracking-wide flex items-center gap-1.5 flex-wrap">
+              <span>{modeInfo.blindHint}</span>
+              <span className={`px-1 py-0.5 rounded border text-[6.5px] sm:text-[7.5px] ${modeInfo.badgeClass}`}>
+                {modeInfo.label}
+              </span>
+            </div>
+            <div className="font-pixel text-[9px] sm:text-[11px] leading-tight mt-1 flex items-center flex-wrap gap-1">
+              {modeInfo.needsChips && (
+                <span className="text-amber-200">
+                  {targetFor(round).toLocaleString('it-IT')} CHIPS
+                </span>
+              )}
+              {modeInfo.needsChips && modeInfo.needsBriscola && (
+                <span className="text-slate-400">{modeInfo.eitherIsEnough ? 'OPPURE' : 'E'}</span>
+              )}
+              {modeInfo.needsBriscola && (
+                <span className="text-emerald-300">{BRISCOLA_TARGET_POINTS} PUNTI</span>
+              )}
+            </div>
+          </div>
         </motion.div>
 
         {/* The boss malus is public knowledge from the start of the Ante. */}

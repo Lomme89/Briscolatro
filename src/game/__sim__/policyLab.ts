@@ -6,6 +6,7 @@ import { AI_PROFILES } from '../aiProfiles';
 import { calculateTrickScore } from '../scoring';
 import { JOKER_EFFECTS } from '../jokerEffects';
 import { PlayerPolicy, PolicyState } from './policies';
+import { evaluateVictoryCondition, VictoryMode } from '../victoryModes';
 
 /**
  * A bench for asking one question: does Briscolatro reward playing Briscola?
@@ -285,4 +286,98 @@ export function correlation(samples: Array<[number, number]>): number {
     varY += (y - meanY) ** 2;
   }
   return varX === 0 || varY === 0 ? 0 : cov / Math.sqrt(varX * varY);
+}
+
+// --- Victory modes ---------------------------------------------------------
+
+/**
+ * How a blind went, seen through one set of rules.
+ *
+ * The counters here are the ones Prompt 7 will need: in Sbaraglio, how many
+ * blinds were carried by the Chips target, how many by the sixty-one, and how
+ * many by both - because if the classical route quietly takes over at high
+ * antes, the mode is bypassing the roguelite rather than widening it.
+ */
+export interface ModeTally {
+  rounds: number;
+  wins: number;
+  avgScore: number;
+  avgBriscolaPoints: number;
+  /** Wins carried by the Chips target alone. */
+  winChipsOnly: number;
+  /** Wins carried by the sixty-one alone. */
+  winBriscolaOnly: number;
+  /** Wins where both requirements were met. */
+  winBoth: number;
+  losses: number;
+  /** Rounds where Chips passed and Briscola did not, whatever the verdict. */
+  chipsPassBriscolaFail: number;
+  chipsFailBriscolaPass: number;
+  bothPass: number;
+  bothFail: number;
+}
+
+/**
+ * Plays a blind many times and tallies it under one set of rules.
+ *
+ * The round itself is identical in every mode - the cards do not know what is
+ * being played for - so one set of playthroughs can be judged by all four, and
+ * the comparison is exact rather than approximate.
+ */
+export function tallyMode(
+  policy: PlayerPolicy,
+  mode: VictoryMode,
+  jokers: Joker[],
+  targetScore: number,
+  rounds: number,
+  boss: BossBlind | null = null
+): ModeTally {
+  const tally: ModeTally = {
+    rounds,
+    wins: 0,
+    avgScore: 0,
+    avgBriscolaPoints: 0,
+    winChipsOnly: 0,
+    winBriscolaOnly: 0,
+    winBoth: 0,
+    losses: 0,
+    chipsPassBriscolaFail: 0,
+    chipsFailBriscolaPass: 0,
+    bothPass: 0,
+    bothFail: 0,
+  };
+
+  let score = 0;
+  let points = 0;
+
+  for (let i = 0; i < rounds; i++) {
+    const report = playRound(policy, jokers, boss);
+    score += report.score;
+    points += report.briscolaPoints;
+
+    const verdict = evaluateVictoryCondition({
+      mode,
+      score: report.score,
+      targetScore,
+      playerBriscolaPoints: report.briscolaPoints,
+    });
+
+    if (verdict.chipsPassed && verdict.briscolaPassed) tally.bothPass++;
+    else if (verdict.chipsPassed) tally.chipsPassBriscolaFail++;
+    else if (verdict.briscolaPassed) tally.chipsFailBriscolaPass++;
+    else tally.bothFail++;
+
+    if (verdict.won) {
+      tally.wins++;
+      if (verdict.victoryRoute === 'both') tally.winBoth++;
+      else if (verdict.victoryRoute === 'chips') tally.winChipsOnly++;
+      else if (verdict.victoryRoute === 'briscola') tally.winBriscolaOnly++;
+    } else {
+      tally.losses++;
+    }
+  }
+
+  tally.avgScore = score / rounds;
+  tally.avgBriscolaPoints = points / rounds;
+  return tally;
 }

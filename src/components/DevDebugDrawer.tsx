@@ -4,6 +4,7 @@ import { SPECIAL_INFO } from '../game/specialCards';
 import { ALL_JOKERS } from '../data/jokers';
 import { ALL_UNO_CARDS } from '../data/unoCards';
 import { ALL_BOSS_BLINDS } from '../data/bosses';
+import { ALL_VICTORY_MODES, VictoryMode } from '../game/victoryModes';
 
 interface DevDebugDrawerProps {
   onAddMoney: (amount: number) => void;
@@ -17,6 +18,10 @@ interface DevDebugDrawerProps {
   onChangeBriscola: (suit: Suit) => void;
   /** Stamps an Azzardo on the first card in hand, to try it without a booster. */
   onGiveSpecial: (special: Exclude<CardSpecial, 'none'>) => void;
+  victoryMode: VictoryMode;
+  onSetVictoryMode: (mode: VictoryMode) => void;
+  /** Forces a round to end in one of the four Chips/Briscola corners. */
+  onForceOutcome: (chips: boolean, briscola: boolean) => void;
 }
 
 export const DevDebugDrawer: React.FC<DevDebugDrawerProps> = ({
@@ -30,6 +35,9 @@ export const DevDebugDrawer: React.FC<DevDebugDrawerProps> = ({
   onWinRound,
   onChangeBriscola,
   onGiveSpecial,
+  victoryMode,
+  onSetVictoryMode,
+  onForceOutcome,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -145,6 +153,40 @@ export const DevDebugDrawer: React.FC<DevDebugDrawerProps> = ({
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Victory mode, and the four corners of the two conditions */}
+            <div>
+              <span className="text-slate-400 block mb-1">Modalita di vittoria:</span>
+              <select
+                value={victoryMode}
+                onChange={(e) => onSetVictoryMode(e.target.value as VictoryMode)}
+                className="w-full bg-slate-900 border border-slate-700 text-sky-300 p-1 rounded text-[8px]"
+              >
+                {ALL_VICTORY_MODES.map((mode) => (
+                  <option key={mode.id} value={mode.id}>
+                    {mode.label} - {mode.badge}
+                  </option>
+                ))}
+              </select>
+              <div className="grid grid-cols-2 gap-1 mt-1">
+                {(
+                  [
+                    ['CHIPS SI / 61 NO', true, false],
+                    ['CHIPS NO / 61 SI', false, true],
+                    ['ENTRAMBI SI', true, true],
+                    ['ENTRAMBI NO', false, false],
+                  ] as Array<[string, boolean, boolean]>
+                ).map(([label, chips, briscola]) => (
+                  <button
+                    key={label}
+                    onClick={() => onForceOutcome(chips, briscola)}
+                    className="bg-slate-900 border border-slate-700 text-sky-300 py-1 rounded text-[8px] cursor-pointer hover:border-sky-500"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Azzardo on the first card in hand */}

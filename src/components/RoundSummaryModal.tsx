@@ -1,5 +1,11 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import {
+  BRISCOLA_TARGET_POINTS,
+  VICTORY_MODES,
+  VictoryCheck,
+  victoryHeadline,
+} from '../game/victoryModes';
 import confetti from 'canvas-confetti';
 import { sound } from '../services/soundEngine';
 import { Joker, PlayingCard, UnoCard, Voucher } from '../types/game';
@@ -25,6 +31,8 @@ export interface RoundSummaryData {
   briscolaBonus: number;
   capturedCarichi: { rank: number; suit: string; points: number }[];
   activeJokersCount: number;
+  /** The verdict from the one function that decides it. */
+  victory: VictoryCheck;
 }
 
 interface RoundSummaryModalProps {
@@ -47,8 +55,10 @@ export const RoundSummaryModal: React.FC<RoundSummaryModalProps> = ({
       ? 'Grande Buio (Big Blind)'
       : `Scontro Boss: ${data.bossName || 'Il Campione'}`;
 
-  const isBriscolaMajority = data.playerTrickPoints >= 61;
-  const scoreExceeded = data.achievedScore >= data.targetScore;
+  const isBriscolaMajority = data.playerTrickPoints >= BRISCOLA_TARGET_POINTS;
+  const scoreExceeded = data.victory.chipsPassed;
+  const modeInfo = VICTORY_MODES[data.victory.mode];
+  const headline = victoryHeadline(data.victory, data.playerTrickPoints);
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-2.5 sm:p-4 overflow-y-auto select-none">
@@ -203,11 +213,59 @@ export const RoundSummaryModal: React.FC<RoundSummaryModalProps> = ({
 
         {/* The pep talk said nothing the numbers above do not, and it was the
             difference between fitting on a phone screen and scrolling. */}
-        {!data.won && (
-          <div className="text-center font-retro text-[11px] text-red-200 mb-2 px-1">
-            Il punteggio non è bastato: servivano {data.targetScore.toLocaleString('it-IT')} punti.
+        {/* Both requirements, always, whichever the mode actually needed: the
+            comparison between the two souls is the point of having modes. */}
+        <div className="grid grid-cols-2 gap-2 mb-2.5">
+          <div
+            className={`rounded-xl border-2 px-2 py-1.5 ${
+              scoreExceeded ? 'border-emerald-500/70 bg-emerald-950/40' : 'border-slate-700 bg-slate-950/50'
+            } ${modeInfo.needsChips ? '' : 'opacity-60'}`}
+          >
+            <div className="font-pixel text-[7px] text-slate-400 uppercase">
+              Chips {modeInfo.needsChips ? '' : '(non richiesti)'}
+            </div>
+            <div className="font-pixel text-[10px] sm:text-xs tabular-nums mt-0.5">
+              <span className={scoreExceeded ? 'text-emerald-300' : 'text-slate-200'}>
+                {data.achievedScore.toLocaleString('it-IT')}
+              </span>
+              <span className="text-slate-500"> / {data.targetScore.toLocaleString('it-IT')}</span>
+              <span className={scoreExceeded ? 'text-emerald-400' : 'text-red-400'}>
+                {' '}
+                {scoreExceeded ? '✓' : '✗'}
+              </span>
+            </div>
           </div>
-        )}
+
+          <div
+            className={`rounded-xl border-2 px-2 py-1.5 ${
+              data.victory.briscolaPassed
+                ? 'border-emerald-500/70 bg-emerald-950/40'
+                : 'border-slate-700 bg-slate-950/50'
+            } ${modeInfo.needsBriscola ? '' : 'opacity-60'}`}
+          >
+            <div className="font-pixel text-[7px] text-slate-400 uppercase">
+              Briscola {modeInfo.needsBriscola ? '' : '(non richiesta)'}
+            </div>
+            <div className="font-pixel text-[10px] sm:text-xs tabular-nums mt-0.5">
+              <span className={data.victory.briscolaPassed ? 'text-emerald-300' : 'text-slate-200'}>
+                {data.playerTrickPoints}
+              </span>
+              <span className="text-slate-500"> / {BRISCOLA_TARGET_POINTS}</span>
+              <span className={data.victory.briscolaPassed ? 'text-emerald-400' : 'text-red-400'}>
+                {' '}
+                {data.victory.briscolaPassed ? '✓' : '✗'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div
+          className={`text-center font-retro text-[11px] mb-2 px-1 ${
+            data.won ? 'text-emerald-200' : 'text-red-200'
+          }`}
+        >
+          {headline}
+        </div>
 
         {/* Action button */}
         <button

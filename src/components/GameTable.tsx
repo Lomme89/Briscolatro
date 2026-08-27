@@ -13,6 +13,12 @@ import { UnoConfirmModal } from './UnoConfirmModal';
 import { sound } from '../services/soundEngine';
 import { SPECIAL_INFO } from '../game/specialCards';
 import { getTableThemeForAnte } from '../data/tableThemes';
+import {
+  BRISCOLA_TARGET_POINTS,
+  evaluateVictoryCondition,
+  VICTORY_MODES,
+  VictoryMode,
+} from '../game/victoryModes';
 import { getRegularForAnte } from '../data/opponents';
 import { TableFeltPattern } from './TableFeltPattern';
 import { CardFaceArt, getJokerArtUrl, getUnoArtUrl } from './CardFaceArt';
@@ -49,6 +55,8 @@ interface GameTableProps {
   forcedLeadSuit: Suit | null;
   /** Il Sovrano: which slot on the joker rail is silent this trick. */
   silencedJokerIndex: number | null;
+  /** The rule this table is being played under. */
+  victoryMode: VictoryMode;
   opponentSpeech: string;
   onPlayCard: (card: PlayingCard) => void;
   onDiscardCard: (card: PlayingCard) => void;
@@ -101,6 +109,7 @@ export const GameTable: React.FC<GameTableProps> = ({
   bossDebuffNeutralized,
   forcedLeadSuit,
   silencedJokerIndex,
+  victoryMode,
   opponentSpeech,
   onPlayCard,
   onDiscardCard,
@@ -209,7 +218,18 @@ export const GameTable: React.FC<GameTableProps> = ({
 
   // Calculate score progress percentage
   const scoreProgress = Math.min(100, Math.round((currentRoundScore / targetScore) * 100));
-  const reachedTarget = currentRoundScore >= targetScore;
+
+  // What this table actually needs, asked of the one function that decides it.
+  // The HUD used to test `score >= target` on its own, which reads as a lie the
+  // moment the blind is not won that way.
+  const modeInfo = VICTORY_MODES[victoryMode];
+  const victory = evaluateVictoryCondition({
+    mode: victoryMode,
+    score: currentRoundScore,
+    targetScore,
+    playerBriscolaPoints: roundPointsTaken,
+  });
+  const reachedTarget = victory.chipsPassed;
 
   // Vision is granted by App, and only for the first trick of a round: a
   // permanent x-ray on the opponent's hand removes the whole guessing game.
@@ -364,11 +384,28 @@ export const GameTable: React.FC<GameTableProps> = ({
             {/* Briscola points taken. It used to flank the table, where on a
                 narrow phone it hung off the right edge of the screen. */}
             <div
-              className="bg-slate-950 border border-amber-500/50 px-1.5 sm:px-2 py-0.5 rounded text-amber-300 font-pixel text-[8px] sm:text-[9.5px] font-bold flex items-center gap-0.5 tabular-nums"
-              title="Punti Briscola presi su 120"
+              className={`bg-slate-950 border px-1.5 sm:px-2 py-0.5 rounded font-pixel text-[8px] sm:text-[9.5px] font-bold flex items-center gap-0.5 tabular-nums ${
+                modeInfo.needsBriscola
+                  ? victory.briscolaPassed
+                    ? 'border-emerald-400 text-emerald-300'
+                    : 'border-emerald-500/50 text-emerald-300'
+                  : 'border-amber-500/50 text-amber-300'
+              }`}
+              title={
+                modeInfo.needsBriscola
+                  ? `Punti Briscola: ${roundPointsTaken} su 120, ne servono ${BRISCOLA_TARGET_POINTS}`
+                  : 'Punti Briscola presi su 120'
+              }
             >
               <span>🃏</span>
-              <span>{roundPointsTaken}</span>
+              {modeInfo.needsBriscola ? (
+                <span>
+                  {victory.briscolaPassed ? '✓ ' : ''}
+                  {roundPointsTaken}/{BRISCOLA_TARGET_POINTS}
+                </span>
+              ) : (
+                <span>{roundPointsTaken}</span>
+              )}
             </div>
 
             {/* Extra Menu buttons */}
@@ -430,7 +467,11 @@ export const GameTable: React.FC<GameTableProps> = ({
               reachedTarget ? 'text-emerald-300' : 'text-slate-400'
             }`}
           >
-            {reachedTarget ? '✓ FATTO' : `🎯 ${targetScore.toLocaleString('it-IT')}`}
+            {modeInfo.needsChips
+              ? reachedTarget
+                ? '✓ FATTO'
+                : `🎯 ${targetScore.toLocaleString('it-IT')}`
+              : 'PUNTEGGIO'}
           </span>
         </div>
 
