@@ -49,6 +49,7 @@ import { TutorialModal } from './components/TutorialModal';
 import { DeckSelectModal } from './components/DeckSelectModal';
 import { DeckViewerModal } from './components/DeckViewerModal';
 import { SettingsModal } from './components/SettingsModal';
+import { UnoCastOverlay } from './components/UnoCastOverlay';
 import { DevDebugDrawer } from './components/DevDebugDrawer';
 import { GameSettings } from './types/game';
 
@@ -218,6 +219,11 @@ export function App() {
   // --- Jokers, Consumables & Vouchers ---
   const [activeJokers, setActiveJokers] = useState<Joker[]>([]);
   const [consumables, setConsumables] = useState<UnoCard[]>([]);
+  // The consumable currently taking the middle of the screen, effect pending.
+  const [castingUno, setCastingUno] = useState<{
+    unoCard: UnoCard;
+    targetCard?: PlayingCard;
+  } | null>(null);
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [maxJokers, setMaxJokers] = useState<number>(5);
   const [maxConsumables, setMaxConsumables] = useState<number>(2);
@@ -950,8 +956,17 @@ export function App() {
       setOpponentSpeech('Aspetta il tuo turno per giocare una carta UNO!');
       return;
     }
+    // One cast at a time: the board is already changing under the last one.
+    if (castingUno) return;
 
-    sound.playBoosterRip();
+    // The card goes up first and the effect goes off when it lands, so you can
+    // see what you spent before the numbers move.
+    setCastingUno({ unoCard, targetCard });
+  };
+
+  /** The landing frame of the cast: everything the card does happens here. */
+  const applyUnoCard = (unoCard: UnoCard, targetCard?: PlayingCard) => {
+    triggerScreenShake();
 
     const ctx = {
       unoCard,
@@ -1381,6 +1396,15 @@ export function App() {
           onClose={() => setShowDeckViewer(false)}
           deck={phase === 'playing' ? [...drawPile, ...(trumpCard ? [trumpCard] : []), ...playerHand] : runDeck}
           briscolaSuit={briscolaSuit}
+        />
+
+        <UnoCastOverlay
+          card={castingUno?.unoCard ?? null}
+          fast={settings.fastMode}
+          onImpact={() => {
+            if (castingUno) applyUnoCard(castingUno.unoCard, castingUno.targetCard);
+          }}
+          onDone={() => setCastingUno(null)}
         />
 
         <SettingsModal

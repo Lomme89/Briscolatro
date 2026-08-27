@@ -3,6 +3,76 @@
  * Generates dynamic 8-bit / 16-bit retro sounds procedurally without external assets.
  */
 
+
+interface UnoAccent {
+  wave: OscillatorType;
+  /** Frequencies in Hz, played one after the other. */
+  notes: number[];
+  /** Seconds between notes. */
+  step?: number;
+  /** Seconds each note takes to die out. */
+  decay?: number;
+  gain?: number;
+  /** Multiplier a note glides towards, for sweeps. */
+  glide?: number;
+  /** Frequency of a low body hit under the notes. */
+  thump?: number;
+}
+
+const UNO_ACCENTS: Record<string, UnoAccent> = {
+  // Pesca due: two blips, red bright and blue dark, so the pair is a pair.
+  uno_plus_two_red: { wave: 'square', notes: [587.33, 880.0], step: 0.07, decay: 0.16 },
+  uno_plus_two_blue: { wave: 'square', notes: [392.0, 587.33], step: 0.07, decay: 0.16 },
+  // Pesca quattro: the same idea, four notes and a body under it.
+  uno_plus_four_wild: {
+    wave: 'square',
+    notes: [523.25, 659.25, 783.99, 1046.5],
+    step: 0.06,
+    decay: 0.18,
+    thump: 110,
+  },
+  // Reverse: a whirl that goes up and comes back.
+  uno_reverse_green: { wave: 'sine', notes: [880.0, 440.0], step: 0.11, decay: 0.24, glide: 0.55 },
+  // Skip: a door slammed in your face.
+  uno_skip_red: { wave: 'sawtooth', notes: [233.08, 155.56], step: 0.08, decay: 0.2, thump: 90 },
+  // Cambio seme: a clean bell triad.
+  uno_wild_suit: { wave: 'triangle', notes: [659.25, 830.61, 987.77], step: 0.08, decay: 0.3 },
+  // Scambio: two notes crossing over each other.
+  uno_swap_yellow: { wave: 'triangle', notes: [740.0, 494.0, 740.0], step: 0.075, decay: 0.18 },
+  // The three finishes: metal, shimmer, rainbow.
+  uno_custom_foil: { wave: 'sine', notes: [1318.51, 1567.98], step: 0.05, decay: 0.34, gain: 0.22 },
+  uno_custom_holo: { wave: 'sine', notes: [987.77, 1244.51, 1567.98], step: 0.055, decay: 0.36, glide: 1.06, gain: 0.2 },
+  uno_custom_polychrome: {
+    wave: 'triangle',
+    notes: [523.25, 659.25, 783.99, 987.77, 1174.66],
+    step: 0.05,
+    decay: 0.26,
+  },
+  // Money: coins, and twice the coins.
+  uno_gold_yellow: { wave: 'square', notes: [1046.5, 1396.91], step: 0.06, decay: 0.24, gain: 0.24 },
+  uno_double_cash: {
+    wave: 'square',
+    notes: [1046.5, 1396.91, 1046.5, 1396.91],
+    step: 0.055,
+    decay: 0.2,
+    gain: 0.24,
+  },
+  // "UNO!": three shouts, no subtlety.
+  uno_call_uno: { wave: 'square', notes: [659.25, 659.25, 880.0], step: 0.09, decay: 0.16, gain: 0.34, thump: 130 },
+  // Tutto briscola: a rising chord with weight behind it.
+  uno_all_wild: { wave: 'sawtooth', notes: [261.63, 392.0, 523.25, 659.25], step: 0.07, decay: 0.3, thump: 98 },
+  // Scudo: a low ring that holds.
+  uno_block_boss: { wave: 'sine', notes: [196.0, 293.66], step: 0.1, decay: 0.42, thump: 80 },
+  // Il jolly misterioso: a jester's trill.
+  uno_wild_joker: {
+    wave: 'triangle',
+    notes: [784.0, 932.33, 784.0, 1046.5],
+    step: 0.055,
+    decay: 0.18,
+  },
+  default: { wave: 'square', notes: [587.33, 880.0, 1174.66], step: 0.075, decay: 0.22 },
+};
+
 class SoundEngine {
   private ctx: AudioContext | null = null;
   private musicOsc1: OscillatorNode | null = null;
@@ -552,6 +622,89 @@ class SoundEngine {
     };
 
     playStep();
+  }
+
+
+  /**
+   * The whoosh of a consumable leaving your hand for the middle of the table.
+   * Generic on purpose: what the card *is* gets said by its accent, later.
+   */
+  public playUnoCast() {
+    if (this.isMuted || this.sfxVolume <= 0) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(180, now);
+    osc.frequency.exponentialRampToValueAtTime(760, now + 0.26);
+
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.22 * this.sfxVolume, now + 0.12);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.32);
+  }
+
+  /**
+   * One accent per UNO card, played the instant its effect lands.
+   *
+   * Sixteen cards all firing the same chiptune surge told you something had
+   * happened but never *what*: the ear should recognise a Reverse from a
+   * Raddoppio without reading the feedback line. Each entry is a short note
+   * sequence plus a waveform, which is enough to make them distinguishable.
+   */
+  public playUnoAccent(cardId: string) {
+    if (this.isMuted || this.sfxVolume <= 0) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const accent = UNO_ACCENTS[cardId] || UNO_ACCENTS.default;
+    const step = accent.step ?? 0.075;
+
+    accent.notes.forEach((freq, index) => {
+      const start = this.ctx!.currentTime + index * step;
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+
+      osc.type = accent.wave;
+      osc.frequency.setValueAtTime(freq, start);
+      if (accent.glide) {
+        osc.frequency.exponentialRampToValueAtTime(freq * accent.glide, start + step * 1.6);
+      }
+
+      const peak = (accent.gain ?? 0.28) * this.sfxVolume;
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(peak, start + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + (accent.decay ?? 0.22));
+
+      osc.connect(gain);
+      gain.connect(this.ctx!.destination);
+      osc.start(start);
+      osc.stop(start + (accent.decay ?? 0.22) + 0.02);
+    });
+
+    // A body under the notes, so the accent lands instead of just chirping.
+    if (accent.thump) {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(accent.thump, now);
+      osc.frequency.exponentialRampToValueAtTime(accent.thump * 0.4, now + 0.18);
+      gain.gain.setValueAtTime(0.3 * this.sfxVolume, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.24);
+    }
   }
 
   public stopMusic() {

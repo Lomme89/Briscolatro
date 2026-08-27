@@ -130,7 +130,8 @@ export const UnoCardSlot: React.FC<UnoCardSlotProps> = ({
             return;
           }
           if (!isShopItem && onUse) {
-            sound.playUnoSound();
+            // Picking the card up, not firing it: the fanfare belongs to the cast.
+            sound.playCardSelect();
             onUse();
           }
         }}
@@ -216,7 +217,7 @@ export const UnoCardSlot: React.FC<UnoCardSlotProps> = ({
               id={`use-uno-btn-${unoCard.id}`}
               onClick={(e) => {
                 e.stopPropagation();
-                sound.playUnoSound();
+                sound.playCardSelect();
                 onUse();
               }}
               disabled={!canUse}
