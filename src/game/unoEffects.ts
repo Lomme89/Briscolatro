@@ -35,7 +35,17 @@ export interface UnoActionResult {
   newIsReverseActive: boolean;
   feedbackMessage: string;
   cardUpgradedInRunDeck?: { id: string; updates: Partial<PlayingCard> };
-  forceWinCurrentTrick?: boolean;
+  /**
+   * Lo Sgambetto: for this trick the player counts as the one who opened it.
+   *
+   * It used to hand the trick over outright, which is not a card you think
+   * about - it is a card you press when you are behind. Stealing the lead is
+   * the same fantasy without the certainty: at crossed suits the trick is
+   * yours, and a Briscola from across the table still takes it off you.
+   */
+  stealLeadCurrentTrick?: boolean;
+  /** Lo Scudo: how many tricks the boss rule stays suspended for. */
+  bossShieldTricks?: number;
 }
 
 /**
@@ -171,7 +181,7 @@ export const UNO_EFFECT_HANDLERS: Record<
     };
   },
 
-  // Salto Turno (Skip): Opponent skips, player auto-wins trick
+  // Sgambetto: the player becomes the leader of this trick.
   uno_skip_red: (ctx) => {
     return {
       newDrawPile: ctx.drawPile,
@@ -185,8 +195,8 @@ export const UNO_EFFECT_HANDLERS: Record<
       newBossDebuffActive: ctx.bossDebuffActive,
       newActiveUnoMultiplier: ctx.activeUnoMultiplier,
       newIsReverseActive: ctx.isReverseActive,
-      feedbackMessage: "SALTO TURNO: L'avversario è bloccato, presa vinta!",
-      forceWinCurrentTrick: true,
+      feedbackMessage: 'SGAMBETTO: la mano è tua! A semi incrociati la presa la prendi tu.',
+      stealLeadCurrentTrick: true,
     };
   },
 
@@ -217,40 +227,17 @@ export const UNO_EFFECT_HANDLERS: Record<
     };
   },
 
-  // Scambia Carta (Swap): Steal opponent's best card and give them player's worst
+  /**
+   * Scambia Carta: you choose what leaves, chance decides what arrives.
+   *
+   * It used to take their best card and hand back your worst, which is not a
+   * decision - it is a button, and one that quietly read their whole hand to
+   * find the best. Now the give is yours to pick (part with a liscia? bait them
+   * with a carico?) and the take is blind, so nothing about their hand is
+   * learned beyond the one card that ends up in yours.
+   */
   uno_swap_yellow: (ctx) => {
-    let nextOpponentHand = [...ctx.opponentHand];
-    let nextPlayerHand = [...ctx.playerHand];
-
-    if (nextOpponentHand.length > 0 && nextPlayerHand.length > 0) {
-      // Find opponent's best card (highest points/power)
-      nextOpponentHand.sort((a, b) => b.power - a.power);
-      const stolenCard = nextOpponentHand.shift()!;
-
-      // Find player's weakest card
-      nextPlayerHand.sort((a, b) => a.power - b.power);
-      const givenCard = nextPlayerHand.shift()!;
-
-      nextPlayerHand.push(stolenCard);
-      nextOpponentHand.push(givenCard);
-
-      return {
-        newDrawPile: ctx.drawPile,
-        newPlayerHand: nextPlayerHand,
-        newOpponentHand: nextOpponentHand,
-        newBriscolaSuit: ctx.briscolaSuit,
-        newMoney: ctx.money,
-        newDiscardsLeft: ctx.discardsLeft,
-        newActiveJokers: ctx.activeJokers,
-        newRoundScore: ctx.currentRoundScore,
-        newBossDebuffActive: ctx.bossDebuffActive,
-        newActiveUnoMultiplier: ctx.activeUnoMultiplier,
-        newIsReverseActive: ctx.isReverseActive,
-        feedbackMessage: `SWAP: Hai rubato ${stolenCard.rank} di ${stolenCard.suit.toUpperCase()} all'avversario!`,
-      };
-    }
-
-    return {
+    const unchanged = {
       newDrawPile: ctx.drawPile,
       newPlayerHand: ctx.playerHand,
       newOpponentHand: ctx.opponentHand,
@@ -262,7 +249,32 @@ export const UNO_EFFECT_HANDLERS: Record<
       newBossDebuffActive: ctx.bossDebuffActive,
       newActiveUnoMultiplier: ctx.activeUnoMultiplier,
       newIsReverseActive: ctx.isReverseActive,
-      feedbackMessage: 'Nessuna carta da scambiare.',
+    };
+
+    const given =
+      ctx.targetCard && ctx.playerHand.some((c) => c.id === ctx.targetCard!.id)
+        ? ctx.targetCard
+        : null;
+
+    if (!given || ctx.opponentHand.length === 0) {
+      return { ...unchanged, feedbackMessage: 'Nessuno scambio possibile.' };
+    }
+
+    // Blind pick: the card comes back at random, so the effect never becomes a
+    // way of reading a hand it is not allowed to see.
+    const takenIndex = Math.floor(Math.random() * ctx.opponentHand.length);
+    const taken = ctx.opponentHand[takenIndex];
+
+    const nextPlayerHand = ctx.playerHand.filter((c) => c.id !== given.id);
+    nextPlayerHand.push(taken);
+    const nextOpponentHand = ctx.opponentHand.filter((_, i) => i !== takenIndex);
+    nextOpponentHand.push(given);
+
+    return {
+      ...unchanged,
+      newPlayerHand: nextPlayerHand,
+      newOpponentHand: nextOpponentHand,
+      feedbackMessage: `SCAMBIO: hai dato il ${given.rank} di ${given.suit.toUpperCase()} e pescato il ${taken.rank} di ${taken.suit.toUpperCase()}!`,
     };
   },
 
@@ -380,15 +392,20 @@ export const UNO_EFFECT_HANDLERS: Record<
     };
   },
 
-  // Tutto Briscola (Wild All): Transform all cards in hand to Briscola suit
+  /**
+   * Tocco di Briscola: one card of your choosing becomes trump for the round.
+   *
+   * It used to convert the whole hand, which wins the next three tricks with no
+   * decisions left in them. One card is still a huge play - your Asso di Coppe
+   * becoming the Asso di Briscola decides a round - but you have to say which,
+   * and a liscia turned trump is a different plan from a carico turned trump.
+   *
+   * The hand holds copies dealt from the run deck, so the forty identities are
+   * untouched: nothing here writes to the deck.
+   */
   uno_all_wild: (ctx) => {
-    const nextHand = ctx.playerHand.map((c) => ({
-      ...c,
-      suit: ctx.briscolaSuit,
-    }));
-    return {
+    const unchanged = {
       newDrawPile: ctx.drawPile,
-      newPlayerHand: nextHand,
       newOpponentHand: ctx.opponentHand,
       newBriscolaSuit: ctx.briscolaSuit,
       newMoney: ctx.money,
@@ -398,7 +415,29 @@ export const UNO_EFFECT_HANDLERS: Record<
       newBossDebuffActive: ctx.bossDebuffActive,
       newActiveUnoMultiplier: ctx.activeUnoMultiplier,
       newIsReverseActive: ctx.isReverseActive,
-      feedbackMessage: 'Tutte le carte in mano sono ora di BRISCOLA!',
+    };
+
+    const target =
+      ctx.targetCard && ctx.playerHand.some((c) => c.id === ctx.targetCard!.id)
+        ? ctx.targetCard
+        : null;
+
+    if (!target) {
+      return {
+        ...unchanged,
+        newPlayerHand: ctx.playerHand,
+        feedbackMessage: 'Scegli una carta da trasformare in Briscola.',
+      };
+    }
+
+    const nextHand = ctx.playerHand.map((card) =>
+      card.id === target.id ? { ...card, suit: ctx.briscolaSuit } : card
+    );
+
+    return {
+      ...unchanged,
+      newPlayerHand: nextHand,
+      feedbackMessage: `Il ${target.rank} di ${target.suit.toUpperCase()} è ora BRISCOLA per tutto il round!`,
     };
   },
 
@@ -421,7 +460,14 @@ export const UNO_EFFECT_HANDLERS: Record<
     };
   },
 
-  // Scudo Protettivo (Block): Cancel boss debuff + 80 Chips
+  /**
+   * Scudo Protettivo: three tricks of quiet, not a round of it.
+   *
+   * Cancelling the rule for the whole blind turns an interesting boss into no
+   * boss at all, and the card into something you press on sight. Three tricks
+   * is still enormous against a boss - a window you place where it hurts them
+   * most - and it asks when rather than whether.
+   */
   uno_block_boss: (ctx) => {
     return {
       newDrawPile: ctx.drawPile,
@@ -435,7 +481,8 @@ export const UNO_EFFECT_HANDLERS: Record<
       newBossDebuffActive: false,
       newActiveUnoMultiplier: ctx.activeUnoMultiplier,
       newIsReverseActive: ctx.isReverseActive,
-      feedbackMessage: 'SCUDO ATTIVATO: Debuff del Boss annullato e +80 Chips!',
+      bossShieldTricks: 3,
+      feedbackMessage: 'SCUDO ATTIVATO: il Boss tace per 3 prese, e +80 Chips!',
     };
   },
 

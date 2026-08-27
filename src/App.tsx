@@ -419,6 +419,15 @@ export function App() {
   isReverseActiveRef.current = isReverseActive;
   const bossDebuffNeutralizedRef = useRef<boolean>(bossDebuffNeutralized);
   bossDebuffNeutralizedRef.current = bossDebuffNeutralized;
+  /**
+   * Tricks left on the Scudo Protettivo.
+   *
+   * It used to switch the boss off for the whole blind, which turns a boss into
+   * no boss. A window has to be placed, so it counts down and the rule comes
+   * back - and the HUD keeps saying so while it lasts.
+   */
+  const bossShieldTricksRef = useRef<number>(0);
+  const [bossShieldTricks, setBossShieldTricks] = useState<number>(0);
   // Set by "Salto Turno": the next trick is awarded to the player whatever falls.
   const forcedTrickWinRef = useRef<boolean>(false);
 
@@ -470,6 +479,8 @@ export function App() {
     setIsReverseActive(false);
     isReverseActiveRef.current = false;
     setBossDebuffNeutralized(false);
+    bossShieldTricksRef.current = 0;
+    setBossShieldTricks(0);
     bossDebuffNeutralizedRef.current = false;
     forcedTrickWinRef.current = false;
     setTallyData(null);
@@ -707,19 +718,21 @@ export function App() {
     const bossDebuff = getActiveBossDebuff();
     const scoringBoss = getEnforcedBoss();
 
-    const rawClash = resolveTrick(
-      leadIsPlayer ? playerCard : oppCard,
-      leadIsPlayer ? oppCard : playerCard,
+    // Lo Sgambetto does not hand the trick over - it moves the lead. Resolving
+    // with the player as opener is the whole effect: at crossed suits rule 4
+    // gives them the trick, and a Briscola from across the table still takes it.
+    const stoleLead = forcedTrickWinRef.current;
+    forcedTrickWinRef.current = false;
+    const resolvedLeadIsPlayer = stoleLead ? true : leadIsPlayer;
+
+    const clash = resolveTrick(
+      resolvedLeadIsPlayer ? playerCard : oppCard,
+      resolvedLeadIsPlayer ? oppCard : playerCard,
       briscolaSuitRef.current,
-      leadIsPlayer,
+      resolvedLeadIsPlayer,
       bossDebuff,
       isReverseActiveRef.current
     );
-
-    // Salto Turno hands the trick to the player regardless of the cards.
-    const forcedWin = forcedTrickWinRef.current;
-    forcedTrickWinRef.current = false;
-    const clash = forcedWin ? { ...rawClash, playerWon: true } : rawClash;
 
     if (clash.playerWon) {
       sound.playTrickWin();
@@ -960,6 +973,17 @@ export function App() {
     setActiveUnoMultiplier(1.0);
     setIsReverseActive(false);
     isReverseActiveRef.current = false;
+
+    // The Scudo burns a trick, and when it runs out the boss speaks again.
+    if (bossShieldTricksRef.current > 0) {
+      bossShieldTricksRef.current -= 1;
+      setBossShieldTricks(bossShieldTricksRef.current);
+      if (bossShieldTricksRef.current === 0) {
+        bossDebuffNeutralizedRef.current = false;
+        setBossDebuffNeutralized(false);
+        if (activeBossRef.current) setOpponentSpeech('Lo Scudo si è consumato: il Boss torna in gioco.');
+      }
+    }
 
     // The toll is charged on the suit you won with, and only while you still
     // hold that suit: a chain that cannot be followed simply ends.
@@ -1269,14 +1293,16 @@ export function App() {
     setIsReverseActive(res.newIsReverseActive);
     setOpponentSpeech(res.feedbackMessage);
 
-    // Scudo Protettivo: suspend the boss debuff for the rest of the round.
-    if (activeBossRef.current && !res.newBossDebuffActive) {
+    // Scudo Protettivo: the boss rule goes quiet for a set number of tricks.
+    if (activeBossRef.current && res.bossShieldTricks && res.bossShieldTricks > 0) {
+      bossShieldTricksRef.current = res.bossShieldTricks;
+      setBossShieldTricks(res.bossShieldTricks);
       setBossDebuffNeutralized(true);
       bossDebuffNeutralizedRef.current = true;
     }
 
-    // Salto Turno: the current trick goes to the player no matter what falls.
-    if (res.forceWinCurrentTrick) {
+    // Sgambetto: the player counts as this trick's leader.
+    if (res.stealLeadCurrentTrick) {
       forcedTrickWinRef.current = true;
     }
 
@@ -1579,6 +1605,7 @@ export function App() {
             silencedJokerIndex={disabledJokerIndex}
             victoryMode={victoryMode}
             bossDebuffNeutralized={bossDebuffNeutralized}
+            bossShieldTricks={bossShieldTricks}
             opponentSpeech={opponentSpeech}
             onPlayCard={handlePlayCard}
             onDiscardCard={handleDiscardCard}

@@ -51,6 +51,8 @@ interface GameTableProps {
   maxConsumables: number;
   currentBoss: BossBlind | null;
   bossDebuffNeutralized: boolean;
+  /** Tricks left on the Scudo Protettivo. Zero when the boss is speaking. */
+  bossShieldTricks: number;
   /** Il Maestro dei Bastoni: the suit the next opening is chained to. */
   forcedLeadSuit: Suit | null;
   /** Il Sovrano: which slot on the joker rail is silent this trick. */
@@ -107,6 +109,7 @@ export const GameTable: React.FC<GameTableProps> = ({
   maxConsumables,
   currentBoss,
   bossDebuffNeutralized,
+  bossShieldTricks,
   forcedLeadSuit,
   silencedJokerIndex,
   victoryMode,
@@ -688,7 +691,8 @@ export const GameTable: React.FC<GameTableProps> = ({
                   <span>MALUS DEL BOSS • {currentBoss.name}</span>
                   {bossDebuffNeutralized && (
                     <span className="bg-emerald-600 border border-emerald-300 text-white px-1 py-0.5 rounded text-[6.5px] sm:text-[7.5px]">
-                      🛡️ ANNULLATO
+                      🛡️ SCUDO · {bossShieldTricks}{' '}
+                      {bossShieldTricks === 1 ? 'PRESA' : 'PRESE'}
                     </span>
                   )}
                 </div>
