@@ -244,6 +244,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </Row>
           </Section>
 
+          {/* --- CARTE --- */}
+          <Section icon="🃏" title="CARTE">
+            <Row
+              label="Chip sulle carte"
+              hint="Il valore e i punti stampati sull'illustrazione"
+            >
+              <Toggle
+                on={settings.showCardChips !== false}
+                onClick={() => onUpdateSettings({ showCardChips: settings.showCardChips === false })}
+              />
+            </Row>
+          </Section>
+
           {/* --- EFFETTI --- */}
           <Section icon="📺" title="EFFETTI">
             <Row label="Monitor CRT" hint="Filtro retro arcade stile cabinato">

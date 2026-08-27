@@ -7,6 +7,7 @@ import { NeapolitanCardIllustration } from './NeapolitanCardIllustration';
 import { CARD_PAPER, getCardArtUrl, NeapolitanCardArt } from './NeapolitanCardArt';
 import { getCardStyleDefinition } from '../data/cardStyles';
 import { PICKER_CARD_BOX } from './cardSizing';
+import { useCardChips } from '../context/CardChipsContext';
 
 const ENHANCEMENT_BADGES: Record<
   Exclude<PlayingCard['enhancement'], 'none'>,
@@ -31,6 +32,8 @@ interface PixelCardProps {
   /** The floating "BRISCOLA" ribbon overflows the card; hide it in tight spots. */
   showBriscolaBadge?: boolean;
   showPoints?: boolean;
+  /** Overrides the setting, e.g. the title screen where nothing is at stake. */
+  showChips?: boolean;
   className?: string;
   animateDeal?: boolean;
   dealDelay?: number;
@@ -48,6 +51,7 @@ export const PixelCard: React.FC<PixelCardProps> = ({
   isBriscola = false,
   showBriscolaBadge = true,
   showPoints = true,
+  showChips,
   className = '',
   animateDeal = false,
   dealDelay = 0,
@@ -58,6 +62,8 @@ export const PixelCard: React.FC<PixelCardProps> = ({
   const [isHovered, setIsHovered] = useState(false);
 
   const activeStyleId = style || 'classic';
+  const chipsEnabled = useCardChips();
+  const chipsVisible = showChips ?? chipsEnabled;
   const styleDef = getCardStyleDefinition(activeStyleId);
 
   // A missing card used to crash the whole table: the face-down deck stack was
@@ -203,11 +209,15 @@ export const PixelCard: React.FC<PixelCardProps> = ({
           className="absolute inset-0 rounded-md overflow-hidden pointer-events-none"
           style={{ backgroundColor: CARD_PAPER }}
         >
-          <NeapolitanCardArt
-            suit={card.suit}
-            rank={card.rank}
-            alt={`${info.name} di ${getSuitDisplayName(card.suit)}`}
-          />
+          {/* A printed card keeps a margin of paper around the figure. Edge to
+              edge the art ran into the border and the card looked stretched. */}
+          <div className="w-full h-full p-[3px] sm:p-[5px]">
+            <NeapolitanCardArt
+              suit={card.suit}
+              rank={card.rank}
+              alt={`${info.name} di ${getSuitDisplayName(card.suit)}`}
+            />
+          </div>
         </div>
       )}
 
@@ -269,12 +279,19 @@ export const PixelCard: React.FC<PixelCardProps> = ({
       <div className="relative z-10 w-full h-full p-1 sm:p-1.5 flex flex-col justify-between">
         {usesFullArt ? (
           <div className="flex items-start justify-start pointer-events-none">
-            <span className="flex items-center gap-0.5 bg-slate-950/85 border border-amber-400/70 rounded px-1 py-0.5 shadow">
-              <span className="font-pixel font-bold text-[8px] sm:text-[10px] text-amber-200 tracking-tighter leading-none">
-                {info.shortName}
+            {chipsVisible && (
+              // Ink on paper, not a dark pill dropped on top: the chip belongs
+              // to the card it is printed on.
+              <span
+                className="flex items-center gap-0.5 rounded-[3px] px-1 py-0.5 border"
+                style={{ backgroundColor: 'rgba(245,244,232,0.92)', borderColor: 'rgba(30,41,59,0.5)' }}
+              >
+                <span className="font-pixel font-bold text-[8px] sm:text-[10px] text-slate-900 tracking-tighter leading-none">
+                  {info.shortName}
+                </span>
+                <PixelSuitIcon suit={card.suit} style={activeStyleId} size={cornerSuitSize - 2} />
               </span>
-              <PixelSuitIcon suit={card.suit} style={activeStyleId} size={cornerSuitSize - 2} />
-            </span>
+            )}
           </div>
         ) : (
           <>
@@ -297,22 +314,25 @@ export const PixelCard: React.FC<PixelCardProps> = ({
 
         {/* Bottom Bar: Points and Inverted Index */}
         <div className="flex items-end justify-between leading-none pointer-events-none">
-          {showPoints ? (
+          {showPoints && chipsVisible ? (
             <div className="flex items-center">
-              {info.points > 0 ? (
+              {usesFullArt ? (
+                <span
+                  className="font-pixel text-[7px] sm:text-[8px] md:text-[9px] px-1 py-0.5 rounded-[3px] border font-bold"
+                  style={{
+                    backgroundColor: 'rgba(245,244,232,0.92)',
+                    borderColor: 'rgba(30,41,59,0.5)',
+                    color: info.points > 0 ? '#7c2d12' : '#475569',
+                  }}
+                >
+                  {info.points}pt
+                </span>
+              ) : info.points > 0 ? (
                 <span className={`font-pixel text-[7px] sm:text-[8px] md:text-[9px] px-1 py-0.5 rounded shadow-xs font-bold ${styleDef.pointsBadgeClass}`}>
                   {info.points}pt
                 </span>
               ) : (
-                <span
-                  className={`font-pixel text-[7px] sm:text-[8px] ${
-                    usesFullArt
-                      ? 'text-slate-200 bg-slate-950/70 rounded px-1 py-0.5'
-                      : 'text-slate-400 opacity-60'
-                  }`}
-                >
-                  0pt
-                </span>
+                <span className="font-pixel text-[7px] sm:text-[8px] text-slate-400 opacity-60">0pt</span>
               )}
             </div>
           ) : <div />}

@@ -214,6 +214,8 @@ export interface GameSettings {
   crtScanlines: boolean;
   screenShake: boolean;
   fastMode: boolean;
+  /** The rank and point pills drawn on top of the card art. */
+  showCardChips: boolean;
 }
 
 export interface OverallProgression {

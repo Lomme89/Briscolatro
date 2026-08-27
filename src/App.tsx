@@ -50,6 +50,7 @@ import { DeckSelectModal } from './components/DeckSelectModal';
 import { DeckViewerModal } from './components/DeckViewerModal';
 import { SettingsModal } from './components/SettingsModal';
 import { UnoCastOverlay } from './components/UnoCastOverlay';
+import { CardChipsProvider } from './context/CardChipsContext';
 import { DevDebugDrawer } from './components/DevDebugDrawer';
 import { GameSettings } from './types/game';
 
@@ -79,6 +80,7 @@ export function App() {
             crtScanlines: false,
             screenShake: true,
             fastMode: false,
+            showCardChips: true,
           };
     } catch {
       return {
@@ -89,6 +91,7 @@ export function App() {
         crtScanlines: false,
         screenShake: true,
         fastMode: false,
+        showCardChips: true,
       };
     }
   });
@@ -1117,7 +1120,7 @@ export function App() {
   };
 
   return (
-    <>
+    <CardChipsProvider enabled={settings.showCardChips !== false}>
       <div
         // overflow-x-hidden would force overflow-y to `auto`, turning this into a
         // scroll box that clips the table instead of letting the page grow.
@@ -1171,7 +1174,7 @@ export function App() {
                   }}
                   className={`${i === 1 ? 'z-20 -mx-2' : 'z-10'} drop-shadow-[0_6px_10px_rgba(0,0,0,0.6)]`}
                 >
-                  <PixelCard card={card} size="sm" showPoints={false} />
+                  <PixelCard card={card} size="sm" showPoints={false} showChips={false} />
                 </motion.div>
               ))}
             </div>
@@ -1455,7 +1458,7 @@ export function App() {
           }}
         />
       </div>
-    </>
+    </CardChipsProvider>
   );
 }
 
