@@ -5,7 +5,7 @@ import { defineConfig } from 'vite';
 
 export default defineConfig(() => {
   const isGithubPages = process.env.GITHUB_PAGES === 'true' || process.env.GITHUB_ACTIONS === 'true';
-  const base = process.env.VITE_BASE || (isGithubPages ? '/Briscolatro/' : './');
+  const base = process.env.VITE_BASE || (isGithubPages ? '/' : './');
 
   return {
     base,
