@@ -20,6 +20,7 @@ import {
   upgradeCardInRunDeck,
   clearSpecialInRunDeck,
   assertRunDeckIntegrity,
+  foilRandomCardInRunDeck,
   getBlindTargetScore,
   prepareRoundDeck,
   performExchangeDiscard,
@@ -796,17 +797,15 @@ export function App() {
         setTimeout(() => setTriggeringJokerId(null), 1200);
       }
 
-      // If the forger's stamp triggered, update a card in runDeck and playerHand
-      if (scoreResult.transmutedCard) {
-        const trans = scoreResult.transmutedCard;
+      // The forger's stamp: a card of the run deck picks up a Foil edition and
+      // nothing else. Suit and rank are never touched, so the forty identities
+      // survive every stamp; a deck already all Foil simply gets nothing.
+      if (scoreResult.foilRandomCard) {
         setRunDeck((prev) => {
-          const idx = prev.findIndex((c) => c.suit !== 'denari');
-          if (idx !== -1) {
-            const next = [...prev];
-            next[idx] = { ...next[idx], suit: trans.suit, edition: trans.edition };
-            return next;
-          }
-          return prev;
+          const { deck, foiledCardId } = foilRandomCardInRunDeck(prev);
+          if (!foiledCardId) return prev;
+          if (import.meta.env.DEV) assertRunDeckIntegrity(deck, 'Falsario');
+          return deck;
         });
       }
 

@@ -25,7 +25,8 @@ export interface TrickScoreCalculation {
   finalScore: number;
   bonusDollars: number;
   triggeredJokerIds: string[];
-  transmutedCard?: { suit: Suit; edition: 'foil' };
+  /** The Falsario fired: one non-Foil card of the run deck becomes Foil. */
+  foilRandomCard: boolean;
   statGrowth: JokerStatGrowth[];
   /** What the played card's Azzardo did. Lost tricks resolve it outside here. */
   special: SpecialTrickOutcome;
@@ -190,7 +191,7 @@ export function calculateTrickScore(
     finalScore,
     bonusDollars,
     triggeredJokerIds: jokerMod.triggeredJokerIds,
-    transmutedCard: jokerMod.transmutedCard,
+    foilRandomCard: jokerMod.foilRandomCard,
     statGrowth: jokerMod.statGrowth,
     special,
   };

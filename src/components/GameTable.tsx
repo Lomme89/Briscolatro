@@ -157,6 +157,14 @@ export const GameTable: React.FC<GameTableProps> = ({
   // after the tap - the rule reads as part of the table, not as a rejection.
   const isOpeningTrick = opponentTrickCard === null;
   const effectiveBoss = bossDebuffNeutralized ? null : currentBoss;
+  // Ciccio il Baro: his card lands face down and stays that way until the
+  // player has committed one. The card is in the state the whole time - this
+  // only covers its face.
+  const hideOpponentTrickCard = BOSS_RULES.shouldRenderOpponentCardFaceDown(
+    currentBoss,
+    bossDebuffNeutralized,
+    playerTrickCard !== null
+  );
   const isCardPlayable = (card: PlayingCard): boolean => {
     if (!isOpeningTrick) return true;
     return BOSS_RULES.canPlayerLeadCard(card, effectiveBoss, playerHand, forcedLeadSuit).allowed;
@@ -278,6 +286,8 @@ export const GameTable: React.FC<GameTableProps> = ({
    */
   const followPreview = (() => {
     if (!opponentTrickCard || playerTrickCard || !selectedCard) return null;
+    // Reading out "you win this" would hand back exactly what Ciccio covered.
+    if (hideOpponentTrickCard) return null;
     const clash = resolveTrick(
       opponentTrickCard,
       selectedCard,
@@ -836,7 +846,8 @@ export const GameTable: React.FC<GameTableProps> = ({
                       <PixelCard
                         card={opponentTrickCard}
                         size={trickCardSize}
-                        isBriscola={opponentTrickCard.suit === briscolaSuit}
+                        isBriscola={!hideOpponentTrickCard && opponentTrickCard.suit === briscolaSuit}
+                        faceDown={hideOpponentTrickCard}
                         className="shadow-xl"
                       />
                     </motion.div>

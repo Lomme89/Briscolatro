@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BOSS_RULES } from './bossRules';
-import { createCard, createStandardDeck } from './briscola';
+import { createCard, createStandardDeck, resolveTrick } from './briscola';
 import { prepareRoundDeck } from './gameState';
 import { readPlayerThreat } from './opponentThreat';
 import { ALL_BOSS_BLINDS } from '../data/bosses';
@@ -172,5 +172,54 @@ describe('Ante 8 - il Sovrano zittisce a turno', () => {
     expect(carrettiereSilent.suitBounty.bastoni ?? 0).toBe(0);
     // The other one is still very much awake.
     expect(carrettiereSilent.caricoBounty).toBe(awake.caricoBounty);
+  });
+});
+
+describe('Ante 4 - Ciccio il Baro gioca coperto', () => {
+  const ciccio = boss('hidden_opponent_card');
+  const conte = boss('spades_are_briscola');
+  const oppCard = c('denari', 1, 'ciccio_asso');
+  const myCard = c('spade', 3, 'mio_tre');
+
+  it('Ciccio apre e la sua carta resta coperta', () => {
+    expect(BOSS_RULES.isOpponentCardHidden(ciccio, false)).toBe(true);
+    expect(BOSS_RULES.shouldRenderOpponentCardFaceDown(ciccio, false, false)).toBe(true);
+  });
+
+  it('finché il player non ha giocato la carta resta coperta', () => {
+    // Same answer however many times the table re-renders before the tap.
+    for (let i = 0; i < 5; i++) {
+      expect(BOSS_RULES.shouldRenderOpponentCardFaceDown(ciccio, false, false)).toBe(true);
+    }
+  });
+
+  it('appena il player gioca, la carta si scopre', () => {
+    expect(BOSS_RULES.isOpponentCardHidden(ciccio, true)).toBe(false);
+    expect(BOSS_RULES.shouldRenderOpponentCardFaceDown(ciccio, false, true)).toBe(false);
+  });
+
+  it('con un Boss diverso la carta è visibile da subito', () => {
+    expect(BOSS_RULES.shouldRenderOpponentCardFaceDown(conte, false, false)).toBe(false);
+    expect(BOSS_RULES.shouldRenderOpponentCardFaceDown(null, false, false)).toBe(false);
+  });
+
+  it('lo Scudo Protettivo rimette la carta scoperta', () => {
+    expect(BOSS_RULES.shouldRenderOpponentCardFaceDown(ciccio, true, false)).toBe(false);
+    expect(BOSS_RULES.shouldRenderOpponentCardFaceDown(ciccio, true, true)).toBe(false);
+  });
+
+  it('coprire la carta non tocca la presa: resolveTrick decide come sempre', () => {
+    // Ciccio leads the Asso di Denari on a Denari briscola and it holds.
+    const hidden = resolveTrick(oppCard, myCard, 'denari', false, ciccio.debuffType);
+    const plain = resolveTrick(oppCard, myCard, 'denari', false, undefined);
+    expect(hidden).toEqual(plain);
+    expect(hidden.playerWon).toBe(false);
+    expect(hidden.points).toBe(21);
+
+    // And the card the player answers with still takes what it should.
+    const won = resolveTrick(oppCard, c('denari', 3, 'mio_tre_denari'), 'denari', false, ciccio.debuffType);
+    expect(won.playerWon).toBe(false);
+    const beaten = resolveTrick(c('coppe', 4, 'ciccio_liscia'), myCard, 'coppe', false, ciccio.debuffType);
+    expect(beaten.playerWon).toBe(false);
   });
 });

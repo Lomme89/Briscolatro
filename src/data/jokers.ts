@@ -221,7 +221,7 @@ export const ALL_JOKERS: Joker[] = [
     id: 'j_falsario',
     name: 'Il Falsario',
     italianTitle: 'Mano di Zecca',
-    description: 'Quando vinci una presa, trasforma una carta casuale del tuo mazzo in Denari Foil (+50 Chips).',
+    description: 'Quando vinci una presa, una carta casuale non-Foil del tuo mazzo diventa Foil (+50 Chips).',
     rarity: 'rare',
     cost: 8,
     sellValue: 4,

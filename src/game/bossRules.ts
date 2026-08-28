@@ -95,6 +95,24 @@ export const BOSS_RULES = {
   },
 
   /**
+   * Whether the table draws the opponent's played card face down.
+   *
+   * Ciccio's whole malus is that you answer blind, and the card was being
+   * rendered face up anyway. The card itself never leaves the state - only its
+   * face is covered, and only until the player has committed a card, after
+   * which the trick resolves and reads exactly as it always did. A Scudo
+   * Protettivo neutralising the malus puts the card back face up.
+   */
+  shouldRenderOpponentCardFaceDown(
+    boss: BossBlind | null,
+    bossDebuffNeutralized: boolean,
+    playerHasPlayed: boolean
+  ): boolean {
+    if (bossDebuffNeutralized) return false;
+    return BOSS_RULES.isOpponentCardHidden(boss, playerHasPlayed);
+  },
+
+  /**
    * Calculates target score modifier for a boss.
    *
    * Nothing uses it any more: Ante 6 used to be a +50% tax and is now a rule

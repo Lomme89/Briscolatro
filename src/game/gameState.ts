@@ -218,6 +218,29 @@ export function assertRunDeckIntegrity(runDeck: PlayingCard[], where: string): v
 }
 
 /**
+ * The Falsario's stamp: one card of the run deck picks up a Foil edition.
+ *
+ * It used to rewrite a card's suit into Denari, which put a second Cavallo di
+ * Denari in circulation and left a suit one card short - the forty identities
+ * are not something a joker gets to edit. Only the edition changes here: same
+ * id, same suit, same rank, same points, same power, same enhancement, seal and
+ * Azzardo. A deck already all Foil is left exactly as it is.
+ */
+export function foilRandomCardInRunDeck(
+  runDeck: PlayingCard[],
+  random: () => number = Math.random
+): { deck: PlayingCard[]; foiledCardId: string | null } {
+  const candidates = runDeck.filter((card) => card.edition !== 'foil');
+  if (candidates.length === 0) return { deck: runDeck, foiledCardId: null };
+
+  const chosen = candidates[Math.floor(random() * candidates.length)];
+  const deck = runDeck.map((card) =>
+    card.id === chosen.id ? { ...card, edition: 'foil' as const } : card
+  );
+  return { deck, foiledCardId: chosen.id };
+}
+
+/**
  * Applies a booster upgrade to the card the player already owns.
  *
  * A potenziata card is not a new card: it is the same identity wearing

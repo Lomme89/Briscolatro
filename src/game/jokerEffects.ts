@@ -29,7 +29,11 @@ export interface JokerScoringModifier {
   xMultToMultiply: number;
   dollarsToAdd: number;
   triggeredJokerIds: string[];
-  transmutedCard?: { suit: Suit; edition: 'foil' };
+  /**
+   * The Falsario asks for one non-Foil card of the run deck to become Foil.
+   * It never names a suit or a rank: the forty identities stay untouched.
+   */
+  foilRandomCard: boolean;
   statGrowth: JokerStatGrowth[];
 }
 
@@ -47,7 +51,7 @@ export const JOKER_EFFECTS = {
     let dollarsToAdd = 0;
     const triggeredJokerIds: string[] = [];
     const statGrowth: JokerStatGrowth[] = [];
-    let transmutedCard: { suit: Suit; edition: 'foil' } | undefined = undefined;
+    let foilRandomCard = false;
 
     const {
       playerCard,
@@ -245,7 +249,7 @@ export const JOKER_EFFECTS = {
           }
 
           case 'j_falsario':
-            transmutedCard = { suit: 'denari', edition: 'foil' };
+            foilRandomCard = true;
             didTrigger = true;
             break;
 
@@ -315,7 +319,7 @@ export const JOKER_EFFECTS = {
       xMultToMultiply,
       dollarsToAdd,
       triggeredJokerIds,
-      transmutedCard,
+      foilRandomCard,
       statGrowth,
     };
   },
