@@ -69,7 +69,17 @@ export function playRound(
    * eighteen different things and the run simulator does not need them to; it
    * needs the slot to cost money and to be worth something.
    */
-  unoBoosts = 0
+  unoBoosts = 0,
+  /**
+   * The bankroll the scoring context sees.
+   *
+   * It used to be a hard-coded 10 in two places, which quietly handed il Jolly
+   * del Bar Sport ten free Mult in every measurement ever taken here. This
+   * bench has no economy - it plays one round out of context - so its default
+   * is nothing, and the run simulator passes the real wallet through
+   * `simulateEncounter` instead.
+   */
+  bankroll = 0
 ): RoundReport {
   let liveJokers = jokers.map((j) => ({ ...j }));
   const deal = prepareRoundDeck(runDeck ?? createStandardDeck());
@@ -107,7 +117,7 @@ export function playRound(
       tricksPlayed: played,
       remainingTricks: Math.floor(pile.length / 2) + hand.length,
       capturedDenari,
-      money: 10,
+      money: bankroll,
     };
 
     const playerCard = policy.choose(state);
@@ -149,7 +159,7 @@ export function playRound(
         liveJokers,
         boss,
         {
-          money: 10,
+          money: bankroll,
           playerHand: hand,
           tricksWonThisRound: tricksWon,
           consecutiveWinStreak: streak,

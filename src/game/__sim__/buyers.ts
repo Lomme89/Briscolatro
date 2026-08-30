@@ -1,4 +1,5 @@
-import { BuyerPolicy, jokerAppeal } from './runSim';
+import { BuyerPolicy, jokerAppeal, RunPolicy } from './runSim';
+import { CONSERVATIVE, HYBRID } from './policies';
 
 /**
  * Quattro modi di spendere.
@@ -240,3 +241,182 @@ export const BALANCED: BuyerPolicy = {
 };
 
 export const ALL_BUYERS: BuyerPolicy[] = [ECONOMY_FIRST, JOKER_ENGINE, DECK_UPGRADES, BALANCED];
+
+/**
+ * Le jolly che pagano in contanti, e le Sola che le alimentano.
+ *
+ * Named here rather than scored, because their value is not printed on them:
+ * il Jolly del Bar Sport reads the wallet, l'Oste pays at the end of a round,
+ * and il Raddoppio Soldi is worth exactly what is in the bank when it lands. A
+ * policy that hunts an economy engine has to know which cards those are.
+ */
+const ECONOMY_JOKERS = ['j_jolly_sport', 'j_oste', 'j_orafo', 'j_re_mida'];
+const ECONOMY_SOLA = ['uno_double_cash', 'uno_gold_yellow', 'uno_plus_two_blue'];
+
+/**
+ * E. Il tirchio.
+ *
+ * Holds the float and lets the interest compound, and only breaks it for
+ * something whose return is the money itself: the economy vouchers, il Bar
+ * Sport, l'Oste, il Raddoppio. Everything else has to come out of the money
+ * already above the interest cap, which is earning nothing where it sits.
+ */
+export const CASH_HOARDER: BuyerPolicy = {
+  id: 'cash_hoarder',
+  name: 'Cash hoarder',
+  blurb: 'Tiene i soldi: solo motori economici, il resto con la cassa sopra il tetto degli interessi.',
+  shop(state, offer, actions) {
+    for (const voucher of [...offer.vouchers]) {
+      if (voucher.id === 'v_interessi' || voucher.id === 'v_sconto') actions.buyVoucher(voucher);
+    }
+
+    const discount = state.vouchers.some((v) => v.id === 'v_sconto') ? 2 : 0;
+    const cap = state.vouchers.some((v) => v.id === 'v_interessi') ? 10 : 5;
+    const float = cap * INTEREST_STEP;
+
+    // The engine cards are worth breaking the float for: they pay it back.
+    for (const joker of offer.jokers.filter((j) => ECONOMY_JOKERS.includes(j.id))) {
+      if (state.jokers.length >= state.maxJokers) break;
+      const cost = Math.max(1, joker.cost - discount);
+      if (state.money >= cost) actions.buyJoker(joker, cost);
+    }
+    for (const card of offer.unoCards.filter((c) => ECONOMY_SOLA.includes(c.id))) {
+      const cost = Math.max(1, card.cost - discount);
+      if (state.money >= cost) actions.buyUno(card, cost);
+    }
+
+    const idle = () => state.money - float;
+    const ranked = [...offer.jokers].sort((a, b) => jokerAppeal(b) - jokerAppeal(a));
+    for (const joker of ranked) {
+      if (state.jokers.length >= state.maxJokers) break;
+      const cost = Math.max(1, joker.cost - discount);
+      if (idle() >= cost) actions.buyJoker(joker, cost);
+    }
+    for (const pack of [...offer.packs]) {
+      const cost = Math.max(1, pack.cost - discount);
+      if (idle() >= cost) actions.openPack(pack, cost);
+    }
+  },
+};
+
+/**
+ * F. Chi investe subito.
+ *
+ * The opposite bet: a dollar held is a dollar not compounding on the board, so
+ * it spends down to almost nothing every shop and lets the rewards refill it.
+ * It should look strongest early and thinnest at the antes where the interest
+ * would have been paying for a second jolly.
+ */
+export const AGGRESSIVE_SPENDER: BuyerPolicy = {
+  id: 'aggressive_spender',
+  name: 'Aggressive spender',
+  blurb: 'Investe tutto e subito: slot pieni presto e cassa quasi vuota a ogni uscita dal negozio.',
+  shop(state, offer, actions) {
+    const discount = state.vouchers.some((v) => v.id === 'v_sconto') ? 2 : 0;
+    const RESERVE = 1;
+
+    for (let pass = 0; pass < 3; pass++) {
+      let bought = false;
+
+      const ranked = [...offer.jokers].sort((a, b) => jokerAppeal(b) - jokerAppeal(a));
+      for (const joker of ranked) {
+        const cost = Math.max(1, joker.cost - discount);
+        if (state.money - cost < RESERVE) continue;
+        if (state.jokers.length < state.maxJokers) {
+          bought = actions.buyJoker(joker, cost) || bought;
+        } else {
+          const worst = [...state.jokers].sort((a, b) => jokerAppeal(a) - jokerAppeal(b))[0];
+          if (jokerAppeal(joker) > jokerAppeal(worst) + 2) {
+            actions.sellWorstJoker();
+            bought = actions.buyJoker(joker, cost) || bought;
+          }
+        }
+      }
+
+      for (const pack of [...offer.packs]) {
+        const cost = Math.max(1, pack.cost - discount);
+        if (state.money - cost >= RESERVE) bought = actions.openPack(pack, cost) || bought;
+      }
+
+      for (const card of [...offer.unoCards]) {
+        const cost = Math.max(1, card.cost - discount);
+        if (state.money - cost >= RESERVE) bought = actions.buyUno(card, cost) || bought;
+      }
+
+      if (bought) continue;
+      if (state.money - offer.rerollCost >= RESERVE + 4) {
+        if (!actions.reroll()) break;
+      } else break;
+    }
+
+    for (const voucher of [...offer.vouchers]) {
+      if (state.money - voucher.cost >= RESERVE) actions.buyVoucher(voucher);
+    }
+  },
+};
+
+/**
+ * G. Il briscolista.
+ *
+ * Buys for the sixty-one rather than for the Chips: card upgrades, because they
+ * make the forty identities better at taking tricks, and only the jolly it can
+ * afford without emptying the wallet. Paired with the conservative play policy
+ * it is the closest thing here to somebody who came for the Briscola.
+ */
+export const TRADITIONAL_BUYER: BuyerPolicy = {
+  id: 'traditional_player',
+  name: 'Traditional player',
+  blurb: 'Compra per i 61 punti: carte potenziate e poco altro, senza rincorrere il motore.',
+  shop(state, offer, actions) {
+    const discount = state.vouchers.some((v) => v.id === 'v_sconto') ? 2 : 0;
+
+    for (let i = 0; i < 3; i++) {
+      const pack = offer.packs.find((p) => p.type === 'cards' || p.type === 'celeste');
+      if (!pack) break;
+      const cost = Math.max(1, pack.cost - discount);
+      if (state.money < cost + 4) break;
+      if (!actions.openPack(pack, cost)) break;
+    }
+
+    if (state.jokers.length < state.maxJokers) {
+      const ranked = [...offer.jokers].sort((a, b) => jokerAppeal(b) - jokerAppeal(a));
+      for (const joker of ranked) {
+        const cost = Math.max(1, joker.cost - discount);
+        if (state.money >= cost + 8) actions.buyJoker(joker, cost);
+      }
+    }
+
+    const useful = offer.vouchers.find((v) => v.id === 'v_scarto' || v.id === 'v_interessi');
+    if (useful && state.money >= useful.cost + 5) actions.buyVoucher(useful);
+
+    spendTheChange(state, offer, actions, discount);
+  },
+};
+
+/**
+ * Le sei policy del report.
+ *
+ * A run policy is a way of buying AND a way of playing: pairing the traditional
+ * buyer with the score-greedy player would measure neither. `ALL_BUYERS` stays
+ * the older four so the existing macroloop test keeps measuring what it did.
+ */
+export const ALL_RUN_POLICIES: RunPolicy[] = [
+  { id: 'cash_hoarder', name: 'Cash hoarder', blurb: CASH_HOARDER.blurb, buyer: CASH_HOARDER, play: HYBRID },
+  {
+    id: 'aggressive_spender',
+    name: 'Aggressive spender',
+    blurb: AGGRESSIVE_SPENDER.blurb,
+    buyer: AGGRESSIVE_SPENDER,
+    play: HYBRID,
+  },
+  { id: 'joker_heavy', name: 'Joker heavy', blurb: JOKER_ENGINE.blurb, buyer: JOKER_ENGINE, play: HYBRID },
+  { id: 'upgrade_heavy', name: 'Upgrade heavy', blurb: DECK_UPGRADES.blurb, buyer: DECK_UPGRADES, play: HYBRID },
+  {
+    id: 'traditional_player',
+    name: 'Traditional player',
+    blurb: TRADITIONAL_BUYER.blurb,
+    buyer: TRADITIONAL_BUYER,
+    play: CONSERVATIVE,
+  },
+  { id: 'balanced', name: 'Balanced', blurb: BALANCED.blurb, buyer: BALANCED, play: HYBRID },
+];

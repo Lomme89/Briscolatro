@@ -32,7 +32,9 @@ export function simulateRound(
   jokers: Joker[],
   boss: BossBlind | null = null,
   onJokersChanged?: (next: Joker[]) => void,
-  runDeck?: PlayingCard[]
+  runDeck?: PlayingCard[],
+  /** The wallet the scoring context sees. This bench has no economy. */
+  bankroll = 0
 ): RoundSim {
   let liveJokers = jokers;
   const deal = prepareRoundDeck(runDeck ?? createStandardDeck());
@@ -74,7 +76,7 @@ export function simulateRound(
 
     if (clash.playerWon) {
       const result = calculateTrickScore(playerCard, oppCard, clash, briscolaSuit, liveJokers, boss, {
-        money: 10,
+        money: bankroll,
         playerHand,
         tricksWonThisRound: tricksWon,
         consecutiveWinStreak: streak,
