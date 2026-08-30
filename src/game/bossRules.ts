@@ -1,4 +1,5 @@
 import { BossBlind, Suit, PlayingCard } from '../types/game';
+import { pickRun } from './runRng';
 
 export interface BossRuleContext {
   boss: BossBlind | null;
@@ -83,7 +84,7 @@ export const BOSS_RULES = {
   getRotatedBriscolaSuit(currentSuit: Suit): Suit {
     const suits: Suit[] = ['denari', 'coppe', 'spade', 'bastoni'];
     const candidates = suits.filter((s) => s !== currentSuit);
-    return candidates[Math.floor(Math.random() * candidates.length)];
+    return pickRun(candidates) ?? currentSuit;
   },
 
   /**

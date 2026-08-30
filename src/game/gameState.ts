@@ -1,5 +1,6 @@
 import { PlayingCard, Suit, CardRank, DeckDefinition, BossBlind, Voucher, Joker } from '../types/game';
 import { createStandardDeck, shuffleDeck } from './briscola';
+import { randomRun } from './runRng';
 import {
   DEFAULT_VICTORY_MODE,
   evaluateVictoryCondition,
@@ -228,7 +229,7 @@ export function assertRunDeckIntegrity(runDeck: PlayingCard[], where: string): v
  */
 export function foilRandomCardInRunDeck(
   runDeck: PlayingCard[],
-  random: () => number = Math.random
+  random: () => number = randomRun
 ): { deck: PlayingCard[]; foiledCardId: string | null } {
   const candidates = runDeck.filter((card) => card.edition !== 'foil');
   if (candidates.length === 0) return { deck: runDeck, foiledCardId: null };

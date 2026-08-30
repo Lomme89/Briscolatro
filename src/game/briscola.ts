@@ -1,4 +1,5 @@
 import { PlayingCard, Suit, CardRank, Edition, Seal, Enhancement, CardSpecial } from '../types/game';
+import { randomRun, shuffleRun } from './runRng';
 
 export const SUITS: { id: Suit; name: string; symbol: string; color: string; bgColor: string }[] = [
   { id: 'denari', name: 'Denari', symbol: '🪙', color: '#fbbf24', bgColor: '#78350f' },
@@ -40,7 +41,7 @@ export function createCard(
 ): PlayingCard {
   const info = RANK_INFO[rank];
   return {
-    id: customId || `${suit}_${rank}_${Math.random().toString(36).substring(2, 9)}`,
+    id: customId || `${suit}_${rank}_${randomRun().toString(36).substring(2, 9)}`,
     suit,
     rank,
     points: info.points,
@@ -67,12 +68,7 @@ export function createStandardDeck(): PlayingCard[] {
 }
 
 export function shuffleDeck<T>(deck: T[]): T[] {
-  const result = [...deck];
-  for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [result[i], result[j]] = [result[j], result[i]];
-  }
-  return result;
+  return shuffleRun(deck);
 }
 
 export function getRankDisplayName(rank: CardRank): string {

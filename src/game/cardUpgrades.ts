@@ -1,4 +1,5 @@
 import { CardSpecial, Enhancement, PlayingCard } from '../types/game';
+import { pickRun, randomRun } from './runRng';
 
 /**
  * Which modifiers are allowed to share a card.
@@ -66,7 +67,7 @@ export function allowedEnhancementsFor(
 }
 
 function pick<T>(items: T[]): T | null {
-  return items.length === 0 ? null : items[Math.floor(Math.random() * items.length)];
+  return pickRun(items);
 }
 
 /**
@@ -87,26 +88,26 @@ export function rollCardUpgrade(card: PlayingCard): PlayingCard {
   const next = { ...card };
   const specials = allowedSpecialsFor(card);
 
-  if (specials.length > 0 && Math.random() < 0.5) {
+  if (specials.length > 0 && randomRun() < 0.5) {
     // One Azzardo per card, and it replaces whatever was there before.
     next.special = pick(specials)!;
     return next;
   }
 
-  const roll = Math.random();
+  const roll = randomRun();
   if (roll < 0.45) {
-    const edition = Math.random();
+    const edition = randomRun();
     next.edition = edition < 0.45 ? 'foil' : edition < 0.75 ? 'holo' : edition < 0.92 ? 'polychrome' : 'gold';
   }
 
   const enhancements = allowedEnhancementsFor(next);
-  if (enhancements.length > 0 && Math.random() < 0.45) {
+  if (enhancements.length > 0 && randomRun() < 0.45) {
     next.enhancement = pick(enhancements)!;
   }
 
-  const sealRoll = Math.random();
+  const sealRoll = randomRun();
   if (sealRoll < 0.3) {
-    const seal = Math.random();
+    const seal = randomRun();
     next.seal = seal < 0.4 ? 'red' : seal < 0.68 ? 'gold' : seal < 0.87 ? 'blue' : 'purple';
   }
 

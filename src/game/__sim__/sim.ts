@@ -5,10 +5,14 @@ import { chooseOpponentFollow, chooseOpponentLead } from '../ai';
 import { calculateTrickScore } from '../scoring';
 import { JOKER_EFFECTS } from '../jokerEffects';
 import { ALL_JOKERS } from '../../data/jokers';
+import { seedRunRng } from '../runRng';
 
 /** Deterministic PRNG so balance runs are reproducible. */
 export function seedRandom(seed: number) {
   let s = seed >>> 0;
+  // The gameplay path draws from the run RNG now, so a balance run has to pin
+  // both streams or half of it would still be free-running.
+  seedRunRng(seed);
   const original = Math.random;
   Math.random = () => {
     s = (s * 1664525 + 1013904223) >>> 0;

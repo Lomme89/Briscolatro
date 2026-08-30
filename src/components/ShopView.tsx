@@ -15,6 +15,8 @@ import { CardFaceArt, getJokerArtUrl, getUnoArtUrl } from './CardFaceArt';
 import { sound } from '../services/soundEngine';
 import confetti from 'canvas-confetti';
 import { boosterAbandonLabel, discountedShopCost } from '../game/shopRules';
+import { createRunRng, pickRun, shuffleRun } from '../game/runRng';
+import { ShopSnapshotV1 } from '../game/runPersistence';
 
 interface ShopViewProps {
   money: number;
@@ -35,6 +37,9 @@ interface ShopViewProps {
   onReroll: (cost: number) => boolean;
   ante: number;
   round: number;
+  /** The shelf's derivation, owned by the run so it can be saved and restored. */
+  shopState: ShopSnapshotV1;
+  onShopStateChange: (patch: Partial<ShopSnapshotV1>) => void;
 }
 
 export const ShopView: React.FC<ShopViewProps> = ({
@@ -55,6 +60,8 @@ export const ShopView: React.FC<ShopViewProps> = ({
   onReroll,
   ante,
   round,
+  shopState,
+  onShopStateChange,
 }) => {
   const hasSconto = vouchers.some(v => v.id === 'v_sconto' && v.bought);
 
@@ -64,26 +71,47 @@ export const ShopView: React.FC<ShopViewProps> = ({
   // middle blind, and a measured run came out with a third fewer jolly and half
   // the upgraded cards. The answer is more to choose from, not more money:
   // prices, rewards and interest are all untouched.
-  const [shopJokers, setShopJokers] = useState<Joker[]>(() => getRandomJokers(3));
-  const [shopUnoCards, setShopUnoCards] = useState<UnoCard[]>(() => {
-    const shuffled = [...ALL_UNO_CARDS].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, 2);
-  });
-  const [shopPacks, setShopPacks] = useState<BoosterPack[]>(() => {
-    const shuffled = [...ALL_BOOSTER_PACKS].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, 3);
-  });
+  //
+  // The shelf is derived, never stored.
+  //
+  // Save/Resume made the difference matter: a shelf held in component state
+  // disappears with the component, and a run reloaded into the shop would roll
+  // a brand new one. A shelf that is a pure function of (seed, rerolls) comes
+  // back exactly as it was left, and the snapshot only has to carry two numbers.
+  const { seed: shopSeed, rerolls } = shopState;
+  const shelfRng = (salt: number) => createRunRng(shopSeed + salt * 7919 + rerolls * 104729);
+
+  // Bought is a key, not a splice: removing an entry from the array would
+  // shift the keys of everything after it, and the shelf has to be addressable
+  // the same way before and after a reload.
+  const isSold = (key: string) => shopState.boughtKeys.includes(key);
+  const shopJokers = React.useMemo<Joker[]>(
+    () => getRandomJokers(3, [], shelfRng(1).random),
+    [shopSeed, rerolls]
+  ).filter((joker) => !isSold(`joker:${rerolls}:${joker.id}`));
+  const shopUnoCards = React.useMemo<UnoCard[]>(
+    () => shelfRng(2).shuffle(ALL_UNO_CARDS).slice(0, 2),
+    [shopSeed, rerolls]
+  ).filter((unoCard) => !isSold(`sola:${rerolls}:${unoCard.id}`));
+  // Packs and vouchers survive a reroll: only the jolly and the Carte Sola are
+  // what the player is paying to change.
+  const offeredPacks = React.useMemo<BoosterPack[]>(
+    () => createRunRng(shopSeed + 3 * 7919).shuffle(ALL_BOOSTER_PACKS).slice(0, 3),
+    [shopSeed]
+  );
   // The shelf used to be ALL_VOUCHERS.slice(0, 2), so Scarto Tattico and
   // Tessera VIP existed in the data and never in a shop. Two are drawn from
-  // whatever you do not own yet - a roguelike offer, not a fixed catalogue.
+  // whatever you did not own on the way in - a roguelike offer, not a fixed
+  // catalogue.
   const [shopVouchers] = useState<Voucher[]>(() => {
     const owned = new Set(vouchers.filter((v) => v.bought).map((v) => v.id));
-    return ALL_VOUCHERS.filter((v) => !owned.has(v.id))
-      .sort(() => Math.random() - 0.5)
+    return createRunRng(shopSeed + 4 * 7919)
+      .shuffle(ALL_VOUCHERS.filter((v) => !owned.has(v.id)))
       .slice(0, 2);
   });
-  const [rerollBaseCost, setRerollBaseCost] = useState(5);
-  const rerollCost = discountedShopCost(rerollBaseCost, hasSconto);
+  // A pack leaves the shelf for good once it has been opened.
+  const shopPacks = offeredPacks.filter((pack) => !isSold(`pack:${pack.id}`));
+  const rerollCost = discountedShopCost(5 + rerolls, hasSconto);
   // A booster card is picked at thumbnail size, so it opens in the inspector
   // first: the artwork at a readable size and every power written out.
   const [inspectedCard, setInspectedCard] = useState<PlayingCard | null>(null);
@@ -122,12 +150,21 @@ export const ShopView: React.FC<ShopViewProps> = ({
   const [confirmBoosterAbandon, setConfirmBoosterAbandon] = useState(false);
   const boosterChoiceLockRef = useRef(false);
   const rerollLockRef = useRef(false);
-  const boughtShelfItemsRef = useRef(new Set<string>());
+  // The ref is the double-tap guard (state is a render behind); the prop is
+  // what survives a reload.
+  const boughtShelfItemsRef = useRef(new Set<string>(shopState.boughtKeys));
+
+  const publishBoughtKeys = () => {
+    onShopStateChange({ boughtKeys: [...boughtShelfItemsRef.current] });
+  };
 
   const purchaseShelfItem = (key: string, purchase: () => boolean): boolean => {
     if (boughtShelfItemsRef.current.has(key)) return false;
     boughtShelfItemsRef.current.add(key);
-    if (purchase()) return true;
+    if (purchase()) {
+      publishBoughtKeys();
+      return true;
+    }
     boughtShelfItemsRef.current.delete(key);
     return false;
   };
@@ -140,10 +177,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
       rerollLockRef.current = false;
       return;
     }
-    setShopJokers(getRandomJokers(3));
-    const shuffledUno = [...ALL_UNO_CARDS].sort(() => Math.random() - 0.5);
-    setShopUnoCards(shuffledUno.slice(0, 2));
-    setRerollBaseCost(prev => prev + 1);
+    onShopStateChange({ rerolls: rerolls + 1 });
     setTimeout(() => { rerollLockRef.current = false; }, 0);
   };
 
@@ -154,20 +188,20 @@ export const ShopView: React.FC<ShopViewProps> = ({
     sound.playBoosterRip();
     if (boughtShelfItemsRef.current.has(`pack:${pack.id}`) || !onReroll(cost)) return;
     boughtShelfItemsRef.current.add(`pack:${pack.id}`);
-    setShopPacks((prev) => prev.filter((entry) => entry.id !== pack.id));
+    publishBoughtKeys();
     setConfirmBoosterAbandon(false);
     boosterChoiceLockRef.current = false;
 
     // The mega pack used to roll packSize of *each* type: fifteen options for
     // two picks, which is where the scrolling came from. packSize is how many
     // options the pack offers in total.
-    const shuffle = <T,>(items: T[]): T[] => [...items].sort(() => Math.random() - 0.5);
+    const shuffle = <T,>(items: T[]): T[] => shuffleRun(items);
     const drawTypes = (): Array<BoosterPack['type']> => {
       if (pack.type !== 'celeste') return Array(pack.packSize).fill(pack.type);
       // One of each is guaranteed, so an All-Star always looks like an All-Star.
       const mix: Array<BoosterPack['type']> = ['cards', 'uno', 'joker'];
       while (mix.length < pack.packSize) {
-        mix.push((['cards', 'uno', 'joker'] as const)[Math.floor(Math.random() * 3)]);
+        mix.push(pickRun<BoosterPack['type']>(['cards', 'uno', 'joker']) ?? 'cards');
       }
       return shuffle(mix).slice(0, pack.packSize);
     };
@@ -498,9 +532,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
                       onClick={() => {
                         if (!canAfford) return;
                         sound.playCashChime();
-                        if (purchaseShelfItem(`joker:${idx}:${joker.id}`, () => onBuyJoker(joker, cost))) {
-                          setShopJokers(prev => prev.filter((_, i) => i !== idx));
-                        }
+                        purchaseShelfItem(`joker:${rerolls}:${joker.id}`, () => onBuyJoker(joker, cost));
                       }}
                       disabled={!canAfford}
                       className={`w-full py-1.5 px-2 rounded-lg font-pixel text-[8.5px] sm:text-[9.5px] font-bold flex items-center justify-center gap-1 pixel-box transition-all active:scale-95 cursor-pointer ${
@@ -573,9 +605,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
                       onClick={() => {
                         if (!canAfford) return;
                         sound.playCashChime();
-                        if (purchaseShelfItem(`sola:${idx}:${unoCard.id}`, () => onBuyUnoCard(unoCard, cost))) {
-                          setShopUnoCards(prev => prev.filter((_, i) => i !== idx));
-                        }
+                        purchaseShelfItem(`sola:${rerolls}:${unoCard.id}`, () => onBuyUnoCard(unoCard, cost));
                       }}
                       disabled={!canAfford}
                       className={`w-full py-1.5 px-2 rounded-lg font-pixel text-[8.5px] sm:text-[9.5px] font-bold flex items-center justify-center gap-1 pixel-box transition-all active:scale-95 cursor-pointer ${

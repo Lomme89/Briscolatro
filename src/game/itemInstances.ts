@@ -1,4 +1,5 @@
 import { Joker, UnoCard } from '../types/game';
+import { randomRun } from './runRng';
 
 let nextInstanceSequence = 0;
 
@@ -37,7 +38,7 @@ export function sameUnoInstance(left: UnoCard, right: UnoCard): boolean {
 /** The Sigillo Blu reward path, injectable so dispatch is regression-testable. */
 export function createBlueSealReward(
   catalogue: UnoCard[],
-  random: () => number = Math.random
+  random: () => number = randomRun
 ): UnoCard | null {
   if (catalogue.length === 0) return null;
   const index = Math.min(catalogue.length - 1, Math.floor(random() * catalogue.length));

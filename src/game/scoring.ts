@@ -3,6 +3,7 @@ import { TrickClashResult } from './briscola';
 import { JOKER_EFFECTS, JokerScoringContext, JokerStatGrowth } from './jokerEffects';
 import { resolveSpecialForTrick, SpecialTrickOutcome } from './specialCards';
 import { CARD_POWER_VALUES as V } from '../data/cardPowers';
+import { randomRun } from './runRng';
 
 /** Side effects a trick's seals produced, applied by the caller. */
 export interface SealEvents {
@@ -134,7 +135,7 @@ export function calculateTrickScore(
     // Seals pay out on capture, on either card in the trick.
     for (const card of [playerCard, opponentCard]) {
       if (card.seal === 'gold') bonusDollars += V.goldSealDollars;
-      if (card.seal === 'blue' && Math.random() < V.blueSealChance) sealEvents.spawnUnoCard = true;
+      if (card.seal === 'blue' && randomRun() < V.blueSealChance) sealEvents.spawnUnoCard = true;
     }
   }
 

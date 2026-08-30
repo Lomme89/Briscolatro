@@ -2,6 +2,7 @@ import { UnoCard, PlayingCard, Suit, Joker } from '../types/game';
 import { ALL_JOKERS } from '../data/jokers';
 import { withRank } from './briscola';
 import { getUnoDefinitionId, instantiateJoker } from './itemInstances';
+import { pickRun, randomRun } from './runRng';
 
 export interface UnoActionContext {
   unoCard: UnoCard;
@@ -149,7 +150,7 @@ export const UNO_EFFECT_HANDLERS: Record<
   uno_plus_four_wild: (ctx) => {
     const suits: Suit[] = ['denari', 'coppe', 'spade', 'bastoni'];
     const otherSuits = suits.filter((s) => s !== ctx.briscolaSuit);
-    const newSuit = otherSuits[Math.floor(Math.random() * otherSuits.length)];
+    const newSuit = pickRun(otherSuits) ?? ctx.briscolaSuit;
     return {
       newDrawPile: ctx.drawPile,
       newPlayerHand: ctx.playerHand,
@@ -213,7 +214,7 @@ export const UNO_EFFECT_HANDLERS: Record<
     const newSuit =
       ctx.chosenSuit && ctx.chosenSuit !== ctx.briscolaSuit
         ? ctx.chosenSuit
-        : otherSuits[Math.floor(Math.random() * otherSuits.length)];
+        : (pickRun(otherSuits) ?? ctx.briscolaSuit);
     return {
       newDrawPile: ctx.drawPile,
       newPlayerHand: ctx.playerHand,
@@ -265,7 +266,7 @@ export const UNO_EFFECT_HANDLERS: Record<
 
     // Blind pick: the card comes back at random, so the effect never becomes a
     // way of reading a hand it is not allowed to see.
-    const takenIndex = Math.floor(Math.random() * ctx.opponentHand.length);
+    const takenIndex = Math.floor(randomRun() * ctx.opponentHand.length);
     const taken = ctx.opponentHand[takenIndex];
 
     const nextPlayerHand = ctx.playerHand.filter((c) => c.id !== given.id);
@@ -496,7 +497,7 @@ export const UNO_EFFECT_HANDLERS: Record<
     if (nextJokers.length < ctx.maxJokers) {
       const existingIds = new Set(nextJokers.map((j) => j.id));
       const pool = ALL_JOKERS.filter((j) => !existingIds.has(j.id));
-      const chosen = pool[Math.floor(Math.random() * pool.length)] || ALL_JOKERS[0];
+      const chosen = pickRun(pool) || ALL_JOKERS[0];
       nextJokers.push(instantiateJoker(chosen));
       msg = `Nuovo Jolly creato: ${chosen.name}!`;
     }

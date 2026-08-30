@@ -2,6 +2,7 @@ import { CardRank, PlayingCard, Suit } from '../types/game';
 import { resolveTrick } from './briscola';
 import { NEUTRAL_PROFILE, OpponentAiProfile } from './aiProfiles';
 import { giftValue, PlayerThreat } from './opponentThreat';
+import { randomRun } from './runRng';
 
 export interface OpponentAiContext {
   briscolaSuit: Suit;
@@ -178,7 +179,7 @@ function isUnbeatableLead(
  * that throws away an Asso for variety is not a character, it is a bug.
  */
 function pickWithNoise<T>(ranked: T[], profile: OpponentAiProfile): T {
-  if (ranked.length > 1 && Math.random() < profile.noise) return ranked[1];
+  if (ranked.length > 1 && randomRun() < profile.noise) return ranked[1];
   return ranked[0];
 }
 

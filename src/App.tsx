@@ -41,6 +41,17 @@ import { calculateTrickScore, TrickScoreCalculation } from './game/scoring';
 import { executeUnoCard } from './game/unoEffects';
 import { createBlueSealReward, instantiateJoker, instantiateUnoCard, sameUnoInstance } from './game/itemInstances';
 import { trySpendMoney } from './game/shopRules';
+import {
+  clearRunSnapshot,
+  hasStoredRun,
+  loadRunSnapshot,
+  RestoredRun,
+  RunSnapshotPhase,
+  saveRunSnapshot,
+  serializeRun,
+  ShopSnapshotV1,
+} from './game/runPersistence';
+import { getRunRngState, randomRun, seedRunRng, setRunRngState } from './game/runRng';
 import { sound } from './services/soundEngine';
 
 import { GameTable } from './components/GameTable';
@@ -274,6 +285,28 @@ export function App() {
     sound.playCardFlick();
   };
 
+  // --- Save / Resume ---
+  /**
+   * The stored run, if there is one that still checks out.
+   *
+   * Read once, on the way in: a snapshot that fails validation is deleted
+   * rather than repaired, and the title screen says so instead of pretending
+   * the run is still there.
+   */
+  const [resumableRun, setResumableRun] = useState<RestoredRun | null>(null);
+  const [saveNotice, setSaveNotice] = useState<string | null>(null);
+  /** Which confirmation the title screen is waiting on. */
+  const [pendingConfirm, setPendingConfirm] = useState<'new_run' | 'abandon' | null>(null);
+
+  useEffect(() => {
+    const hadSomething = hasStoredRun();
+    const restored = loadRunSnapshot();
+    setResumableRun(restored);
+    if (hadSomething && !restored) {
+      setSaveNotice('Salvataggio non valido. Avvia una nuova run.');
+    }
+  }, []);
+
   // --- Run State ---
   const [phase, setPhase] = useState<GamePhase>('title');
   const [selectedDeck, setSelectedDeck] = useState<DeckDefinition>(ALL_DECKS[0]);
@@ -331,6 +364,14 @@ export function App() {
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [maxJokers, setMaxJokers] = useState<number>(5);
   const [maxConsumables, setMaxConsumables] = useState<number>(2);
+  /**
+   * The shop shelf, as its derivation rather than its result.
+   *
+   * The shelf itself lives in ShopView, rebuilt from these numbers every time
+   * it mounts, so re-entering a saved shop shows the same three jolly instead
+   * of rerolling them for free.
+   */
+  const [shopState, setShopState] = useState<ShopSnapshotV1 | null>(null);
   const [triggeringJokerId, setTriggeringJokerId] = useState<string | null>(null);
   // Transaction guards read and update these synchronously; React state alone
   // can be one render behind during a rapid double tap.
@@ -411,6 +452,21 @@ export function App() {
     (ms: number) => (settingsRef.current.fastMode ? Math.round(ms * 0.45) : ms),
     []
   );
+
+  /**
+   * Autosave, at boundaries only.
+   *
+   * A save is asked for by bumping a tick; the write happens in an effect, so
+   * it reads state React has already committed. That is the whole point: every
+   * boundary sets a fistful of state at once, and a snapshot taken halfway
+   * through that batch would be a position the game cannot be in.
+   */
+  const [saveTick, setSaveTick] = useState(0);
+  const savePhaseRef = useRef<RunSnapshotPhase>('playing');
+  const requestSave = useCallback((phaseForSave: RunSnapshotPhase) => {
+    savePhaseRef.current = phaseForSave;
+    setSaveTick((tick) => tick + 1);
+  }, []);
 
   const activeTimersRef = useRef<NodeJS.Timeout[]>([]);
   const scheduleAction = useCallback((fn: () => void, delayMs: number) => {
@@ -564,10 +620,22 @@ export function App() {
     }
     scheduleAction(() => sound.playTrumpSlam(), 120 + 6 * 130);
     scheduleAction(() => setIsDealing(false), 1400);
+
+    // Boundary 1: the encounter exists and is legal. The deal animation that
+    // follows changes nothing about the position.
+    requestSave('playing');
   };
 
   // --- Start a New Run ---
   const startNewRun = (deck: DeckDefinition = selectedDeck, mode: VictoryMode = victoryMode) => {
+    // A new run gets a new stream, and it has to be running before the deck is
+    // built: the forty card ids and the first shuffle come out of it.
+    seedRunRng();
+    clearRunSnapshot();
+    setResumableRun(null);
+    setSaveNotice(null);
+    setPendingConfirm(null);
+    setShopState(null);
     setVictoryMode(mode);
     try {
       localStorage.setItem('briscolatro_victory_mode', mode);
@@ -624,6 +692,7 @@ export function App() {
     setPendingRound({ ante: 1, round: 1, deck, runDeck: newRunDeck });
     setPhase('blind_select');
     sound.playCardFlick();
+    requestSave('blind_select');
   };
 
   /** Deck first, then the rule, then the table. */
@@ -1067,6 +1136,17 @@ export function App() {
 
       if (outcome.won) {
         if (isBossEncounter(round)) setBossesDefeated((n) => n + 1);
+        // Boundary 3: the encounter is over and the shop is next. The shelf is
+        // rolled here so the snapshot carries it, rather than in ShopView where
+        // it would be re-rolled by every reload.
+        if (!outcome.isAnte8Victory) {
+          setShopState({
+            seed: Math.floor(randomRun() * 0x7fffffff),
+            rerolls: 0,
+            boughtKeys: [],
+          });
+          requestSave('shop');
+        }
         sound.playRoundWin();
         confetti({ particleCount: 70, spread: 80 });
 
@@ -1107,6 +1187,9 @@ export function App() {
             localStorage.setItem('briscolatro_mode_wins', JSON.stringify(wins));
           } catch {}
           sound.playVictoryFanfare();
+          // A finished run has nothing left to resume.
+          clearRunSnapshot();
+          setResumableRun(null);
           setGameOverSummary({
             won: true,
             ante,
@@ -1127,6 +1210,9 @@ export function App() {
         }
       } else {
         sound.playRoundLose();
+        // The run is lost: the snapshot goes with it.
+        clearRunSnapshot();
+        setResumableRun(null);
 
         setRoundSummary({
           ante,
@@ -1178,6 +1264,11 @@ export function App() {
       playGuardRef.current = false;
       setIsPlayerTurn(playerWon);
       setTrickPhase('idle');
+
+      // Boundary 2: the trick is awarded, the scores moved, the growth banked,
+      // the cards drawn and the next opener decided. The AI lead below is
+      // scheduled but not taken, so a reload replays it rather than skipping it.
+      requestSave('playing');
 
       if (!playerWon) {
         // Opponent's turn to lead - pass the freshly dealt hand and suit directly!
@@ -1383,7 +1474,13 @@ export function App() {
         setPhase('game_over');
       } else {
         sound.playShopEnter();
+        // The shelf is normally rolled when the encounter is cleared; a run
+        // that somehow arrives without one still gets a deterministic shop.
+        if (!shopState) {
+          setShopState({ seed: Math.floor(randomRun() * 0x7fffffff), rerolls: 0, boughtKeys: [] });
+        }
         setPhase('shop');
+        requestSave('shop');
       }
     } else {
       setRoundSummary(null);
@@ -1405,6 +1502,7 @@ export function App() {
     const next = [...activeJokersRef.current, instantiateJoker(joker)];
     activeJokersRef.current = next;
     setActiveJokers(next);
+    requestSave('shop');
     return true;
   };
 
@@ -1413,6 +1511,7 @@ export function App() {
     const next = [...consumablesRef.current, instantiateUnoCard(unoCard)];
     consumablesRef.current = next;
     setConsumables(next);
+    requestSave('shop');
     return true;
   };
 
@@ -1425,6 +1524,7 @@ export function App() {
     if (voucher.id === 'v_tavolo') {
       setMaxJokers(6);
     }
+    requestSave('shop');
     return true;
   };
 
@@ -1437,6 +1537,7 @@ export function App() {
     const next = activeJokersRef.current.filter((_, i) => i !== index);
     activeJokersRef.current = next;
     setActiveJokers(next);
+    requestSave('shop');
   };
 
   const handleSellUnoCard = (index: number) => {
@@ -1447,6 +1548,7 @@ export function App() {
     const next = consumablesRef.current.filter((_, i) => i !== index);
     consumablesRef.current = next;
     setConsumables(next);
+    requestSave('shop');
   };
 
   const handleUpgradeCard = (upgraded: PlayingCard) => {
@@ -1458,6 +1560,7 @@ export function App() {
       if (import.meta.env.DEV) assertRunDeckIntegrity(next, 'upgrade in bustina');
       return next;
     });
+    requestSave('shop');
   };
 
   const handleNextRoundFromShop = () => {
@@ -1469,6 +1572,15 @@ export function App() {
     setRound(nextRound);
     setPendingRound({ ante: nextAnte, round: nextRound, deck: selectedDeck, runDeck });
     setPhase('blind_select');
+    // Boundary 5: out of the shop, the next encounter not yet dealt.
+    setShopState(null);
+    requestSave('blind_select');
+  };
+
+  /** Boundary 4: a shop transaction landed, or the shelf was rerolled. */
+  const handleShopStateChange = (patch: Partial<ShopSnapshotV1>) => {
+    setShopState((prev) => (prev ? { ...prev, ...patch } : prev));
+    requestSave('shop');
   };
 
   // A fixed hand for the title screen: real cards, not decoration, and stable
@@ -1482,6 +1594,160 @@ export function App() {
     []
   );
 
+  /**
+   * Sits back down at the stored run.
+   *
+   * The refs are written before any state is, and before anything is
+   * scheduled: the engine reads hands, stock and briscola out of refs from
+   * inside delayed callbacks, so a restore that only calls setState leaves the
+   * AI playing the previous run's cards. Nothing mid-trick is rebuilt - the
+   * table comes back clear, at a position the rules allow.
+   */
+  const handleResumeRun = () => {
+    const restored = resumableRun;
+    if (!restored) return;
+    const snap = restored.snapshot;
+
+    setRunRngState(snap.rng);
+
+    setVictoryMode(snap.victoryMode);
+    setSelectedDeck(restored.deck);
+    setAnte(snap.ante);
+    setRound(snap.round);
+    setBossesDefeated(snap.bossesDefeated);
+    setMoney(snap.money);
+    moneyRef.current = snap.money;
+    setTotalScore(snap.totalScore);
+    setTotalTricksWon(snap.totalTricksWon);
+    setTotalTricksLost(snap.totalTricksLost);
+    setTotalBriscolaPointsPlayer(snap.totalBriscolaPointsPlayer);
+    setTotalBriscolaPointsOpponent(snap.totalBriscolaPointsOpponent);
+    setTotalMoneyEarned(snap.totalMoneyEarned);
+    setMaxJokers(snap.maxJokers);
+    setMaxConsumables(snap.maxConsumables);
+    setRunDeck(snap.runDeck);
+    activeJokersRef.current = snap.activeJokers;
+    setActiveJokers(snap.activeJokers);
+    consumablesRef.current = snap.consumables;
+    setConsumables(snap.consumables);
+    vouchersRef.current = snap.vouchers;
+    setVouchers(snap.vouchers);
+    // A shop snapshot without a shelf still has to open a shop.
+    setShopState(
+      snap.shop ?? { seed: Math.floor(randomRun() * 0x7fffffff), rerolls: 0, boughtKeys: [] }
+    );
+
+    // Everything purely visual starts from zero: a restore is a stable
+    // position, not a replayed animation frame.
+    setRoundSummary(null);
+    setGameOverSummary(null);
+    setLastVictory(null);
+    setCastingUno(null);
+    setTallyData(null);
+    setPlayerTrickCard(null);
+    setOpponentTrickCard(null);
+    setTriggeringJokerId(null);
+    setIsDealing(false);
+    setActiveUnoMultiplier(1.0);
+    setIsReverseActive(false);
+    isReverseActiveRef.current = false;
+    forcedTrickWinRef.current = false;
+    playGuardRef.current = false;
+    tallyGuardRef.current = false;
+    setResumableRun(null);
+    setSaveNotice(null);
+    setPendingConfirm(null);
+
+    const encounter = snap.encounter;
+    if (snap.phase !== 'playing' || !encounter) {
+      if (snap.phase === 'shop') {
+        setPhase('shop');
+      } else {
+        setPendingRound({
+          ante: snap.ante,
+          round: snap.round,
+          deck: restored.deck,
+          runDeck: snap.runDeck,
+        });
+        setPhase('blind_select');
+      }
+      return;
+    }
+
+    // Refs first, always.
+    playerHandRef.current = encounter.playerHand;
+    opponentHandRef.current = encounter.opponentHand;
+    drawPileRef.current = encounter.drawPile;
+    trumpCardRef.current = encounter.trumpCard;
+    briscolaSuitRef.current = encounter.briscolaSuit;
+    activeBossRef.current = restored.boss;
+    bossDebuffNeutralizedRef.current = encounter.bossDebuffNeutralized;
+    bossShieldTricksRef.current = encounter.bossShieldTricks;
+    playedCardsRef.current = restored.playedCards;
+    lastWinningSuitRef.current = encounter.lastWinningSuit;
+    opponentProfileRef.current = getAiProfile(
+      getOpponentIntro(snap.ante, snap.round).aiProfileId
+    );
+
+    setPlayerHand(encounter.playerHand);
+    setOpponentHand(encounter.opponentHand);
+    setDrawPile(encounter.drawPile);
+    setTrumpCard(encounter.trumpCard);
+    setBriscolaSuit(encounter.briscolaSuit);
+    setActiveBoss(restored.boss);
+    setBossDebuffNeutralized(encounter.bossDebuffNeutralized);
+    setBossShieldTricks(encounter.bossShieldTricks);
+    setTargetScore(encounter.targetScore);
+    setCurrentRoundScore(encounter.currentRoundScore);
+    setRoundPointsTaken(encounter.roundPointsTaken);
+    setOpponentPointsTaken(encounter.opponentPointsTaken);
+    setRoundTricksWon(encounter.roundTricksWon);
+    setRoundTricksLost(encounter.roundTricksLost);
+    setTricksPlayedInRound(encounter.tricksPlayedInRound);
+    setCapturedDenariRanksThisRound(restored.capturedDenariRanks);
+    setConsecutiveWinStreak(encounter.consecutiveWinStreak);
+    setDiscardsLeft(encounter.discardsLeft);
+
+    // Derived from the boss and the position, never stored: two copies of the
+    // same fact are one copy too many.
+    const enforcedBoss = encounter.bossDebuffNeutralized ? null : restored.boss;
+    setForcedLeadSuit(
+      BOSS_RULES.getForcedLeadSuit(enforcedBoss, encounter.lastWinningSuit, encounter.playerHand)
+    );
+    setDisabledJokerIndex(
+      BOSS_RULES.getSilencedJokerIndex(
+        enforcedBoss,
+        encounter.tricksPlayedInRound,
+        snap.activeJokers.length
+      )
+    );
+
+    setIsPlayerTurn(encounter.isPlayerTurn);
+    setTrickLeadIsPlayer(encounter.isPlayerTurn);
+    setTrickPhase('idle');
+    setOpponentSpeech(
+      restored.boss ? restored.boss.bossQuote : 'Riprendiamo da dove avevamo lasciato.'
+    );
+    setPhase('playing');
+
+    // The snapshot was taken before this lead was played, so replaying it is
+    // the position resuming, not an action happening twice.
+    if (!encounter.isPlayerTurn) {
+      scheduleAction(() => {
+        triggerOpponentLead(encounter.opponentHand, encounter.briscolaSuit);
+      }, beat(700));
+    }
+  };
+
+  /** Throws the stored run away. Permanent progress is untouched. */
+  const handleAbandonRun = () => {
+    clearRunSnapshot();
+    setResumableRun(null);
+    setSaveNotice(null);
+    setPendingConfirm(null);
+    sound.playCardFlick();
+  };
+
   /** Deals the round the reveal screen was announcing. */
   const handleSitDown = () => {
     if (!pendingRound) return;
@@ -1489,6 +1755,71 @@ export function App() {
     setPendingRound(null);
     setPhase('playing');
   };
+
+  /**
+   * The write itself.
+   *
+   * Deliberately keyed on the tick alone: it must run once per boundary, with
+   * whatever React committed for that render, and never on the hundred other
+   * state changes a trick goes through.
+   */
+  useEffect(() => {
+    if (saveTick === 0) return;
+    const phaseForSave = savePhaseRef.current;
+
+    saveRunSnapshot(
+      serializeRun({
+        phase: phaseForSave,
+        deck: selectedDeck,
+        victoryMode,
+        ante,
+        round,
+        money,
+        totalScore,
+        totalTricksWon,
+        totalTricksLost,
+        totalBriscolaPointsPlayer,
+        totalBriscolaPointsOpponent,
+        totalMoneyEarned,
+        bossesDefeated,
+        maxJokers,
+        maxConsumables,
+        runDeck,
+        activeJokers,
+        consumables,
+        vouchers,
+        rng: getRunRngState(),
+        shop: phaseForSave === 'shop' ? shopState : null,
+        encounter:
+          phaseForSave === 'playing'
+            ? {
+                playerHand,
+                opponentHand,
+                drawPile,
+                trumpCard,
+                briscolaSuit,
+                targetScore,
+                currentRoundScore,
+                roundPointsTaken,
+                opponentPointsTaken,
+                roundTricksWon,
+                roundTricksLost,
+                tricksPlayedInRound,
+                capturedDenariRanks: capturedDenariRanksThisRound,
+                consecutiveWinStreak,
+                discardsLeft,
+                isPlayerTurn,
+                boss: activeBoss,
+                bossDebuffNeutralized,
+                bossShieldTricks,
+                lastWinningSuit: lastWinningSuitRef.current,
+                playedCards: playedCardsRef.current,
+              }
+            : null,
+      })
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saveTick]);
 
   return (
     <CardChipsProvider enabled={settings.showCardChips !== false}>
@@ -1577,18 +1908,58 @@ export function App() {
                 MIGLIOR RECORD: {highScore.toLocaleString()} PUNTI
               </div>
 
+              {/* A save that did not check out says so, once. */}
+              {saveNotice && (
+                <div className="mt-4 w-full bg-rose-950/70 border border-rose-500/60 px-4 py-2 rounded-xl pixel-box text-[10px] font-retro text-rose-200 text-center">
+                  {saveNotice}
+                </div>
+              )}
+
               {/* Action Buttons Menu */}
               <div className="w-full space-y-3 mt-6">
+                {resumableRun && (
+                  <button
+                    onClick={() => {
+                      sound.playCardFlick();
+                      handleResumeRun();
+                    }}
+                    className="w-full bg-gradient-to-r from-emerald-500 to-lime-400 hover:from-emerald-400 hover:to-lime-300 text-slate-950 font-pixel text-sm font-bold py-3.5 rounded-xl pixel-box shadow-xl cursor-pointer transition-transform hover:scale-102 flex items-center justify-center gap-2"
+                  >
+                    <span>
+                      CONTINUA RUN · ANTE {resumableRun.snapshot.ante}
+                    </span>
+                    <span>➔</span>
+                  </button>
+                )}
+
                 <button
                   onClick={() => {
                     sound.playCardFlick();
-                    setShowDeckSelect(true);
+                    // A run in progress is not thrown away by a stray tap.
+                    if (resumableRun) setPendingConfirm('new_run');
+                    else setShowDeckSelect(true);
                   }}
-                  className="w-full bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-pixel text-sm font-bold py-3.5 rounded-xl pixel-box shadow-xl cursor-pointer transition-transform hover:scale-102 flex items-center justify-center gap-2"
+                  className={
+                    resumableRun
+                      ? 'w-full bg-slate-800 hover:bg-slate-700 text-amber-300 font-pixel text-xs py-3 rounded-xl pixel-box cursor-pointer flex items-center justify-center gap-2'
+                      : 'w-full bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-pixel text-sm font-bold py-3.5 rounded-xl pixel-box shadow-xl cursor-pointer transition-transform hover:scale-102 flex items-center justify-center gap-2'
+                  }
                 >
-                  <span>GIOCA NUOVA PARTITA</span>
+                  <span>{resumableRun ? 'NUOVA PARTITA' : 'GIOCA NUOVA PARTITA'}</span>
                   <span>➔</span>
                 </button>
+
+                {resumableRun && (
+                  <button
+                    onClick={() => {
+                      sound.playCardFlick();
+                      setPendingConfirm('abandon');
+                    }}
+                    className="w-full bg-slate-900/80 hover:bg-rose-950 border border-rose-500/40 text-rose-300 font-pixel text-[10px] py-2.5 rounded-xl pixel-box cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <span>🗑️ ABBANDONA RUN</span>
+                  </button>
+                )}
 
                 <button
                   onClick={() => {
@@ -1718,7 +2089,7 @@ export function App() {
         )}
 
         {/* SHOP VIEW BETWEEN ROUNDS */}
-        {phase === 'shop' && (
+        {phase === 'shop' && shopState && (
           <ShopView
             money={money}
             jokers={activeJokers}
@@ -1737,6 +2108,8 @@ export function App() {
             onReroll={spendMoney}
             ante={ante}
             round={round}
+            shopState={shopState}
+            onShopStateChange={handleShopStateChange}
           />
         )}
 
@@ -1827,6 +2200,41 @@ export function App() {
           }}
           onDone={() => setCastingUno(null)}
         />
+
+        {/* CONFIRMATIONS THAT COST A RUN */}
+        {pendingConfirm && (
+          <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 p-6">
+            <div className="w-full max-w-sm bg-slate-950 border-3 border-amber-500 rounded-2xl p-5 pixel-box text-center">
+              <p className="font-pixel text-xs text-amber-300">
+                {pendingConfirm === 'new_run' ? 'INIZIARE UNA NUOVA RUN?' : 'ABBANDONARE LA RUN?'}
+              </p>
+              <p className="mt-2 font-retro text-[11px] text-slate-300">
+                La run salvata verrà eliminata. Record e mazzi sbloccati restano.
+              </p>
+              <div className="mt-5 flex gap-3">
+                <button
+                  onClick={() => setPendingConfirm(null)}
+                  className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-pixel text-[10px] py-2.5 rounded-xl pixel-box cursor-pointer"
+                >
+                  ANNULLA
+                </button>
+                <button
+                  onClick={() => {
+                    if (pendingConfirm === 'new_run') {
+                      handleAbandonRun();
+                      setShowDeckSelect(true);
+                    } else {
+                      handleAbandonRun();
+                    }
+                  }}
+                  className="flex-1 bg-rose-600 hover:bg-rose-500 text-slate-950 font-pixel text-[10px] py-2.5 rounded-xl pixel-box cursor-pointer"
+                >
+                  CONFERMA
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <SettingsModal
           isOpen={showSettings}

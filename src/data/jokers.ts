@@ -1,5 +1,6 @@
 import { Joker } from '../types/game';
 import { instantiateJoker } from '../game/itemInstances';
+import { randomRun, shuffleWith } from '../game/runRng';
 
 export const ALL_JOKERS: Joker[] = [
   // COMMON JOKERS
@@ -324,8 +325,12 @@ export const ALL_JOKERS: Joker[] = [
  * Always hands out copies with their own `stats`: jokers that grow during a run
  * must never write back into the shared catalogue.
  */
-export function getRandomJokers(count: number, excludedIds: string[] = []): Joker[] {
+export function getRandomJokers(
+  count: number,
+  excludedIds: string[] = [],
+  random: () => number = randomRun
+): Joker[] {
   const available = ALL_JOKERS.filter(j => !excludedIds.includes(j.id));
-  const shuffled = [...available].sort(() => Math.random() - 0.5);
+  const shuffled = shuffleWith(available, random);
   return shuffled.slice(0, count).map((j) => instantiateJoker(j));
 }
