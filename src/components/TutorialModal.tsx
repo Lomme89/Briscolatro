@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { PixelSuitIcon } from './PixelSuitIcon';
+import { CARD_POWER_VALUES as V } from '../data/cardPowers';
 
 interface TutorialModalProps {
   isOpen: boolean;
@@ -223,7 +224,9 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ isOpen, onClose })
                   <span className="text-blue-300">[ CHIPS ]</span> × <span className="text-red-300">[ MOLTIPLICATORE ]</span> = <span className="text-amber-300">PUNTI ASSEGNATI</span>
                 </div>
                 <ul className="list-disc list-inside space-y-1 text-slate-300 text-xs">
-                  <li><strong>Chips:</strong> Base della presa (Asso = +110 Chips, Tre = +100 Chips, Figure = +20/+40 Chips) + bonus lamina Foil.</li>
+                  <li><strong>Chips:</strong> base 20 + 3 per ogni punto della carta giocata; Foil aggiunge +{V.foilPlayedChips}, Bonus +{V.bonusChips} e Pietra +{V.stoneChips}.</li>
+                  <li><strong>Edizioni:</strong> Olografica +{V.holoPlayedMult} Mult; Policroma x{V.polychromePlayedXMult} Mult.</li>
+                  <li><strong>Acciaio:</strong> x{V.steelXMult} Mult solo mentre la carta resta in mano.</li>
                   <li><strong>Moltiplicatore:</strong> Potenziato dai tuoi Jolly passivi e combinazioni speciali.</li>
                   <li>Gli obiettivi scalano progressivamente dall'<strong>Ante 1 all'Ante 8</strong>!</li>
                 </ul>
@@ -266,8 +269,8 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ isOpen, onClose })
                   <li className="flex items-start gap-2 bg-red-950/60 p-2 rounded-lg border border-red-500/50">
                     <span className="text-lg shrink-0">💀</span>
                     <div>
-                      <strong className="text-red-400 font-pixel text-[10px]">Boss Blinds (Round 3 di ogni Ante):</strong>
-                      <p className="text-xs text-red-200 mt-0.5">Al 3° round affronterai un Boss con un <strong>Malus speciale</strong> (es. Gigi il Barista annulla le lisce, Don Vito dimezza i carichi, Ciccio nasconde le sue carte). Leggi sempre il banner del Boss in cima al tavolo!</p>
+                      <strong className="text-red-400 font-pixel text-[10px]">Boss (2° incontro di ogni Ante):</strong>
+                      <p className="text-xs text-red-200 mt-0.5">Nel 2° incontro affronterai un Boss con un <strong>Malus speciale</strong> (es. Gigi riduce le lisce, Don Vito dimezza i carichi nello scoring, Ciccio nasconde le sue carte). Leggi sempre il banner del Boss in cima al tavolo!</p>
                     </div>
                   </li>
                 </ul>

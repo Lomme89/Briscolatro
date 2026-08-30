@@ -2,6 +2,7 @@ import { PlayingCard, Suit, Joker, BossBlind } from '../types/game';
 import { TrickClashResult } from './briscola';
 import { JOKER_EFFECTS, JokerScoringContext, JokerStatGrowth } from './jokerEffects';
 import { resolveSpecialForTrick, SpecialTrickOutcome } from './specialCards';
+import { CARD_POWER_VALUES as V } from '../data/cardPowers';
 
 /** Side effects a trick's seals produced, applied by the caller. */
 export interface SealEvents {
@@ -86,25 +87,25 @@ export function calculateTrickScore(
   for (let pass = 0; pass < retriggers; pass++) {
     // Editions
     if (playerCard.edition === 'foil') {
-      bonusChips += 60;
+      bonusChips += V.foilPlayedChips;
     } else if (playerCard.edition === 'holo') {
-      bonusMult += 12;
+      bonusMult += V.holoPlayedMult;
     } else if (playerCard.edition === 'polychrome') {
-      xMult *= 1.6;
+      xMult *= V.polychromePlayedXMult;
     } else if (playerCard.edition === 'gold') {
-      bonusDollars += 1;
+      bonusDollars += V.goldPlayedDollars;
     }
 
     // Enhancements
     switch (playerCard.enhancement) {
       case 'bonus':
-        bonusChips += 40;
+        bonusChips += V.bonusChips;
         break;
       case 'mult':
-        bonusMult += 5;
+        bonusMult += V.multBonus;
         break;
       case 'stone':
-        bonusChips += 60;
+        bonusChips += V.stoneChips;
         break;
       default:
         break;
@@ -120,20 +121,20 @@ export function calculateTrickScore(
 
   // Steel pays for being HELD, not played.
   for (const held of jokerContext.playerHand) {
-    if (held.enhancement === 'steel') xMult *= 1.6;
+    if (held.enhancement === 'steel') xMult *= V.steelXMult;
   }
 
   // --- The captured card ---------------------------------------------------
   if (clashResult.playerWon) {
-    if (opponentCard.edition === 'foil') bonusChips += 30;
-    if (opponentCard.edition === 'holo') bonusMult += 6;
-    if (opponentCard.edition === 'polychrome') xMult *= 1.3;
-    if (opponentCard.edition === 'gold') bonusDollars += 2;
+    if (opponentCard.edition === 'foil') bonusChips += V.foilCapturedChips;
+    if (opponentCard.edition === 'holo') bonusMult += V.holoCapturedMult;
+    if (opponentCard.edition === 'polychrome') xMult *= V.polychromeCapturedXMult;
+    if (opponentCard.edition === 'gold') bonusDollars += V.goldCapturedDollars;
 
     // Seals pay out on capture, on either card in the trick.
     for (const card of [playerCard, opponentCard]) {
-      if (card.seal === 'gold') bonusDollars += 2;
-      if (card.seal === 'blue' && Math.random() < 0.2) sealEvents.spawnUnoCard = true;
+      if (card.seal === 'gold') bonusDollars += V.goldSealDollars;
+      if (card.seal === 'blue' && Math.random() < V.blueSealChance) sealEvents.spawnUnoCard = true;
     }
   }
 
@@ -169,8 +170,10 @@ export function calculateTrickScore(
   bonusDollars += jokerMod.dollarsToAdd;
 
   const totalChips = Math.max(1, baseChips + bonusChips);
-  const totalMult = Math.max(1, Math.round((baseMult + bonusMult) * xMult));
-  const finalScore = totalChips * totalMult;
+  // Keep fractional xMult growth real until the final score. Rounding Mult here
+  // erased small permanent gains (e.g. 3.00 -> 3.05) for many tricks at a time.
+  const totalMult = Math.max(1, (baseMult + bonusMult) * xMult);
+  const finalScore = Math.round(totalChips * totalMult);
 
   const baseMultReasons: string[] = [];
   if (carichiCaptured > 0) baseMultReasons.push(`${carichiCaptured} Carico${carichiCaptured > 1 ? 'i' : ''} +${carichiCaptured}`);

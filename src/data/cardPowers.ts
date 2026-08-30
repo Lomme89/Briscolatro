@@ -8,6 +8,26 @@ export interface CardPower {
   className: string;
 }
 
+/** Numeric source of truth shared by scoring and every player-facing label. */
+export const CARD_POWER_VALUES = {
+  foilPlayedChips: 60,
+  foilCapturedChips: 30,
+  holoPlayedMult: 12,
+  holoCapturedMult: 6,
+  polychromePlayedXMult: 1.6,
+  polychromeCapturedXMult: 1.3,
+  goldPlayedDollars: 1,
+  goldCapturedDollars: 2,
+  bonusChips: 40,
+  multBonus: 5,
+  steelXMult: 1.6,
+  stoneChips: 60,
+  blueSealChance: 0.2,
+  goldSealDollars: 2,
+} as const;
+
+const V = CARD_POWER_VALUES;
+
 /**
  * What every modifier actually does, in one place.
  *
@@ -17,22 +37,22 @@ export interface CardPower {
 const EDITION_POWERS: Record<Exclude<Edition, 'standard'>, CardPower> = {
   foil: {
     label: 'Lamina',
-    description: '+60 Chips quando la giochi (+30 se la catturi dall\'avversario).',
+    description: `+${V.foilPlayedChips} Chips quando la giochi (+${V.foilCapturedChips} se la catturi dall'avversario).`,
     className: 'bg-sky-950 border-sky-400 text-sky-200',
   },
   holo: {
     label: 'Olografica',
-    description: '+12 Mult quando la giochi (+6 se la catturi).',
+    description: `+${V.holoPlayedMult} Mult quando la giochi (+${V.holoCapturedMult} se la catturi).`,
     className: 'bg-fuchsia-950 border-fuchsia-400 text-fuchsia-200',
   },
   polychrome: {
     label: 'Policroma',
-    description: 'x1.6 Mult quando la giochi (x1.3 se la catturi).',
+    description: `x${V.polychromePlayedXMult} Mult quando la giochi (x${V.polychromeCapturedXMult} se la catturi).`,
     className: 'bg-purple-950 border-purple-400 text-purple-200',
   },
   gold: {
     label: 'Dorata',
-    description: '+$1 quando la giochi, +$2 se la catturi dall\'avversario.',
+    description: `+$${V.goldPlayedDollars} quando la giochi, +$${V.goldCapturedDollars} se la catturi dall'avversario.`,
     className: 'bg-amber-950 border-amber-400 text-amber-200',
   },
 };
@@ -40,12 +60,12 @@ const EDITION_POWERS: Record<Exclude<Edition, 'standard'>, CardPower> = {
 const ENHANCEMENT_POWERS: Record<Exclude<Enhancement, 'none'>, CardPower> = {
   bonus: {
     label: 'Bonus',
-    description: '+40 Chips ogni volta che la giochi.',
+    description: `+${V.bonusChips} Chips ogni volta che la giochi.`,
     className: 'bg-sky-950 border-sky-400 text-sky-200',
   },
   mult: {
     label: 'Mult',
-    description: '+5 Mult ogni volta che la giochi.',
+    description: `+${V.multBonus} Mult ogni volta che la giochi.`,
     className: 'bg-red-950 border-red-400 text-red-200',
   },
   wild: {
@@ -55,12 +75,12 @@ const ENHANCEMENT_POWERS: Record<Exclude<Enhancement, 'none'>, CardPower> = {
   },
   steel: {
     label: 'Acciaio',
-    description: 'x1.6 Mult finché resta in mano: paga se NON la giochi.',
+    description: `x${V.steelXMult} Mult finché resta in mano: paga se NON la giochi.`,
     className: 'bg-slate-800 border-slate-400 text-slate-200',
   },
   stone: {
     label: 'Pietra',
-    description: '+60 Chips, ma non ha seme: non prende mai per seme né per Briscola.',
+    description: `+${V.stoneChips} Chips, ma non ha seme: non prende mai per seme né per Briscola.`,
     className: 'bg-stone-800 border-stone-400 text-stone-200',
   },
 };
@@ -73,12 +93,12 @@ const SEAL_POWERS: Record<Exclude<Seal, 'none'>, CardPower> = {
   },
   gold: {
     label: 'Sigillo Oro',
-    description: '+$2 ogni volta che vinci la presa in cui si trova.',
+    description: `+$${V.goldSealDollars} ogni volta che vinci la presa in cui si trova.`,
     className: 'bg-amber-950 border-amber-400 text-amber-200',
   },
   blue: {
     label: 'Sigillo Blu',
-    description: 'Vincendo la presa, 20% di ricevere una Carta Sola gratis.',
+    description: `Vincendo la presa, ${V.blueSealChance * 100}% di ricevere una Carta Sola gratis.`,
     className: 'bg-blue-950 border-blue-400 text-blue-200',
   },
   purple: {

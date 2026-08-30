@@ -1,4 +1,5 @@
 import { Joker } from '../types/game';
+import { instantiateJoker } from '../game/itemInstances';
 
 export const ALL_JOKERS: Joker[] = [
   // COMMON JOKERS
@@ -128,8 +129,8 @@ export const ALL_JOKERS: Joker[] = [
     icon: '🐎',
     accentColor: '#8b5cf6',
     trigger: 'on_card_scored',
-    chipsBonus: 80,
-    multBonus: 4,
+    chipsBonus: 90,
+    multBonus: 5,
     customEffectId: 'cavallo_boost',
   },
   {
@@ -221,7 +222,7 @@ export const ALL_JOKERS: Joker[] = [
     id: 'j_falsario',
     name: 'Il Falsario',
     italianTitle: 'Mano di Zecca',
-    description: 'Quando vinci una presa, una carta casuale non-Foil del tuo mazzo diventa Foil (+50 Chips).',
+    description: 'Quando vinci una presa, una carta casuale non-Foil del tuo mazzo diventa Foil (+60 Chips).',
     rarity: 'rare',
     cost: 8,
     sellValue: 4,
@@ -326,5 +327,5 @@ export const ALL_JOKERS: Joker[] = [
 export function getRandomJokers(count: number, excludedIds: string[] = []): Joker[] {
   const available = ALL_JOKERS.filter(j => !excludedIds.includes(j.id));
   const shuffled = [...available].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, count).map(j => ({ ...j, stats: { ...(j.stats || {}) } }));
+  return shuffled.slice(0, count).map((j) => instantiateJoker(j));
 }

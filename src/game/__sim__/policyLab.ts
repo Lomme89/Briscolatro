@@ -163,17 +163,17 @@ export function playRound(
       );
       if (boostsLeft > 0) boostsLeft--;
       score += result.finalScore;
-      onTrick?.({ points: clash.points, score: result.finalScore, won: true });
+      onTrick?.({ points: clash.rawPoints, score: result.finalScore, won: true });
       if (result.statGrowth.length > 0) {
         liveJokers = JOKER_EFFECTS.applyStatGrowth(liveJokers, result.statGrowth);
       }
-      briscolaPoints += clash.points;
+      briscolaPoints += clash.rawPoints;
       tricksWon++;
       streak++;
       if (playerCard.suit === 'denari') capturedDenari.add(playerCard.rank);
       if (oppCard!.suit === 'denari') capturedDenari.add(oppCard!.rank);
     } else {
-      onTrick?.({ points: clash.points, score: 0, won: false });
+      onTrick?.({ points: clash.rawPoints, score: 0, won: false });
       streak = 0;
     }
 

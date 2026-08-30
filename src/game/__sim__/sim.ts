@@ -83,7 +83,7 @@ export function simulateRound(
         liveJokers = JOKER_EFFECTS.applyStatGrowth(liveJokers, result.statGrowth);
         onJokersChanged?.(liveJokers);
       }
-      briscolaPoints += clash.points;
+      briscolaPoints += clash.rawPoints;
       tricksWon++;
       streak++;
       if (playerCard.suit === 'denari') capturedDenari.add(playerCard.rank);

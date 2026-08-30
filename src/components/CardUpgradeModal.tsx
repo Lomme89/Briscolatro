@@ -4,6 +4,7 @@ import { CardSpecial, Edition, Enhancement, PlayingCard, Seal } from '../types/g
 import { PixelCard } from './PixelCard';
 import { getSpecialInfo } from '../game/specialCards';
 import { getSuitDisplayName, RANK_INFO } from '../game/briscola';
+import { CARD_POWER_VALUES as V } from '../data/cardPowers';
 
 interface CardUpgradeModalProps {
   /** The card as the booster proposes it. Null keeps the screen closed. */
@@ -16,19 +17,19 @@ interface CardUpgradeModalProps {
 
 const EDITION_LABEL: Record<Edition, string> = {
   standard: 'Nessuna',
-  foil: 'Foil (+60 Chips)',
-  holo: 'Olografica (+12 Mult)',
-  polychrome: 'Policroma (x1.6 Mult)',
-  gold: 'Dorata (+$1 giocandola)',
+  foil: `Foil (+${V.foilPlayedChips} Chips)`,
+  holo: `Olografica (+${V.holoPlayedMult} Mult)`,
+  polychrome: `Policroma (x${V.polychromePlayedXMult} Mult)`,
+  gold: `Dorata (+$${V.goldPlayedDollars} giocandola)`,
 };
 
 const ENHANCEMENT_LABEL: Record<Enhancement, string> = {
   none: 'Nessuno',
-  bonus: 'Bonus (+40 Chips)',
-  mult: 'Mult (+5 Mult)',
+  bonus: `Bonus (+${V.bonusChips} Chips)`,
+  mult: `Mult (+${V.multBonus} Mult)`,
   wild: 'Jolly (vale come Briscola)',
-  steel: 'Acciaio (x1.6 Mult in mano)',
-  stone: 'Pietra (+60 Chips, senza seme)',
+  steel: `Acciaio (x${V.steelXMult} Mult in mano)`,
+  stone: `Pietra (+${V.stoneChips} Chips, senza seme)`,
 };
 
 const SEAL_LABEL: Record<Seal, string> = {

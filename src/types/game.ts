@@ -13,10 +13,10 @@ export type CardRank = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 // 10 = Re (4 pt)
 
 export type Edition = 'standard' | 'foil' | 'holo' | 'polychrome' | 'gold';
-// foil: +50 Chips
-// holo: +10 Mult
-// polychrome: x1.5 Mult
-// gold: +$3 on round end
+// foil: +60 Chips played / +30 captured
+// holo: +12 Mult played / +6 captured
+// polychrome: x1.6 Mult played / x1.3 captured
+// gold: +$1 played / +$2 captured
 
 export type Seal = 'none' | 'red' | 'blue' | 'gold' | 'purple';
 // red: Re-trigger card score once
@@ -25,11 +25,11 @@ export type Seal = 'none' | 'red' | 'blue' | 'gold' | 'purple';
 // purple: create a free discard
 
 export type Enhancement = 'none' | 'bonus' | 'mult' | 'wild' | 'steel' | 'stone';
-// bonus: +30 Chips
-// mult: +4 Mult
+// bonus: +40 Chips
+// mult: +5 Mult
 // wild: Can count as any suit in combinations
-// steel: x1.5 Mult if held in hand (not played)
-// stone: +50 Chips, no suit/rank
+// steel: x1.6 Mult if held in hand (not played)
+// stone: +60 Chips, no suit/rank
 
 /**
  * Azzardo: the one modifier that can cost you something.
@@ -40,10 +40,10 @@ export type Enhancement = 'none' | 'bonus' | 'mult' | 'wild' | 'steel' | 'stone'
  * player can see the trade before playing the card. A card carries at most one.
  */
 export type CardSpecial = 'none' | 'segnata' | 'vetro' | 'debito' | 'traditrice';
-// segnata:    +15 Mult on a won trick, but the opponent knows you hold it
-// vetro:      x2 Mult on a won trick, breaks for good if the trick is lost
-// debito:     +100 Chips on a won trick, costs $1 every time you play it
-// traditrice: x2 Mult if it opens and wins, -$2 if it answers and loses
+// segnata:    +18 Mult on a won trick, but the opponent knows you hold it
+// vetro:      x2.2 Mult on a won trick, breaks for good if the trick is lost
+// debito:     +120 Chips on a won trick, costs $1 every time you play it
+// traditrice: x2.2 Mult if it opens and wins, -$2 if it answers and loses
 
 export type JokerRarity = 'common' | 'uncommon' | 'rare' | 'legendary';
 
@@ -87,7 +87,10 @@ export type JokerTrigger =
   | 'on_discard';
 
 export interface Joker {
+  /** Stable catalogue id used by rules, artwork and future save migrations. */
   id: string;
+  /** Unique owned copy. Runtime growth belongs to this id, never to `id`. */
+  instanceId?: string;
   name: string;
   italianTitle: string;
   description: string;
@@ -129,7 +132,12 @@ export type UnoActionType =
   | 'random_joker';
 
 export interface UnoCard {
+  /** Stable catalogue id. Kept dispatchable even when several copies exist. */
   id: string;
+  /** Explicit alias for serialized/generated cards from older and future saves. */
+  definitionId?: string;
+  /** Unique owned copy; two copies may share the same definition id. */
+  instanceId?: string;
   name: string;
   symbol: string;        // '+2', '+4', '⇄', '🚫', '🌈', 'UNO!', '🪙', '✨', '⭐', '🎨', '🛡️', '🎭', etc.
   unoColor: UnoColor;    // 'red' | 'blue' | 'green' | 'yellow' | 'wild'

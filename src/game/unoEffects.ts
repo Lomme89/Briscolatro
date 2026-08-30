@@ -1,6 +1,7 @@
 import { UnoCard, PlayingCard, Suit, Joker } from '../types/game';
 import { ALL_JOKERS } from '../data/jokers';
 import { withRank } from './briscola';
+import { getUnoDefinitionId, instantiateJoker } from './itemInstances';
 
 export interface UnoActionContext {
   unoCard: UnoCard;
@@ -22,6 +23,8 @@ export interface UnoActionContext {
 }
 
 export interface UnoActionResult {
+  /** False means the action was refused and the owned card must be returned. */
+  consumed?: boolean;
   newDrawPile: PlayingCard[];
   newPlayerHand: PlayingCard[];
   newOpponentHand: PlayingCard[];
@@ -278,7 +281,7 @@ export const UNO_EFFECT_HANDLERS: Record<
     };
   },
 
-  // Jolly Foil (+50 Chips permanent)
+  // Jolly Foil (+60 Chips when played)
   uno_custom_foil: (ctx) => {
     if (!ctx.targetCard) return fallbackResult(ctx);
     const targetId = ctx.targetCard.id;
@@ -297,12 +300,12 @@ export const UNO_EFFECT_HANDLERS: Record<
       newBossDebuffActive: ctx.bossDebuffActive,
       newActiveUnoMultiplier: ctx.activeUnoMultiplier,
       newIsReverseActive: ctx.isReverseActive,
-      feedbackMessage: 'Carta potenziata con finitura FOIL (+50 Chips)!',
+      feedbackMessage: 'Carta potenziata con finitura FOIL (+60 Chips)!',
       cardUpgradedInRunDeck: { id: targetId, updates: { edition: 'foil' } },
     };
   },
 
-  // Jolly Olografico (+10 Mult permanent)
+  // Jolly Olografico (+12 Mult when played)
   uno_custom_holo: (ctx) => {
     if (!ctx.targetCard) return fallbackResult(ctx);
     const targetId = ctx.targetCard.id;
@@ -321,12 +324,12 @@ export const UNO_EFFECT_HANDLERS: Record<
       newBossDebuffActive: ctx.bossDebuffActive,
       newActiveUnoMultiplier: ctx.activeUnoMultiplier,
       newIsReverseActive: ctx.isReverseActive,
-      feedbackMessage: 'Carta potenziata con finitura OLOGRAFICA (+10 Mult)!',
+      feedbackMessage: 'Carta potenziata con finitura OLOGRAFICA (+12 Mult)!',
       cardUpgradedInRunDeck: { id: targetId, updates: { edition: 'holo' } },
     };
   },
 
-  // Jolly Policromo (x1.5 Mult permanent)
+  // Jolly Policromo (x1.6 Mult when played)
   uno_custom_polychrome: (ctx) => {
     if (!ctx.targetCard) return fallbackResult(ctx);
     const targetId = ctx.targetCard.id;
@@ -345,7 +348,7 @@ export const UNO_EFFECT_HANDLERS: Record<
       newBossDebuffActive: ctx.bossDebuffActive,
       newActiveUnoMultiplier: ctx.activeUnoMultiplier,
       newIsReverseActive: ctx.isReverseActive,
-      feedbackMessage: 'Carta potenziata con POLICROMIA (x1.5 Mult moltiplicativo)!',
+      feedbackMessage: 'Carta potenziata con POLICROMIA (x1.6 Mult moltiplicativo)!',
       cardUpgradedInRunDeck: { id: targetId, updates: { edition: 'polychrome' } },
     };
   },
@@ -494,7 +497,7 @@ export const UNO_EFFECT_HANDLERS: Record<
       const existingIds = new Set(nextJokers.map((j) => j.id));
       const pool = ALL_JOKERS.filter((j) => !existingIds.has(j.id));
       const chosen = pool[Math.floor(Math.random() * pool.length)] || ALL_JOKERS[0];
-      nextJokers.push({ ...chosen });
+      nextJokers.push(instantiateJoker(chosen));
       msg = `Nuovo Jolly creato: ${chosen.name}!`;
     }
     return {
@@ -510,6 +513,7 @@ export const UNO_EFFECT_HANDLERS: Record<
       newActiveUnoMultiplier: ctx.activeUnoMultiplier,
       newIsReverseActive: ctx.isReverseActive,
       feedbackMessage: msg,
+      consumed: nextJokers.length > ctx.activeJokers.length,
     };
   },
 };
@@ -527,14 +531,16 @@ function fallbackResult(ctx: UnoActionContext): UnoActionResult {
     newBossDebuffActive: ctx.bossDebuffActive,
     newActiveUnoMultiplier: ctx.activeUnoMultiplier,
     newIsReverseActive: ctx.isReverseActive,
-    feedbackMessage: 'Azione applicata.',
+    feedbackMessage: 'Azione non applicabile: la Carta Sola è rimasta nello slot.',
+    consumed: false,
   };
 }
 
 export function executeUnoCard(ctx: UnoActionContext): UnoActionResult {
-  const handler = UNO_EFFECT_HANDLERS[ctx.unoCard.id];
+  const handler = UNO_EFFECT_HANDLERS[getUnoDefinitionId(ctx.unoCard)];
   if (handler) {
-    return handler(ctx);
+    const result = handler(ctx);
+    return { ...result, consumed: result.consumed !== false };
   }
   return fallbackResult(ctx);
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Joker, UnoCard, BoosterPack, Voucher, PlayingCard } from '../types/game';
 import { ALL_BOOSTER_PACKS, ALL_VOUCHERS, ALL_UNO_CARDS } from '../data/unoCards';
@@ -14,6 +14,7 @@ import { PICKER_CARD_BOX } from './cardSizing';
 import { CardFaceArt, getJokerArtUrl, getUnoArtUrl } from './CardFaceArt';
 import { sound } from '../services/soundEngine';
 import confetti from 'canvas-confetti';
+import { boosterAbandonLabel, discountedShopCost } from '../game/shopRules';
 
 interface ShopViewProps {
   money: number;
@@ -22,16 +23,16 @@ interface ShopViewProps {
   vouchers: Voucher[];
   maxJokers: number;
   maxConsumables: number;
-  onBuyJoker: (joker: Joker, cost: number) => void;
-  onBuyUnoCard: (unoCard: UnoCard, cost: number) => void;
-  onBuyVoucher: (voucher: Voucher) => void;
+  onBuyJoker: (joker: Joker, cost: number) => boolean;
+  onBuyUnoCard: (unoCard: UnoCard, cost: number) => boolean;
+  onBuyVoucher: (voucher: Voucher, cost: number) => boolean;
   onSellJoker: (index: number) => void;
   onSellUnoCard: (index: number) => void;
   /** Applies the upgrade to the card of the same suit and rank in the deck. */
   onUpgradeCard: (upgraded: PlayingCard) => void;
   runDeck: PlayingCard[];
   onNextRound: () => void;
-  onReroll: (cost: number) => void;
+  onReroll: (cost: number) => boolean;
   ante: number;
   round: number;
 }
@@ -56,7 +57,6 @@ export const ShopView: React.FC<ShopViewProps> = ({
   round,
 }) => {
   const hasSconto = vouchers.some(v => v.id === 'v_sconto' && v.bought);
-  const discount = hasSconto ? 2 : 0;
 
   // Three on the shelf, not two.
   //
@@ -69,7 +69,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
     const shuffled = [...ALL_UNO_CARDS].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, 2);
   });
-  const [shopPacks] = useState<BoosterPack[]>(() => {
+  const [shopPacks, setShopPacks] = useState<BoosterPack[]>(() => {
     const shuffled = [...ALL_BOOSTER_PACKS].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, 3);
   });
@@ -82,7 +82,8 @@ export const ShopView: React.FC<ShopViewProps> = ({
       .sort(() => Math.random() - 0.5)
       .slice(0, 2);
   });
-  const [rerollCost, setRerollCost] = useState(5 - discount);
+  const [rerollBaseCost, setRerollBaseCost] = useState(5);
+  const rerollCost = discountedShopCost(rerollBaseCost, hasSconto);
   // A booster card is picked at thumbnail size, so it opens in the inspector
   // first: the artwork at a readable size and every power written out.
   const [inspectedCard, setInspectedCard] = useState<PlayingCard | null>(null);
@@ -118,23 +119,44 @@ export const ShopView: React.FC<ShopViewProps> = ({
     jokers: Joker[];
     selectedCount: number;
   } | null>(null);
+  const [confirmBoosterAbandon, setConfirmBoosterAbandon] = useState(false);
+  const boosterChoiceLockRef = useRef(false);
+  const rerollLockRef = useRef(false);
+  const boughtShelfItemsRef = useRef(new Set<string>());
+
+  const purchaseShelfItem = (key: string, purchase: () => boolean): boolean => {
+    if (boughtShelfItemsRef.current.has(key)) return false;
+    boughtShelfItemsRef.current.add(key);
+    if (purchase()) return true;
+    boughtShelfItemsRef.current.delete(key);
+    return false;
+  };
 
   const handleReroll = () => {
-    if (money < rerollCost) return;
+    if (money < rerollCost || rerollLockRef.current) return;
+    rerollLockRef.current = true;
     sound.playCardFlick();
-    onReroll(rerollCost);
+    if (!onReroll(rerollCost)) {
+      rerollLockRef.current = false;
+      return;
+    }
     setShopJokers(getRandomJokers(3));
     const shuffledUno = [...ALL_UNO_CARDS].sort(() => Math.random() - 0.5);
     setShopUnoCards(shuffledUno.slice(0, 2));
-    setRerollCost(prev => prev + 1);
+    setRerollBaseCost(prev => prev + 1);
+    setTimeout(() => { rerollLockRef.current = false; }, 0);
   };
 
   const handleOpenBooster = (pack: BoosterPack) => {
-    const cost = Math.max(1, pack.cost - discount);
+    const cost = discountedShopCost(pack.cost, hasSconto);
     if (money < cost) return;
 
     sound.playBoosterRip();
-    onReroll(cost);
+    if (boughtShelfItemsRef.current.has(`pack:${pack.id}`) || !onReroll(cost)) return;
+    boughtShelfItemsRef.current.add(`pack:${pack.id}`);
+    setShopPacks((prev) => prev.filter((entry) => entry.id !== pack.id));
+    setConfirmBoosterAbandon(false);
+    boosterChoiceLockRef.current = false;
 
     // The mega pack used to roll packSize of *each* type: fifteen options for
     // two picks, which is where the scrolling came from. packSize is how many
@@ -181,8 +203,10 @@ export const ShopView: React.FC<ShopViewProps> = ({
   };
 
   const commitBoosterCard = (card: PlayingCard) => {
-    if (!activeBooster) return;
+    if (!activeBooster || boosterChoiceLockRef.current) return;
+    boosterChoiceLockRef.current = true;
     sound.playCashChime();
+    setConfirmBoosterAbandon(false);
     onUpgradeCard(card);
 
     const nextCount = activeBooster.selectedCount + 1;
@@ -196,16 +220,22 @@ export const ShopView: React.FC<ShopViewProps> = ({
         selectedCount: nextCount,
       });
     }
+    setTimeout(() => { boosterChoiceLockRef.current = false; }, 0);
   };
 
   const handleSelectBoosterUnoCard = (unoCard: UnoCard) => {
-    if (!activeBooster) return;
+    if (!activeBooster || boosterChoiceLockRef.current) return;
     if (consumables.length >= maxConsumables) {
       alert('Non hai abbastanza spazio per altre Carte Sola!');
       return;
     }
     sound.playCashChime();
-    onBuyUnoCard(unoCard, 0);
+    setConfirmBoosterAbandon(false);
+    boosterChoiceLockRef.current = true;
+    if (!onBuyUnoCard(unoCard, 0)) {
+      boosterChoiceLockRef.current = false;
+      return;
+    }
 
     const nextCount = activeBooster.selectedCount + 1;
     if (nextCount >= activeBooster.pack.selectCount) {
@@ -217,16 +247,22 @@ export const ShopView: React.FC<ShopViewProps> = ({
         selectedCount: nextCount,
       });
     }
+    setTimeout(() => { boosterChoiceLockRef.current = false; }, 0);
   };
 
   const handleSelectBoosterJoker = (joker: Joker) => {
-    if (!activeBooster) return;
+    if (!activeBooster || boosterChoiceLockRef.current) return;
     if (jokers.length >= maxJokers) {
       alert('Non hai abbastanza slot per altri Jolly!');
       return;
     }
     sound.playCashChime();
-    onBuyJoker(joker, 0);
+    setConfirmBoosterAbandon(false);
+    boosterChoiceLockRef.current = true;
+    if (!onBuyJoker(joker, 0)) {
+      boosterChoiceLockRef.current = false;
+      return;
+    }
 
     const nextCount = activeBooster.selectedCount + 1;
     if (nextCount >= activeBooster.pack.selectCount) {
@@ -238,6 +274,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
         selectedCount: nextCount,
       });
     }
+    setTimeout(() => { boosterChoiceLockRef.current = false; }, 0);
   };
 
   return (
@@ -414,7 +451,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
             <div className="grid grid-cols-2 gap-2 sm:gap-3">
               {/* Jokers for sale */}
               {shopJokers.map((joker, idx) => {
-                const cost = Math.max(1, joker.cost - discount);
+                const cost = discountedShopCost(joker.cost, hasSconto);
                 const canAfford = money >= cost && jokers.length < maxJokers;
                 const isFull = jokers.length >= maxJokers;
 
@@ -461,8 +498,9 @@ export const ShopView: React.FC<ShopViewProps> = ({
                       onClick={() => {
                         if (!canAfford) return;
                         sound.playCashChime();
-                        onBuyJoker(joker, cost);
-                        setShopJokers(prev => prev.filter((_, i) => i !== idx));
+                        if (purchaseShelfItem(`joker:${idx}:${joker.id}`, () => onBuyJoker(joker, cost))) {
+                          setShopJokers(prev => prev.filter((_, i) => i !== idx));
+                        }
                       }}
                       disabled={!canAfford}
                       className={`w-full py-1.5 px-2 rounded-lg font-pixel text-[8.5px] sm:text-[9.5px] font-bold flex items-center justify-center gap-1 pixel-box transition-all active:scale-95 cursor-pointer ${
@@ -488,7 +526,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
 
               {/* Uno Cards for sale */}
               {shopUnoCards.map((unoCard, idx) => {
-                const cost = Math.max(1, unoCard.cost - discount);
+                const cost = discountedShopCost(unoCard.cost, hasSconto);
                 const canAfford = money >= cost && consumables.length < maxConsumables;
                 const isFull = consumables.length >= maxConsumables;
 
@@ -535,8 +573,9 @@ export const ShopView: React.FC<ShopViewProps> = ({
                       onClick={() => {
                         if (!canAfford) return;
                         sound.playCashChime();
-                        onBuyUnoCard(unoCard, cost);
-                        setShopUnoCards(prev => prev.filter((_, i) => i !== idx));
+                        if (purchaseShelfItem(`sola:${idx}:${unoCard.id}`, () => onBuyUnoCard(unoCard, cost))) {
+                          setShopUnoCards(prev => prev.filter((_, i) => i !== idx));
+                        }
                       }}
                       disabled={!canAfford}
                       className={`w-full py-1.5 px-2 rounded-lg font-pixel text-[8.5px] sm:text-[9.5px] font-bold flex items-center justify-center gap-1 pixel-box transition-all active:scale-95 cursor-pointer ${
@@ -577,7 +616,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
             {/* Booster Packs List */}
             <div className="space-y-2 mb-3">
               {shopPacks.map((pack) => {
-                const cost = Math.max(1, pack.cost - discount);
+                const cost = discountedShopCost(pack.cost, hasSconto);
                 const canAfford = money >= cost;
                 return (
                   <div
@@ -626,7 +665,8 @@ export const ShopView: React.FC<ShopViewProps> = ({
                 )}
                 {shopVouchers.map((voucher) => {
                   const isBought = vouchers.some(v => v.id === voucher.id && v.bought);
-                  const canAfford = money >= voucher.cost && !isBought;
+                  const cost = discountedShopCost(voucher.cost, hasSconto);
+                  const canAfford = money >= cost && !isBought;
                   return (
                     <div
                       key={voucher.id}
@@ -656,7 +696,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
                         <button
                           onClick={() => {
                             sound.playCashChime();
-                            onBuyVoucher(voucher);
+                            purchaseShelfItem(`voucher:${voucher.id}`, () => onBuyVoucher(voucher, cost));
                           }}
                           disabled={!canAfford}
                           className={`font-pixel text-[8px] sm:text-[8.5px] px-2.5 py-1.5 rounded-lg pixel-box font-bold shrink-0 cursor-pointer transition-all active:scale-95 ${
@@ -665,7 +705,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
                               : 'bg-slate-800 border border-slate-700 text-slate-500 cursor-not-allowed'
                           }`}
                         >
-                          ${voucher.cost}
+                          ${cost}
                         </button>
                       )}
                     </div>
@@ -847,12 +887,37 @@ export const ShopView: React.FC<ShopViewProps> = ({
                 ))}
               </div>
 
-              <button
-                onClick={() => setActiveBooster(null)}
-                className="font-pixel text-[9px] sm:text-xs text-slate-400 hover:text-white px-3 py-1.5 border border-slate-700 rounded-lg pixel-box cursor-pointer"
-              >
-                SALTA / CHIUDI
-              </button>
+              {confirmBoosterAbandon ? (
+                <div className="w-full border-2 border-rose-500 bg-rose-950/60 rounded-xl p-2.5">
+                  <p className="font-retro text-xs text-rose-200 mb-2">
+                    La bustina è già stata pagata. Le scelte non usate andranno perse.
+                  </p>
+                  <div className="flex gap-2 justify-center">
+                    <button
+                      onClick={() => setConfirmBoosterAbandon(false)}
+                      className="font-pixel text-[8px] sm:text-[9px] text-slate-200 px-3 py-2 border border-slate-600 rounded-lg pixel-box cursor-pointer"
+                    >
+                      CONTINUA A SCEGLIERE
+                    </button>
+                    <button
+                      onClick={() => {
+                        setConfirmBoosterAbandon(false);
+                        setActiveBooster(null);
+                      }}
+                      className="font-pixel text-[8px] sm:text-[9px] text-white bg-rose-700 hover:bg-rose-600 px-3 py-2 border border-rose-400 rounded-lg pixel-box cursor-pointer"
+                    >
+                      {boosterAbandonLabel(activeBooster.pack.selectCount, activeBooster.selectedCount)}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmBoosterAbandon(true)}
+                  className="font-pixel text-[9px] sm:text-xs text-slate-400 hover:text-white px-3 py-1.5 border border-slate-700 rounded-lg pixel-box cursor-pointer"
+                >
+                  SALTA / CHIUDI
+                </button>
+              )}
             </motion.div>
           </motion.div>
         )}

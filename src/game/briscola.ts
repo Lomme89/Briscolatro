@@ -152,8 +152,15 @@ export function resolveTrick(
   const leadBelongsToOpponent = !leadIsPlayer;
   const followBelongsToOpponent = leadIsPlayer;
 
-  const leadSuit = effectiveSuit(leadCard, briscolaSuit, leadBelongsToOpponent, bossDebuff);
-  const followSuit = effectiveSuit(followCard, briscolaSuit, followBelongsToOpponent, bossDebuff);
+  // Il Conte promotes only an opponent Spade crossing another suit. Spade vs
+  // Spade is still an ordinary same-suit duel, so rank hierarchy must decide.
+  const effectiveBossDebuff =
+    bossDebuff === 'spades_are_briscola' && leadCard.suit === 'spade' && followCard.suit === 'spade'
+      ? undefined
+      : bossDebuff;
+
+  const leadSuit = effectiveSuit(leadCard, briscolaSuit, leadBelongsToOpponent, effectiveBossDebuff);
+  const followSuit = effectiveSuit(followCard, briscolaSuit, followBelongsToOpponent, effectiveBossDebuff);
   const leadIsTrump = leadSuit === briscolaSuit && !isStone(leadCard);
   const followIsTrump = followSuit === briscolaSuit && !isStone(followCard);
   // A stone card matches no suit, so a trick containing one falls through to

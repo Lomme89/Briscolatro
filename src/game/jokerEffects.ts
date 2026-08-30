@@ -18,6 +18,8 @@ export interface JokerScoringContext {
 
 /** Permanent growth a joker earned this trick, kept for the rest of the run. */
 export interface JokerStatGrowth {
+  /** The owned copy that earned it. `jokerId` remains useful for telemetry. */
+  jokerInstanceId: string;
   jokerId: string;
   addMult?: number;
   addChips?: number;
@@ -75,6 +77,7 @@ export const JOKER_EFFECTS = {
       }
 
       let didTrigger = false;
+      const growthTarget = joker.instanceId || joker.id;
 
       // PASSIVE JOKERS (Apply regardless of who won)
       if (joker.id === 'j_jolly_sport') {
@@ -87,9 +90,9 @@ export const JOKER_EFFECTS = {
       // ON-CARD-SCORED JOKERS
       if (joker.id === 'j_sovrano_briscolatro') {
         // A legendary should be an engine by itself, not a slightly bigger common.
-        chipsToAdd += 100 + (joker.stats?.accumulatedChips || 0);
-        xMultToMultiply *= 1.5;
-        if (clashResult.playerWon) statGrowth.push({ jokerId: joker.id, addChips: 25 });
+        chipsToAdd += (joker.chipsBonus ?? 0) + (joker.stats?.accumulatedChips || 0);
+        xMultToMultiply *= joker.xMultBonus ?? 1;
+        if (clashResult.playerWon) statGrowth.push({ jokerId: joker.id, jokerInstanceId: growthTarget, addChips: 25 });
         didTrigger = true;
       }
 
@@ -98,7 +101,7 @@ export const JOKER_EFFECTS = {
         switch (joker.id) {
           case 'j_carrettiere':
             if (playerCard.suit === 'bastoni' || opponentCard.suit === 'bastoni') {
-              multToAdd += joker.multBonus || 8;
+              multToAdd += joker.multBonus ?? 0;
               didTrigger = true;
             }
             break;
@@ -108,8 +111,8 @@ export const JOKER_EFFECTS = {
             if (playerCard.suit === 'denari') denariCount++;
             if (opponentCard.suit === 'denari') denariCount++;
             if (denariCount > 0) {
-              chipsToAdd += denariCount * (joker.chipsBonus || 35);
-              dollarsToAdd += denariCount * (joker.dollarsBonus || 1);
+              chipsToAdd += denariCount * (joker.chipsBonus ?? 0);
+              dollarsToAdd += denariCount * (joker.dollarsBonus ?? 0);
               didTrigger = true;
             }
             break;
@@ -117,21 +120,21 @@ export const JOKER_EFFECTS = {
 
           case 'j_spadaccino':
             if (playerCard.suit === 'spade') {
-              multToAdd += joker.multBonus || 10;
+              multToAdd += joker.multBonus ?? 0;
               didTrigger = true;
             }
             break;
 
           case 'j_cantina':
             if (playerCard.suit === 'coppe' || opponentCard.suit === 'coppe') {
-              chipsToAdd += joker.chipsBonus || 50;
+              chipsToAdd += joker.chipsBonus ?? 0;
               didTrigger = true;
             }
             break;
 
           case 'j_sbaraglio':
             if (playerCard.points === 0) {
-              multToAdd += joker.multBonus || 14;
+              multToAdd += joker.multBonus ?? 0;
               didTrigger = true;
             }
             break;
@@ -145,7 +148,7 @@ export const JOKER_EFFECTS = {
             const wonWithBriscola = clashResult.playerIsBriscola;
             const capturedBriscola = clashResult.opponentIsBriscola;
             if ((wonWithBriscola || capturedBriscola) && clashResult.points > 0) {
-              chipsToAdd += clashResult.points * 8;
+              chipsToAdd += clashResult.points * (joker.chipsBonus ?? 0);
               if (capturedBriscola) chipsToAdd += 30;
               didTrigger = true;
             }
@@ -154,7 +157,7 @@ export const JOKER_EFFECTS = {
 
           case 'j_cacciatore_carichi':
             if (opponentCard.points >= 10) {
-              xMultToMultiply *= joker.xMultBonus || 2.0;
+              xMultToMultiply *= joker.xMultBonus ?? 1;
               didTrigger = true;
             }
             break;
@@ -166,13 +169,13 @@ export const JOKER_EFFECTS = {
             // Re still counts, but only when the trick actually captured
             // something beyond the Re itself.
             let value = 0;
-            if (opponentCard.rank === 10) value += joker.chipsBonus || 150;
+            if (opponentCard.rank === 10) value += joker.chipsBonus ?? 0;
             if (playerCard.rank === 10 && clashResult.points > 4) {
-              value += Math.round((joker.chipsBonus || 150) / 2);
+              value += Math.round((joker.chipsBonus ?? 0) / 2);
             }
             if (value > 0) {
               chipsToAdd += value;
-              if (opponentCard.rank === 10) dollarsToAdd += joker.dollarsBonus || 2;
+              if (opponentCard.rank === 10) dollarsToAdd += joker.dollarsBonus ?? 0;
               didTrigger = true;
             }
             break;
@@ -185,12 +188,12 @@ export const JOKER_EFFECTS = {
             let chips = 0;
             let mult = 0;
             if (opponentCard.rank === 9) {
-              chips += 90;
-              mult += 5;
+              chips += joker.chipsBonus ?? 0;
+              mult += joker.multBonus ?? 0;
             }
             if (playerCard.rank === 9 && clashResult.points > 3) {
-              chips += 45;
-              mult += 2;
+              chips += Math.round((joker.chipsBonus ?? 0) / 2);
+              mult += Math.floor((joker.multBonus ?? 0) / 2);
             }
             if (chips > 0) {
               chipsToAdd += chips;
@@ -216,7 +219,7 @@ export const JOKER_EFFECTS = {
               clashResult.points > 0;
             if (briscolaEarnedIt) {
               multToAdd += 1;
-              statGrowth.push({ jokerId: joker.id, addMult: 1 });
+              statGrowth.push({ jokerId: joker.id, jokerInstanceId: growthTarget, addMult: 1 });
             }
             didTrigger = banked > 0 || briscolaEarnedIt;
             break;
@@ -228,21 +231,25 @@ export const JOKER_EFFECTS = {
             chipsToAdd += banked;
             if (consecutiveWinStreak > 0) {
               chipsToAdd += 30;
-              statGrowth.push({ jokerId: joker.id, addChips: 10 });
+              statGrowth.push({ jokerId: joker.id, jokerInstanceId: growthTarget, addChips: 10 });
             }
             didTrigger = banked > 0 || consecutiveWinStreak > 0;
             break;
           }
 
           case 'j_napola_cosmica': {
-            // Check if player has captured or played 1, 2, and 3 of Denari this round
-            const has1 = capturedDenariRanksThisRound.has(1) || (playerCard.suit === 'denari' && playerCard.rank === 1) || (opponentCard.suit === 'denari' && opponentCard.rank === 1);
-            const has2 = capturedDenariRanksThisRound.has(2) || (playerCard.suit === 'denari' && playerCard.rank === 2) || (opponentCard.suit === 'denari' && opponentCard.rank === 2);
-            const has3 = capturedDenariRanksThisRound.has(3) || (playerCard.suit === 'denari' && playerCard.rank === 3) || (opponentCard.suit === 'denari' && opponentCard.rank === 3);
-            const grownNapola = 1 + (joker.stats?.accumulatedMult || 0) / 20;
-            if (has1 && has2 && has3) {
-              xMultToMultiply *= (joker.xMultBonus || 3.0) * grownNapola;
-              statGrowth.push({ jokerId: joker.id, addMult: 1 });
+            // Fire on the transition from incomplete to complete. Once 1-2-3
+            // are banked in the encounter, later won tricks must stay quiet.
+            const wasComplete = [1, 2, 3].every((rank) => capturedDenariRanksThisRound.has(rank));
+            const capturedNow = new Set(capturedDenariRanksThisRound);
+            for (const card of [playerCard, opponentCard]) {
+              if (card.suit === 'denari') capturedNow.add(card.rank);
+            }
+            const isComplete = [1, 2, 3].every((rank) => capturedNow.has(rank));
+            if (!wasComplete && isComplete) {
+              // Declared growth is additive on the xMult: 3.00, 3.05, 3.10.
+              xMultToMultiply *= (joker.xMultBonus ?? 1) + (joker.stats?.accumulatedMult || 0);
+              statGrowth.push({ jokerId: joker.id, jokerInstanceId: growthTarget, addMult: 0.05 });
               didTrigger = true;
             }
             break;
@@ -257,13 +264,10 @@ export const JOKER_EFFECTS = {
             // A rare that BUILDS: every endgame trick it takes is worth a
             // permanent sliver of xMult. Multiplicative growth is the only thing
             // that keeps pace with the late blinds.
-            const grown = 1 + (joker.stats?.accumulatedMult || 0) / 10;
             if (remainingTricksCount <= 3) {
-              xMultToMultiply *= (joker.xMultBonus || 2.5) * grown;
-              statGrowth.push({ jokerId: joker.id, addMult: 1 });
-              didTrigger = true;
-            } else if (grown > 1) {
-              xMultToMultiply *= grown;
+              // Additive permanent xMult: 2.5, 2.6, 2.7... and nowhere else.
+              xMultToMultiply *= (joker.xMultBonus ?? 1) + (joker.stats?.accumulatedMult || 0);
+              statGrowth.push({ jokerId: joker.id, jokerInstanceId: growthTarget, addMult: 0.1 });
               didTrigger = true;
             }
             break;
@@ -274,7 +278,7 @@ export const JOKER_EFFECTS = {
             const suitsWithRe = new Set(playerHand.filter((c) => c.rank === 10).map((c) => c.suit));
             const hasAccusa = playerHand.some((c) => c.rank === 9 && suitsWithRe.has(c.suit));
             if (hasAccusa) {
-              multToAdd += joker.multBonus || 40;
+              multToAdd += joker.multBonus ?? 0;
               didTrigger = true;
             }
             break;
@@ -282,7 +286,7 @@ export const JOKER_EFFECTS = {
 
           case 'j_caffe_corretto':
             if (totalTricksPlayedThisRound === 0) {
-              xMultToMultiply *= joker.xMultBonus || 2.0;
+              xMultToMultiply *= joker.xMultBonus ?? 1;
               didTrigger = true;
             }
             break;
@@ -290,7 +294,7 @@ export const JOKER_EFFECTS = {
           case 'j_superstizione': {
             const p = clashResult.points;
             if (p === 3 || p === 7 || p === 13 || p % 10 === 3 || p % 10 === 7) {
-              xMultToMultiply *= joker.xMultBonus || 3.5;
+              xMultToMultiply *= joker.xMultBonus ?? 1;
               didTrigger = true;
             }
             break;
@@ -300,7 +304,7 @@ export const JOKER_EFFECTS = {
             const hasAsso = playerCard.rank === 1 || opponentCard.rank === 1;
             const hasTre = playerCard.rank === 3 || opponentCard.rank === 3;
             if (hasAsso && hasTre) {
-              xMultToMultiply *= joker.xMultBonus || 4.0;
+              xMultToMultiply *= joker.xMultBonus ?? 1;
               didTrigger = true;
             }
             break;
@@ -331,7 +335,8 @@ export const JOKER_EFFECTS = {
   applyStatGrowth(jokers: Joker[], growth: JokerStatGrowth[]): Joker[] {
     if (growth.length === 0) return jokers;
     return jokers.map((joker) => {
-      const earned = growth.filter((g) => g.jokerId === joker.id);
+      const ownedId = joker.instanceId || joker.id;
+      const earned = growth.filter((g) => g.jokerInstanceId === ownedId);
       if (earned.length === 0) return joker;
       const stats = { ...(joker.stats || {}) };
       for (const entry of earned) {

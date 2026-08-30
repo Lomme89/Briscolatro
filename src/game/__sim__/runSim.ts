@@ -16,6 +16,8 @@ import { rollCardUpgrade } from '../cardUpgrades';
 import { evaluateVictoryCondition, VictoryMode } from '../victoryModes';
 import { PlayerPolicy } from './policies';
 import { playRound } from './policyLab';
+import { instantiateJoker, instantiateUnoCard } from '../itemInstances';
+import { discountedShopCost } from '../shopRules';
 
 /**
  * La run intera, non solo la mano.
@@ -151,7 +153,7 @@ export function simulateRun(
     jokers: deckDef.startingJokers
       .map((id) => ALL_JOKERS.find((j) => j.id === id))
       .filter((j): j is Joker => Boolean(j))
-      .map((j) => ({ ...j, stats: {} })),
+      .map((j) => instantiateJoker(j)),
     consumables: [],
     vouchers: deckDef.startingVouchers
       .map((id) => ALL_VOUCHERS.find((v) => v.id === id))
@@ -281,20 +283,21 @@ function visitShop(state: RunState, buyer: BuyerPolicy): void {
     buyJoker(joker, cost) {
       if (state.jokers.length >= state.maxJokers || state.money < cost) return false;
       state.money -= cost;
-      state.jokers.push({ ...joker, stats: {} });
+      state.jokers.push(instantiateJoker(joker));
       offer.jokers = offer.jokers.filter((j) => j !== joker);
       return true;
     },
     buyUno(card, cost) {
       if (state.consumables.length >= state.maxConsumables || state.money < cost) return false;
       state.money -= cost;
-      state.consumables.push({ ...card });
+      state.consumables.push(instantiateUnoCard(card));
       offer.unoCards = offer.unoCards.filter((c) => c !== card);
       return true;
     },
     buyVoucher(voucher) {
-      if (state.money < voucher.cost) return false;
-      state.money -= voucher.cost;
+      const cost = discountedShopCost(voucher.cost, state.vouchers.some((entry) => entry.id === 'v_sconto' && entry.bought));
+      if (state.money < cost) return false;
+      state.money -= cost;
       state.vouchers.push({ ...voucher, bought: true });
       if (voucher.id === 'v_tavolo') state.maxJokers = 6;
       offer.vouchers = offer.vouchers.filter((v) => v !== voucher);
@@ -351,7 +354,7 @@ function openBooster(state: RunState, pack: (typeof ALL_BOOSTER_PACKS)[number]):
   for (const joker of rankedJokers) {
     if (picks <= 0) break;
     if (state.jokers.length >= state.maxJokers) break;
-    state.jokers.push({ ...joker, stats: {} });
+    state.jokers.push(instantiateJoker(joker));
     picks--;
   }
   for (const card of cardOffers) {
@@ -363,7 +366,7 @@ function openBooster(state: RunState, pack: (typeof ALL_BOOSTER_PACKS)[number]):
   for (const card of unoOffers) {
     if (picks <= 0) break;
     if (state.consumables.length >= state.maxConsumables) break;
-    state.consumables.push({ ...card });
+    state.consumables.push(instantiateUnoCard(card));
     picks--;
   }
 }

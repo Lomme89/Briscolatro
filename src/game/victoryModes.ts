@@ -181,6 +181,30 @@ export function victoryHeadline(check: VictoryCheck, briscolaPoints: number): st
   }
 }
 
+/** Detailed game-over explanation that names only this mode's real failure. */
+export function buildDefeatReason(
+  check: VictoryCheck,
+  score: number,
+  targetScore: number,
+  briscolaPoints: number
+): string {
+  const chips = `${score.toLocaleString()} / ${targetScore.toLocaleString()} Chips`;
+  const traditional = `${briscolaPoints}/120 punti Briscola`;
+
+  switch (check.mode) {
+    case 'traditional':
+      return `Hai conquistato ${traditional}: servivano 61 punti.`;
+    case 'sbaraglio':
+      return `Non hai completato nessuna via di vittoria: ${chips} e ${traditional} (servivano 61).`;
+    case 'double_challenge':
+      if (check.chipsPassed) return `Target Chips raggiunto, ma hai conquistato solo ${traditional}: servivano 61 punti.`;
+      if (check.briscolaPassed) return `Briscola conquistata, ma il target Chips non è stato raggiunto: ${chips}.`;
+      return `Doppia Sfida fallita: ${chips} e ${traditional} (servivano 61).`;
+    default:
+      return `Target Chips non raggiunto: ${chips}.`;
+  }
+}
+
 /** Reads a stored mode, tolerating anything an older save might hold. */
 export function parseVictoryMode(raw: string | null | undefined): VictoryMode {
   if (raw && raw in VICTORY_MODES) return raw as VictoryMode;

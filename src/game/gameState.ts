@@ -337,6 +337,25 @@ export function performExchangeDiscard(
   return { newPlayerHand: nextHand, newDrawPile: nextPile, newTrumpCard: trumpCard, success: true };
 }
 
+export interface DiscardAvailability {
+  discardsLeft: number;
+  trickPhase: string;
+  isPlayerTurn: boolean;
+  drawPileCount: number;
+  playerCardAlreadyPlayed: boolean;
+}
+
+/** Shared App/UI rule: Scarto is an exchange and needs a normal stock card. */
+export function canDiscardCardNow(state: DiscardAvailability): boolean {
+  return (
+    state.discardsLeft > 0 &&
+    state.trickPhase === 'idle' &&
+    state.isPlayerTurn &&
+    state.drawPileCount > 0 &&
+    !state.playerCardAlreadyPlayed
+  );
+}
+
 /**
  * Winner draws first. The face-up trump is the final card drawn.
  *

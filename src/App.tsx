@@ -28,6 +28,7 @@ import {
   isRoundFinished,
   applyTrickResult,
   calculateRoundOutcome,
+  canDiscardCardNow,
   RoundStateSnapshot,
   isBossEncounter,
 } from './game/gameState';
@@ -38,6 +39,8 @@ import { BOSS_RULES } from './game/bossRules';
 import { JOKER_EFFECTS } from './game/jokerEffects';
 import { calculateTrickScore, TrickScoreCalculation } from './game/scoring';
 import { executeUnoCard } from './game/unoEffects';
+import { createBlueSealReward, instantiateJoker, instantiateUnoCard, sameUnoInstance } from './game/itemInstances';
+import { trySpendMoney } from './game/shopRules';
 import { sound } from './services/soundEngine';
 
 import { GameTable } from './components/GameTable';
@@ -50,6 +53,7 @@ import {
   DEFAULT_VICTORY_MODE,
   parseVictoryMode,
   VICTORY_MODES,
+  buildDefeatReason,
   VictoryCheck,
   VictoryMode,
 } from './game/victoryModes';
@@ -328,6 +332,16 @@ export function App() {
   const [maxJokers, setMaxJokers] = useState<number>(5);
   const [maxConsumables, setMaxConsumables] = useState<number>(2);
   const [triggeringJokerId, setTriggeringJokerId] = useState<string | null>(null);
+  // Transaction guards read and update these synchronously; React state alone
+  // can be one render behind during a rapid double tap.
+  const moneyRef = useRef(money);
+  moneyRef.current = money;
+  const activeJokersRef = useRef(activeJokers);
+  activeJokersRef.current = activeJokers;
+  const consumablesRef = useRef(consumables);
+  consumablesRef.current = consumables;
+  const vouchersRef = useRef(vouchers);
+  vouchersRef.current = vouchers;
 
   // --- Trick State Machine & Scoring ---
   const [trickPhase, setTrickPhase] = useState<TrickPhase>('idle');
@@ -433,6 +447,8 @@ export function App() {
   const [bossShieldTricks, setBossShieldTricks] = useState<number>(0);
   // Set by "Salto Turno": the next trick is awarded to the player whatever falls.
   const forcedTrickWinRef = useRef<boolean>(false);
+  const playGuardRef = useRef<boolean>(false);
+  const tallyGuardRef = useRef<boolean>(false);
 
   /** Boss whose rules are in force, or null while the Scudo Protettivo is up. */
   const getEnforcedBoss = (): BossBlind | null =>
@@ -486,6 +502,8 @@ export function App() {
     setBossShieldTricks(0);
     bossDebuffNeutralizedRef.current = false;
     forcedTrickWinRef.current = false;
+    playGuardRef.current = false;
+    tallyGuardRef.current = false;
     setTallyData(null);
 
     // The second encounter of every Ante is the Boss.
@@ -588,7 +606,7 @@ export function App() {
     const startJokers: Joker[] = [];
     deck.startingJokers.forEach((jId) => {
       const found = ALL_JOKERS.find((j) => j.id === jId);
-      if (found) startJokers.push({ ...found, stats: {} });
+      if (found) startJokers.push(instantiateJoker(found));
     });
     setActiveJokers(startJokers);
     setConsumables([]);
@@ -710,6 +728,7 @@ export function App() {
     oppCard: PlayingCard,
     leadIsPlayer: boolean
   ) => {
+    tallyGuardRef.current = false;
     setTrickPhase('resolving');
 
     // Both cards are face-up now, so both go into the public record. Memory is
@@ -774,8 +793,8 @@ export function App() {
       if (seals.spawnUnoCard) {
         setConsumables((prev) => {
           if (prev.length >= maxConsumables) return prev;
-          const rolled = ALL_UNO_CARDS[Math.floor(Math.random() * ALL_UNO_CARDS.length)];
-          return [...prev, { ...rolled, id: `${rolled.id}_${Date.now()}` }];
+          const reward = createBlueSealReward(ALL_UNO_CARDS);
+          return reward ? [...prev, reward] : prev;
         });
         setOpponentSpeech('Sigillo Blu: una Carta Sola gratis!');
       }
@@ -787,7 +806,11 @@ export function App() {
 
       // Bank permanent joker growth for the rest of the run.
       if (scoreResult.statGrowth.length > 0) {
-        setActiveJokers((prev) => JOKER_EFFECTS.applyStatGrowth(prev, scoreResult.statGrowth));
+        setActiveJokers((prev) => {
+          const next = JOKER_EFFECTS.applyStatGrowth(prev, scoreResult.statGrowth);
+          activeJokersRef.current = next;
+          return next;
+        });
       }
 
       if (scoreResult.triggeredJokerIds.length > 0) {
@@ -813,7 +836,7 @@ export function App() {
         chips: scoreResult.totalChips,
         mult: scoreResult.totalMult,
         finalScore: scoreResult.finalScore,
-        trickPoints: clash.points,
+        trickPoints: clash.rawPoints,
         playerWon: true,
         scoreResult,
       });
@@ -849,7 +872,7 @@ export function App() {
         chips: 0,
         mult: 1,
         finalScore: 0,
-        trickPoints: clash.points,
+        trickPoints: clash.rawPoints,
         playerWon: false,
       });
     }
@@ -859,7 +882,8 @@ export function App() {
 
   // --- Tally Complete State Transition ---
   const handleTallyComplete = () => {
-    if (!tallyData) return;
+    if (!tallyData || tallyGuardRef.current) return;
+    tallyGuardRef.current = true;
 
     const { playerWon, finalScore, trickPoints, scoreResult } = tallyData;
     const bonusDollars = scoreResult?.bonusDollars || 0;
@@ -1138,11 +1162,17 @@ export function App() {
           deckName: selectedDeck.name,
           newUnlockedDecks: [],
           isNewHighScore: outcome.newHighScore,
-          defeatReason: `Hai totalizzato ${nextSnapshot.currentRoundScore.toLocaleString()} punti sui ${targetScore.toLocaleString()} richiesti dal Blind (${nextSnapshot.roundPointsTaken}/120 punti Briscola presi).`,
+          defeatReason: buildDefeatReason(
+            outcome.victory,
+            nextSnapshot.currentRoundScore,
+            targetScore,
+            nextSnapshot.roundPointsTaken
+          ),
         });
       }
     } else {
       // Round continues!
+      playGuardRef.current = false;
       setIsPlayerTurn(playerWon);
       setTrickPhase('idle');
 
@@ -1157,6 +1187,7 @@ export function App() {
 
   // --- Player Plays Card ---
   const handlePlayCard = (card: PlayingCard) => {
+    if (playGuardRef.current) return;
     if (trickPhase !== 'idle' && trickPhase !== 'waiting_player_follow') return;
     if (playerTrickCard !== null) return;
 
@@ -1175,6 +1206,7 @@ export function App() {
       }
     }
 
+    playGuardRef.current = true;
     sound.playCardSlam();
 
     const nextPlayerHand = playerHandRef.current.filter((c) => c.id !== card.id);
@@ -1203,7 +1235,16 @@ export function App() {
 
   // --- Player Discards Card (Scarto as Exchange) ---
   const handleDiscardCard = (card: PlayingCard) => {
-    if (discardsLeft <= 0 || trickPhase !== 'idle' || !isPlayerTurn) return;
+    if (!canDiscardCardNow({
+      discardsLeft,
+      trickPhase,
+      isPlayerTurn,
+      drawPileCount: drawPileRef.current.length,
+      playerCardAlreadyPlayed: playerTrickCard !== null,
+    })) {
+      setOpponentSpeech('Lo Scarto non è disponibile in questo momento.');
+      return;
+    }
 
     const res = performExchangeDiscard(
       card,
@@ -1247,15 +1288,6 @@ export function App() {
   const applyUnoCard = (unoCard: UnoCard, targetCard?: PlayingCard, chosenSuit?: Suit) => {
     triggerScreenShake();
 
-    // The Mazzo Sola asks for five of these, across as many runs as it takes.
-    setSolaCardsUsed((used) => {
-      const next = used + 1;
-      try {
-        localStorage.setItem('briscolatro_sola_used', `${next}`);
-      } catch {}
-      return next;
-    });
-
     const ctx = {
       unoCard,
       targetCard,
@@ -1276,6 +1308,18 @@ export function App() {
 
     const res = executeUnoCard(ctx);
 
+    // Refused effects (notably Jolly Misterioso with full slots) return the
+    // owned card and do not advance the permanent usage counter.
+    if (res.consumed !== false) {
+      setSolaCardsUsed((used) => {
+        const next = used + 1;
+        try {
+          localStorage.setItem('briscolatro_sola_used', `${next}`);
+        } catch {}
+        return next;
+      });
+    }
+
     playerHandRef.current = res.newPlayerHand;
     opponentHandRef.current = res.newOpponentHand;
     drawPileRef.current = res.newDrawPile;
@@ -1286,8 +1330,10 @@ export function App() {
     setPlayerHand(res.newPlayerHand);
     setOpponentHand(res.newOpponentHand);
     setBriscolaSuit(res.newBriscolaSuit);
-    setMoney(res.newMoney);
+    moneyRef.current = Math.max(0, res.newMoney);
+    setMoney(moneyRef.current);
     setDiscardsLeft(res.newDiscardsLeft);
+    activeJokersRef.current = res.newActiveJokers;
     setActiveJokers(res.newActiveJokers);
     setCurrentRoundScore(res.newRoundScore);
     setActiveUnoMultiplier(res.newActiveUnoMultiplier);
@@ -1315,8 +1361,13 @@ export function App() {
       );
     }
 
-    // Remove consumed UNO card
-    setConsumables((prev) => prev.filter((u) => u.id !== unoCard.id));
+    if (res.consumed !== false) {
+      setConsumables((prev) => {
+        const next = prev.filter((owned) => !sameUnoInstance(owned, unoCard));
+        consumablesRef.current = next;
+        return next;
+      });
+    }
   };
 
   // --- Round Summary Continue ---
@@ -1338,40 +1389,61 @@ export function App() {
   };
 
   // --- Shop Handlers ---
-  const handleBuyJoker = (joker: Joker, cost: number) => {
-    if (activeJokers.length >= maxJokers || money < cost) return;
-    setMoney((m) => m - cost);
-    setActiveJokers((prev) => [...prev, { ...joker, stats: { ...(joker.stats || {}) } }]);
+  const spendMoney = (cost: number): boolean => {
+    const transaction = trySpendMoney(moneyRef.current, cost);
+    if (!transaction.success) return false;
+    moneyRef.current = transaction.balance;
+    setMoney(moneyRef.current);
+    return true;
   };
 
-  const handleBuyUnoCard = (unoCard: UnoCard, cost: number) => {
-    if (consumables.length >= maxConsumables || money < cost) return;
-    setMoney((m) => m - cost);
-    setConsumables((prev) => [...prev, unoCard]);
+  const handleBuyJoker = (joker: Joker, cost: number): boolean => {
+    if (activeJokersRef.current.length >= maxJokers || !spendMoney(cost)) return false;
+    const next = [...activeJokersRef.current, instantiateJoker(joker)];
+    activeJokersRef.current = next;
+    setActiveJokers(next);
+    return true;
   };
 
-  const handleBuyVoucher = (voucher: Voucher) => {
-    if (money < voucher.cost) return;
-    setMoney((m) => m - voucher.cost);
-    setVouchers((prev) => [...prev, { ...voucher, bought: true }]);
+  const handleBuyUnoCard = (unoCard: UnoCard, cost: number): boolean => {
+    if (consumablesRef.current.length >= maxConsumables || !spendMoney(cost)) return false;
+    const next = [...consumablesRef.current, instantiateUnoCard(unoCard)];
+    consumablesRef.current = next;
+    setConsumables(next);
+    return true;
+  };
+
+  const handleBuyVoucher = (voucher: Voucher, cost: number): boolean => {
+    if (vouchersRef.current.some((owned) => owned.id === voucher.id) || !spendMoney(cost)) return false;
+    const next = [...vouchersRef.current, { ...voucher, bought: true }];
+    vouchersRef.current = next;
+    setVouchers(next);
 
     if (voucher.id === 'v_tavolo') {
       setMaxJokers(6);
     }
+    return true;
   };
 
   const handleSellJoker = (index: number) => {
-    const joker = activeJokers[index];
+    const joker = activeJokersRef.current[index];
     if (!joker) return;
     sound.playCashChime();
-    setMoney((m) => m + joker.sellValue);
-    setActiveJokers((prev) => prev.filter((_, i) => i !== index));
+    moneyRef.current += joker.sellValue;
+    setMoney(moneyRef.current);
+    const next = activeJokersRef.current.filter((_, i) => i !== index);
+    activeJokersRef.current = next;
+    setActiveJokers(next);
   };
 
   const handleSellUnoCard = (index: number) => {
+    if (!consumablesRef.current[index]) return;
     sound.playCashChime();
-    setMoney((m) => m + 1);
-    setConsumables((prev) => prev.filter((_, i) => i !== index));
+    moneyRef.current += 1;
+    setMoney(moneyRef.current);
+    const next = consumablesRef.current.filter((_, i) => i !== index);
+    consumablesRef.current = next;
+    setConsumables(next);
   };
 
   const handleUpgradeCard = (upgraded: PlayingCard) => {
@@ -1593,6 +1665,13 @@ export function App() {
             playerTrickCard={playerTrickCard}
             opponentTrickCard={opponentTrickCard}
             isPlayerTurn={isPlayerTurn && trickPhase !== 'resolving' && trickPhase !== 'tally' && !isDealing}
+            canDiscard={canDiscardCardNow({
+              discardsLeft,
+              trickPhase,
+              isPlayerTurn,
+              drawPileCount: drawPile.length,
+              playerCardAlreadyPlayed: playerTrickCard !== null,
+            })}
             isDealing={isDealing}
             visionActive={
               tricksPlayedInRound === 0 &&
@@ -1639,7 +1718,7 @@ export function App() {
             onUpgradeCard={handleUpgradeCard}
             runDeck={runDeck}
             onNextRound={handleNextRoundFromShop}
-            onReroll={(cost) => setMoney((m) => Math.max(0, m - cost))}
+            onReroll={spendMoney}
             ante={ante}
             round={round}
           />
@@ -1745,12 +1824,12 @@ export function App() {
           onAddDiscards={(amount) => setDiscardsLeft((d) => d + amount)}
           onAddJoker={(joker) => {
             if (activeJokers.length < maxJokers) {
-              setActiveJokers((prev) => [...prev, { ...joker }]);
+              setActiveJokers((prev) => [...prev, instantiateJoker(joker)]);
             }
           }}
           onAddUnoCard={(unoCard) => {
             if (consumables.length < maxConsumables) {
-              setConsumables((prev) => [...prev, { ...unoCard }]);
+              setConsumables((prev) => [...prev, instantiateUnoCard(unoCard)]);
             }
           }}
           onSetBoss={(boss) => {

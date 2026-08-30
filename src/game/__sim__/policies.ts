@@ -87,7 +87,7 @@ export function evaluateCandidate(state: PolicyState, card: PlayingCard): Candid
   );
 
   if (!clash.playerWon) {
-    return { card, score: 0, pointSwing: -clash.points, won: false };
+    return { card, score: 0, pointSwing: -clash.rawPoints, won: false };
   }
 
   const result = calculateTrickScore(
@@ -111,7 +111,7 @@ export function evaluateCandidate(state: PolicyState, card: PlayingCard): Candid
     playerLeads
   );
 
-  return { card, score: result.finalScore, pointSwing: clash.points, won: true };
+  return { card, score: result.finalScore, pointSwing: clash.rawPoints, won: true };
 }
 
 export function evaluateAll(state: PolicyState): CandidateOutcome[] {

@@ -1,4 +1,5 @@
 import { UnoCard, BoosterPack, Voucher } from '../types/game';
+import { CARD_POWER_VALUES as V } from './cardPowers';
 
 export const ALL_UNO_CARDS: UnoCard[] = [
   {
@@ -87,11 +88,11 @@ export const ALL_UNO_CARDS: UnoCard[] = [
   },
   {
     id: 'uno_custom_foil',
-    name: 'Jolly Foil (+50 Chips)',
+    name: `Jolly Foil (+${V.foilPlayedChips} Chips)`,
     symbol: '✨',
     unoColor: 'blue',
     badgeText: 'FOIL',
-    description: 'Applica finitura Foil (+50 Chips permanenti) a una carta selezionata in mano.',
+    description: `Applica finitura Foil (+${V.foilPlayedChips} Chips quando giocata) a una carta selezionata in mano.`,
     cost: 4,
     icon: '✨',
     color: '#3b82f6',
@@ -99,11 +100,11 @@ export const ALL_UNO_CARDS: UnoCard[] = [
   },
   {
     id: 'uno_custom_holo',
-    name: 'Jolly Olografico (+10 Mult)',
+    name: `Jolly Olografico (+${V.holoPlayedMult} Mult)`,
     symbol: '⭐',
     unoColor: 'green',
     badgeText: 'HOLO',
-    description: 'Applica finitura Olografica (+10 Moltiplicatore permanente) a una carta in mano.',
+    description: `Applica finitura Olografica (+${V.holoPlayedMult} Mult quando giocata) a una carta in mano.`,
     cost: 4,
     icon: '⭐',
     color: '#10b981',
@@ -111,11 +112,11 @@ export const ALL_UNO_CARDS: UnoCard[] = [
   },
   {
     id: 'uno_custom_polychrome',
-    name: 'Jolly Policromo (x1.5 Mult)',
+    name: `Jolly Policromo (x${V.polychromePlayedXMult} Mult)`,
     symbol: '🎨',
     unoColor: 'wild',
     badgeText: 'POLY',
-    description: 'Applica Policromia (x1.5 Moltiplicatore moltiplicativo!) a una carta selezionata in mano.',
+    description: `Applica Policromia (x${V.polychromePlayedXMult} Mult moltiplicativo) a una carta selezionata in mano.`,
     cost: 5,
     icon: '🌈',
     color: '#ec4899',

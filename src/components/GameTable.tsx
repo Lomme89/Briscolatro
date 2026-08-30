@@ -39,6 +39,8 @@ interface GameTableProps {
   playerTrickCard: PlayingCard | null;
   opponentTrickCard: PlayingCard | null;
   isPlayerTurn: boolean;
+  /** Exact same exchange-discard decision used by App. */
+  canDiscard: boolean;
   /** True when the player opened the trick currently on the table. */
   trickLeadIsPlayer: boolean;
   /** True while the opening hand is being dealt, so cards fly in one by one. */
@@ -100,6 +102,7 @@ export const GameTable: React.FC<GameTableProps> = ({
   playerTrickCard,
   opponentTrickCard,
   isPlayerTurn,
+  canDiscard,
   trickLeadIsPlayer,
   isDealing,
   visionActive,
@@ -202,7 +205,7 @@ export const GameTable: React.FC<GameTableProps> = ({
   };
 
   const handleDiscardSelected = () => {
-    if (!selectedCard || discardsLeft <= 0) return;
+    if (!selectedCard || !canDiscard) return;
     onDiscardCard(selectedCard);
     setSelectedCardId(null);
   };
@@ -300,7 +303,7 @@ export const GameTable: React.FC<GameTableProps> = ({
     const figure = captured.filter((c) => c.rank >= 8 && c.rank <= 10).length;
     const baseMult =
       1 + carichi + (figure > 0 ? 1 : 0) + (clash.playerWon && clash.playerIsBriscola ? 1 : 0);
-    return { wins: clash.playerWon, points: clash.points, baseMult };
+    return { wins: clash.playerWon, points: clash.rawPoints, baseMult };
   })();
 
   const inspectedItem = (() => {
@@ -1113,9 +1116,9 @@ export const GameTable: React.FC<GameTableProps> = ({
             <button
               type="button"
               onClick={handleDiscardSelected}
-              disabled={!selectedCard || discardsLeft <= 0}
+              disabled={!selectedCard || !canDiscard}
               className={`font-pixel text-[9px] sm:text-[10px] px-2.5 py-1.5 sm:py-2 rounded-xl pixel-box font-bold flex items-center justify-center gap-1 cursor-pointer min-h-[36px] sm:min-h-[40px] transition-all active:scale-[0.98] ${
-                selectedCard && discardsLeft > 0
+                selectedCard && canDiscard
                   ? 'bg-red-800 hover:bg-red-700 text-white shadow-md'
                   : 'bg-slate-800 text-slate-600 cursor-not-allowed opacity-40'
               }`}

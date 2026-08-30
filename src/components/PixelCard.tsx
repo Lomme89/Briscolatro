@@ -9,16 +9,17 @@ import { getCardStyleDefinition } from '../data/cardStyles';
 import { PICKER_CARD_BOX } from './cardSizing';
 import { useCardChips } from '../context/CardChipsContext';
 import { SPECIAL_INFO } from '../game/specialCards';
+import { CARD_POWER_VALUES as V } from '../data/cardPowers';
 
 const ENHANCEMENT_BADGES: Record<
   Exclude<PlayingCard['enhancement'], 'none'>,
   { label: string; title: string; className: string }
 > = {
-  bonus: { label: '+40', title: 'Bonus: +40 Chips', className: 'bg-sky-600 text-white border-sky-300' },
-  mult: { label: '+5x', title: 'Mult: +5 Mult', className: 'bg-red-600 text-white border-red-300' },
+  bonus: { label: `+${V.bonusChips}`, title: `Bonus: +${V.bonusChips} Chips`, className: 'bg-sky-600 text-white border-sky-300' },
+  mult: { label: `+${V.multBonus}x`, title: `Mult: +${V.multBonus} Mult`, className: 'bg-red-600 text-white border-red-300' },
   wild: { label: 'JOLLY', title: 'Wild: vale sempre come Briscola', className: 'bg-fuchsia-600 text-white border-fuchsia-300' },
-  steel: { label: 'X1.6', title: 'Acciaio: x1.6 Mult mentre resta in mano', className: 'bg-slate-400 text-slate-900 border-slate-200' },
-  stone: { label: 'PIETRA', title: 'Pietra: +60 Chips, nessun seme', className: 'bg-stone-500 text-white border-stone-300' },
+  steel: { label: `X${V.steelXMult}`, title: `Acciaio: x${V.steelXMult} Mult mentre resta in mano`, className: 'bg-slate-400 text-slate-900 border-slate-200' },
+  stone: { label: 'PIETRA', title: `Pietra: +${V.stoneChips} Chips, nessun seme`, className: 'bg-stone-500 text-white border-stone-300' },
 };
 
 interface PixelCardProps {

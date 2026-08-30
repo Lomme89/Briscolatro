@@ -74,8 +74,8 @@ dal punteggio. Ora funzionano, e sono la via di crescita alternativa ai jolly:
 
 - **Sigillo rosso**: ritrigger della carta giocata. **Oro**: +$2 alla cattura.
   **Blu**: 20% di una carta UNO gratis. **Viola**: +1 scarto.
-- **Bonus** +30 Chips · **Mult** +4 Mult · **Acciaio** x1.5 mentre resta in mano ·
-  **Vetro** x2 con 1 su 4 di rompersi · **Pietra** +50 Chips e nessun seme.
+- **Bonus** +40 Chips · **Mult** +5 Mult · **Acciaio** x1.6 mentre resta in mano ·
+  **Vetro** x2.2 e si rompe perdendo · **Pietra** +60 Chips e nessun seme.
 
 Il Vetro rotto **non** sparisce dal mazzo: perde l'enhancement. La Briscola a due
 richiede un mazzo pari, quindi niente in questo gioco può distruggere una carta —

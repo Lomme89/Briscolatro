@@ -36,6 +36,9 @@ jobs:
       - name: Lint codebase
         run: bun run lint
 
+      - name: Run regression tests
+        run: bun run test
+
       - name: Verify PWA Assets
         run: bun run pwa:verify
 
