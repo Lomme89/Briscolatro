@@ -13,6 +13,13 @@ import {
 } from '../gameState';
 import { BOSS_RULES } from '../bossRules';
 import { JOKER_EFFECTS } from '../jokerEffects';
+import {
+  applyTavoloAllargato,
+  getNextConsumableExpansion,
+  getNextJokerExpansion,
+  isTavoloAllargatoUseful,
+  purchaseSlotExpansion,
+} from '../slotExpansions';
 import { rollCardUpgrade } from '../cardUpgrades';
 import { evaluateVictoryCondition, VictoryMode } from '../victoryModes';
 import { getRunRngState, seedRunRng, shuffleRun } from '../runRng';
@@ -71,6 +78,10 @@ export interface ShopActions {
   openPack(pack: (typeof ALL_BOOSTER_PACKS)[number], cost: number): boolean;
   reroll(): boolean;
   sellWorstJoker(): boolean;
+  /** AMPLIA TAVOLO: one more jolly slot, at the real ladder price. */
+  buyJokerSlot(): boolean;
+  /** ALLARGA TASCA: one more Carta Sola slot, at the real ladder price. */
+  buySolaSlot(): boolean;
 }
 
 export interface BuyerPolicy {
@@ -448,9 +459,21 @@ function visitShop(state: RunState, buyer: BuyerPolicy, ledger: Ledger): void {
     jokers: getRandomJokers(3),
     unoCards: shuffleRun([...ALL_UNO_CARDS]).slice(0, 2),
     packs: shuffleRun([...ALL_BOOSTER_PACKS]).slice(0, 3),
-    vouchers: shuffleRun(ALL_VOUCHERS.filter((v) => !ownedVouchers.has(v.id))).slice(0, 2),
+    vouchers: shuffleRun(
+      ALL_VOUCHERS.filter(
+        (v) =>
+          !ownedVouchers.has(v.id) &&
+          (v.id !== 'v_tavolo' || isTavoloAllargatoUseful(state.maxJokers))
+      )
+    ).slice(0, 2),
     rerollCost: 5 - discount,
   };
+
+  // The services price themselves off the same helpers the shop UI uses.
+  const slotContext = () => ({
+    hasTavoloAllargato: state.vouchers.some((v) => v.id === 'v_tavolo' && v.bought),
+    hasHouseDiscount: discount > 0,
+  });
 
   const noteShelf = (jokers: Joker[]) => {
     ledger.legendarySeen += jokers.filter((j) => j.rarity === 'legendary').length;
@@ -497,7 +520,7 @@ function visitShop(state: RunState, buyer: BuyerPolicy, ledger: Ledger): void {
       if (state.money < cost) return false;
       spend(cost);
       state.vouchers.push({ ...voucher, bought: true });
-      if (voucher.id === 'v_tavolo') state.maxJokers = 6;
+      if (voucher.id === 'v_tavolo') state.maxJokers = applyTavoloAllargato(state.maxJokers);
       offer.vouchers = offer.vouchers.filter((v) => v !== voucher);
       return true;
     },
@@ -516,6 +539,22 @@ function visitShop(state: RunState, buyer: BuyerPolicy, ledger: Ledger): void {
       noteShelf(offer.jokers);
       offer.unoCards = shuffleRun([...ALL_UNO_CARDS]).slice(0, 2);
       offer.rerollCost += 1;
+      return true;
+    },
+    buyJokerSlot() {
+      const offer = getNextJokerExpansion(state.maxJokers, slotContext());
+      const till = purchaseSlotExpansion(offer, state.money, state.maxJokers);
+      if (!till.bought) return false;
+      spend(offer!.cost);
+      state.maxJokers = till.slots;
+      return true;
+    },
+    buySolaSlot() {
+      const offer = getNextConsumableExpansion(state.maxConsumables, slotContext());
+      const till = purchaseSlotExpansion(offer, state.money, state.maxConsumables);
+      if (!till.bought) return false;
+      spend(offer!.cost);
+      state.maxConsumables = till.slots;
       return true;
     },
     sellWorstJoker() {

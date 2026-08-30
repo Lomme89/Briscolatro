@@ -247,7 +247,7 @@ export const ALL_VOUCHERS: Voucher[] = [
   {
     id: 'v_tavolo',
     name: 'Tavolo Allargato',
-    description: 'Aumenta permanentemente il limite dei tuoi Jolly a 6 slot (+1 Slot).',
+    description: '+1 slot Jolly subito, e le espansioni AMPLIA TAVOLO successive costano il 25% in meno.',
     cost: 10,
     icon: '🪑',
     bought: false,

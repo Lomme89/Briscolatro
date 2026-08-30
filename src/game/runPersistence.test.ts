@@ -18,6 +18,7 @@ import {
   validateRunSnapshot,
 } from './runPersistence';
 import { getRunRngState, randomRun, seedRunRng, setRunRngState } from './runRng';
+import { getNextConsumableExpansion, getNextJokerExpansion } from './slotExpansions';
 
 /** The tests run in node: localStorage has to exist before they touch it. */
 function installLocalStorage(): void {
@@ -128,6 +129,29 @@ describe('serialize -> parse -> validate -> restore', () => {
     expect(restored.snapshot.maxConsumables).toBe(3);
     expect(restored.snapshot.vouchers).toHaveLength(1);
     expect(restored.snapshot.vouchers[0].bought).toBe(true);
+  });
+
+  it('restores the slot caps themselves, not the size of what is in them', () => {
+    // Un Jolly posseduto su sei slot: il livello deve venire dal cap salvato,
+    // altrimenti al ricaricamento il negozio rivende scalini gia' pagati.
+    const restored = roundTrip(serializeRun(buildInput()))!;
+    expect(restored.snapshot.activeJokers).toHaveLength(1);
+    expect(restored.snapshot.maxJokers).toBe(6);
+    expect(restored.snapshot.consumables).toHaveLength(1);
+    expect(restored.snapshot.maxConsumables).toBe(3);
+
+    // Il negozio riaperto offre lo scalino giusto per quei cap.
+    const context = { hasTavoloAllargato: false, hasHouseDiscount: false };
+    expect(getNextJokerExpansion(restored.snapshot.maxJokers, context)).toMatchObject({
+      fromSlots: 6,
+      toSlots: 7,
+      cost: 24,
+    });
+    expect(getNextConsumableExpansion(restored.snapshot.maxConsumables, context)).toMatchObject({
+      fromSlots: 3,
+      toSlots: 4,
+      cost: 14,
+    });
   });
 
   it('keeps joker instance ids and accumulated stats', () => {

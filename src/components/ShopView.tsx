@@ -15,6 +15,14 @@ import { CardFaceArt, getJokerArtUrl, getUnoArtUrl } from './CardFaceArt';
 import { sound } from '../services/soundEngine';
 import confetti from 'canvas-confetti';
 import { boosterAbandonLabel, discountedShopCost } from '../game/shopRules';
+import {
+  getConsumableSlotCap,
+  getJokerSlotCap,
+  getNextConsumableExpansion,
+  getNextJokerExpansion,
+  isTavoloAllargatoUseful,
+  SlotExpansion,
+} from '../game/slotExpansions';
 import { createRunRng, pickRun, shuffleRun } from '../game/runRng';
 import { ShopSnapshotV1 } from '../game/runPersistence';
 
@@ -30,6 +38,10 @@ interface ShopViewProps {
   onBuyVoucher: (voucher: Voucher, cost: number) => boolean;
   onSellJoker: (index: number) => void;
   onSellUnoCard: (index: number) => void;
+  /** AMPLIA TAVOLO. Returns false when it could not be paid for. */
+  onBuyJokerSlot: () => boolean;
+  /** ALLARGA TASCA. Returns false when it could not be paid for. */
+  onBuyConsumableSlot: () => boolean;
   /** Applies the upgrade to the card of the same suit and rank in the deck. */
   onUpgradeCard: (upgraded: PlayingCard) => void;
   runDeck: PlayingCard[];
@@ -54,6 +66,8 @@ export const ShopView: React.FC<ShopViewProps> = ({
   onBuyVoucher,
   onSellJoker,
   onSellUnoCard,
+  onBuyJokerSlot,
+  onBuyConsumableSlot,
   onUpgradeCard,
   runDeck,
   onNextRound,
@@ -64,6 +78,13 @@ export const ShopView: React.FC<ShopViewProps> = ({
   onShopStateChange,
 }) => {
   const hasSconto = vouchers.some(v => v.id === 'v_sconto' && v.bought);
+  const hasTavolo = vouchers.some(v => v.id === 'v_tavolo' && v.bought);
+
+  // The two permanent services. Same helpers the till uses, so the price on the
+  // button is the price that gets charged - there is no second formula here.
+  const slotContext = { hasTavoloAllargato: hasTavolo, hasHouseDiscount: hasSconto };
+  const jokerSlotOffer = getNextJokerExpansion(maxJokers, slotContext);
+  const consumableSlotOffer = getNextConsumableExpansion(maxConsumables, slotContext);
 
   // Three on the shelf, not two.
   //
@@ -105,8 +126,12 @@ export const ShopView: React.FC<ShopViewProps> = ({
   // catalogue.
   const [shopVouchers] = useState<Voucher[]>(() => {
     const owned = new Set(vouchers.filter((v) => v.bought).map((v) => v.id));
+    // Tavolo Allargato at the jolly cap has no chair to give and no later
+    // expansion to discount: an empty box is not an offer.
+    const useful = (voucher: Voucher) =>
+      voucher.id !== 'v_tavolo' || isTavoloAllargatoUseful(maxJokers);
     return createRunRng(shopSeed + 4 * 7919)
-      .shuffle(ALL_VOUCHERS.filter((v) => !owned.has(v.id)))
+      .shuffle(ALL_VOUCHERS.filter((v) => !owned.has(v.id) && useful(v)))
       .slice(0, 2);
   });
   // A pack leaves the shelf for good once it has been opened.
@@ -150,6 +175,9 @@ export const ShopView: React.FC<ShopViewProps> = ({
   const [confirmBoosterAbandon, setConfirmBoosterAbandon] = useState(false);
   const boosterChoiceLockRef = useRef(false);
   const rerollLockRef = useRef(false);
+  // Same shape as the reroll guard: one expansion per press, so a fast double
+  // tap cannot walk two rungs of the ladder before React has re-rendered.
+  const slotLockRef = useRef(false);
   // The ref is the double-tap guard (state is a render behind); the prop is
   // what survives a reload.
   const boughtShelfItemsRef = useRef(new Set<string>(shopState.boughtKeys));
@@ -167,6 +195,13 @@ export const ShopView: React.FC<ShopViewProps> = ({
     }
     boughtShelfItemsRef.current.delete(key);
     return false;
+  };
+
+  const buySlot = (offer: SlotExpansion | null, purchase: () => boolean) => {
+    if (!offer || money < offer.cost || slotLockRef.current) return;
+    slotLockRef.current = true;
+    if (purchase()) sound.playCashChime();
+    setTimeout(() => { slotLockRef.current = false; }, 0);
   };
 
   const handleReroll = () => {
@@ -424,6 +459,36 @@ export const ShopView: React.FC<ShopViewProps> = ({
               })}
             </div>
           </div>
+        </div>
+
+        {/*
+          The two permanent services, in a fixed strip under the dock they act
+          on. Deliberately not on the random shelves: these are always for sale
+          until the cap, so a bad reroll must never be able to hide them.
+        */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2 mt-2 pt-2 border-t border-slate-800">
+          <SlotServiceButton
+            icon="🪑"
+            label="AMPLIA TAVOLO"
+            microcopy="+1 SLOT JOLLY"
+            currentSlots={maxJokers}
+            cap={getJokerSlotCap()}
+            offer={jokerSlotOffer}
+            money={money}
+            accent="amber"
+            onBuy={() => buySlot(jokerSlotOffer, onBuyJokerSlot)}
+          />
+          <SlotServiceButton
+            icon="👝"
+            label="ALLARGA TASCA"
+            microcopy="+1 SLOT CARTE SOLA"
+            currentSlots={maxConsumables}
+            cap={getConsumableSlotCap()}
+            offer={consumableSlotOffer}
+            money={money}
+            accent="red"
+            onBuy={() => buySlot(consumableSlotOffer, onBuyConsumableSlot)}
+          />
         </div>
       </div>
 
@@ -995,6 +1060,66 @@ export const ShopView: React.FC<ShopViewProps> = ({
         }}
         confirmLabel="SCEGLI QUESTA"
       />
+    </div>
+  );
+};
+
+
+/**
+ * One permanent service: what you have, what the next one costs, MAX at the cap.
+ *
+ * The touch target is a real 44px on phones - this sits directly under the
+ * inventory rail, where a mis-tap costs money.
+ */
+const SlotServiceButton: React.FC<{
+  icon: string;
+  label: string;
+  microcopy: string;
+  currentSlots: number;
+  cap: number;
+  offer: SlotExpansion | null;
+  money: number;
+  accent: 'amber' | 'red';
+  onBuy: () => void;
+}> = ({ icon, label, microcopy, currentSlots, cap, offer, money, accent, onBuy }) => {
+  const atCap = currentSlots >= cap;
+  const canAfford = offer !== null && money >= offer.cost;
+  const accentText = accent === 'amber' ? 'text-amber-300' : 'text-red-300';
+  const accentButton =
+    accent === 'amber'
+      ? 'bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950'
+      : 'bg-gradient-to-r from-red-600 to-rose-500 hover:from-red-500 hover:to-rose-400 text-white';
+
+  return (
+    <div className="bg-slate-950/70 border border-slate-700/80 rounded-xl px-2 py-1.5 pixel-box flex items-center justify-between gap-2 min-h-[44px]">
+      <div className="flex items-center gap-1.5 min-w-0">
+        <span className="text-lg sm:text-xl shrink-0">{icon}</span>
+        <div className="min-w-0">
+          <div className={`font-pixel text-[8.5px] sm:text-[9.5px] font-bold truncate ${accentText}`}>
+            {label}
+          </div>
+          <div className="font-retro text-[8.5px] sm:text-[9.5px] text-slate-400 truncate">
+            {microcopy} • {currentSlots}/{cap}
+            {offer && <span className="text-slate-300"> ➔ {offer.toSlots}</span>}
+          </div>
+        </div>
+      </div>
+
+      {atCap || !offer ? (
+        <span className="font-pixel text-[8px] sm:text-[8.5px] bg-emerald-800 text-emerald-100 px-2.5 rounded shrink-0 flex items-center min-h-[36px]">
+          MAX
+        </span>
+      ) : (
+        <button
+          onClick={onBuy}
+          disabled={!canAfford}
+          className={`shrink-0 font-pixel text-[8.5px] sm:text-[9px] px-3 rounded-lg pixel-box font-bold cursor-pointer transition-all active:scale-95 min-h-[36px] min-w-[56px] ${
+            canAfford ? `${accentButton} shadow-md` : 'bg-slate-800 border border-slate-700 text-slate-500 cursor-not-allowed'
+          }`}
+        >
+          ${offer.cost}
+        </button>
+      )}
     </div>
   );
 };

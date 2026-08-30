@@ -42,6 +42,12 @@ import { executeUnoCard } from './game/unoEffects';
 import { createBlueSealReward, instantiateJoker, instantiateUnoCard, sameUnoInstance } from './game/itemInstances';
 import { trySpendMoney } from './game/shopRules';
 import {
+  applyTavoloAllargato,
+  getNextConsumableExpansion,
+  getNextJokerExpansion,
+  purchaseSlotExpansion,
+} from './game/slotExpansions';
+import {
   clearRunSnapshot,
   hasStoredRun,
   loadRunSnapshot,
@@ -502,6 +508,17 @@ export function App() {
   const bossDebuffNeutralizedRef = useRef<boolean>(bossDebuffNeutralized);
   bossDebuffNeutralizedRef.current = bossDebuffNeutralized;
   /**
+   * The two slot caps, mirrored. A shop service is bought from a click handler
+   * that closed over an older render: reading the cap out of state there is how
+   * a double tap buys the same chair twice.
+   */
+  const maxJokersRef = useRef<number>(maxJokers);
+  maxJokersRef.current = maxJokers;
+  const maxConsumablesRef = useRef<number>(maxConsumables);
+  maxConsumablesRef.current = maxConsumables;
+  /** One expansion per press, whatever the browser does with the second one. */
+  const slotPurchaseLockRef = useRef<boolean>(false);
+  /**
    * Tricks left on the Scudo Protettivo.
    *
    * It used to switch the boss off for the whole blind, which turns a boss into
@@ -670,7 +687,9 @@ export function App() {
     const initialMaxJokers = 5;
     const initialMaxConsumables = deck.specialDeckPerk === 'holo_figures' ? 3 : 2;
     setMaxJokers(initialMaxJokers);
+    maxJokersRef.current = initialMaxJokers;
     setMaxConsumables(initialMaxConsumables);
+    maxConsumablesRef.current = initialMaxConsumables;
 
     // Starting Vouchers
     const initialVouchers: Voucher[] = [];
@@ -1535,7 +1554,7 @@ export function App() {
   };
 
   const handleBuyJoker = (joker: Joker, cost: number): boolean => {
-    if (activeJokersRef.current.length >= maxJokers || !spendMoney(cost)) return false;
+    if (activeJokersRef.current.length >= maxJokersRef.current || !spendMoney(cost)) return false;
     const next = [...activeJokersRef.current, instantiateJoker(joker)];
     activeJokersRef.current = next;
     setActiveJokers(next);
@@ -1544,7 +1563,7 @@ export function App() {
   };
 
   const handleBuyUnoCard = (unoCard: UnoCard, cost: number): boolean => {
-    if (consumablesRef.current.length >= maxConsumables || !spendMoney(cost)) return false;
+    if (consumablesRef.current.length >= maxConsumablesRef.current || !spendMoney(cost)) return false;
     const next = [...consumablesRef.current, instantiateUnoCard(unoCard)];
     consumablesRef.current = next;
     setConsumables(next);
@@ -1559,11 +1578,57 @@ export function App() {
     setVouchers(next);
 
     if (voucher.id === 'v_tavolo') {
-      setMaxJokers(6);
+      // A free chair, never past the cap. The 25% off later expansions is read
+      // straight off the owned vouchers, so there is nothing else to store.
+      const widened = applyTavoloAllargato(maxJokersRef.current);
+      maxJokersRef.current = widened;
+      setMaxJokers(widened);
     }
     requestSave('shop');
     return true;
   };
+
+  /** What the two permanent services cost right now, vouchers included. */
+  const slotExpansionContext = () => ({
+    hasTavoloAllargato: vouchersRef.current.some((v) => v.id === 'v_tavolo' && v.bought),
+    hasHouseDiscount: vouchersRef.current.some((v) => v.id === 'v_sconto' && v.bought),
+  });
+
+  /**
+   * One atomic step up the ladder.
+   *
+   * Everything it decides on - the cap, the price, the balance - is read from a
+   * ref, so a second click landing in the same tick sees the chair already
+   * bought rather than the state from before the first one. The lock on top of
+   * that is what stops a double tap from walking two rungs at once.
+   */
+  const buySlotExpansion = (kind: 'joker' | 'consumable'): boolean => {
+    if (slotPurchaseLockRef.current) return false;
+    const currentRef = kind === 'joker' ? maxJokersRef : maxConsumablesRef;
+    const offer =
+      kind === 'joker'
+        ? getNextJokerExpansion(currentRef.current, slotExpansionContext())
+        : getNextConsumableExpansion(currentRef.current, slotExpansionContext());
+    const till = purchaseSlotExpansion(offer, moneyRef.current, currentRef.current);
+    if (!till.bought) return false;
+
+    slotPurchaseLockRef.current = true;
+    if (!spendMoney(offer!.cost)) {
+      slotPurchaseLockRef.current = false;
+      return false;
+    }
+    currentRef.current = till.slots;
+    if (kind === 'joker') setMaxJokers(till.slots);
+    else setMaxConsumables(till.slots);
+    requestSave('shop');
+    setTimeout(() => {
+      slotPurchaseLockRef.current = false;
+    }, 0);
+    return true;
+  };
+
+  const handleBuyJokerSlot = (): boolean => buySlotExpansion('joker');
+  const handleBuyConsumableSlot = (): boolean => buySlotExpansion('consumable');
 
   const handleSellJoker = (index: number) => {
     const joker = activeJokersRef.current[index];
@@ -1663,7 +1728,9 @@ export function App() {
     setTotalBriscolaPointsOpponent(snap.totalBriscolaPointsOpponent);
     setTotalMoneyEarned(snap.totalMoneyEarned);
     setMaxJokers(snap.maxJokers);
+    maxJokersRef.current = snap.maxJokers;
     setMaxConsumables(snap.maxConsumables);
+    maxConsumablesRef.current = snap.maxConsumables;
     setRunDeck(snap.runDeck);
     activeJokersRef.current = snap.activeJokers;
     setActiveJokers(snap.activeJokers);
@@ -2143,6 +2210,8 @@ export function App() {
             onBuyVoucher={handleBuyVoucher}
             onSellJoker={handleSellJoker}
             onSellUnoCard={handleSellUnoCard}
+            onBuyJokerSlot={handleBuyJokerSlot}
+            onBuyConsumableSlot={handleBuyConsumableSlot}
             onUpgradeCard={handleUpgradeCard}
             runDeck={runDeck}
             onNextRound={handleNextRoundFromShop}
