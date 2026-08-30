@@ -401,6 +401,13 @@ export function App() {
    */
   const playedCardsRef = useRef<PlayingCard[]>([]);
   /**
+   * What the current shop visit has really cost, and which Conti Sospesi have
+   * already collected on it. Both reset when a new shop opens: only the +1 Mult
+   * they earn is permanent, and that lives in the joker.
+   */
+  const shopSpentRef = useRef<number>(0);
+  const contoSospesoPaidRef = useRef<Set<string>>(new Set());
+  /**
    * The suit of the card the player last WON a trick with.
    *
    * Il Maestro dei Bastoni chains the next opening to it. A ref because the
@@ -417,6 +424,8 @@ export function App() {
    */
   const opponentProfileRef = useRef(getAiProfile('neutral'));
   const [consecutiveWinStreak, setConsecutiveWinStreak] = useState<number>(0);
+  /** Tricks lost back to back. Il Contropiede arms itself on this. */
+  const [consecutiveLossStreak, setConsecutiveLossStreak] = useState<number>(0);
   const [capturedDenariRanksThisRound, setCapturedDenariRanksThisRound] = useState<Set<number>>(
     new Set()
   );
@@ -805,6 +814,9 @@ export function App() {
 
     // Both cards are face-up now, so both go into the public record. Memory is
     // built only from here.
+    // Read BEFORE the two cards join the record: Il Contacarte must only ever
+    // see the ranks of PREVIOUS tricks.
+    const seenRanksBeforeTrick = new Set(playedCardsRef.current.map((card) => card.rank));
     playedCardsRef.current = [...playedCardsRef.current, playerCard, oppCard];
 
     // Refs, not state: this runs from a delayed callback, and the boss that
@@ -850,6 +862,10 @@ export function App() {
           totalTricksPlayedThisRound: tricksPlayedInRound,
           remainingTricksCount: remainingTricks,
           capturedDenariRanksThisRound,
+          consecutiveLossStreak,
+          seenRanksBeforeTrick,
+          roundPointsTaken,
+          opponentPointsTaken,
         },
         activeUnoMultiplier,
         disabledJokerIndex,
@@ -1021,8 +1037,10 @@ export function App() {
         return next;
       });
       setConsecutiveWinStreak((s) => s + 1);
+      setConsecutiveLossStreak(0);
     } else {
       setConsecutiveWinStreak(0);
+      setConsecutiveLossStreak((s) => s + 1);
     }
 
     const newTricksPlayed = tricksPlayedInRound + 1;
@@ -1474,6 +1492,9 @@ export function App() {
         setPhase('game_over');
       } else {
         sound.playShopEnter();
+        // A fresh visit: the Conto Sospeso can be paid once more.
+        shopSpentRef.current = 0;
+        contoSospesoPaidRef.current = new Set();
         // The shelf is normally rolled when the encounter is cleared; a run
         // that somehow arrives without one still gets a deterministic shop.
         if (!shopState) {
@@ -1494,6 +1515,22 @@ export function App() {
     if (!transaction.success) return false;
     moneyRef.current = transaction.balance;
     setMoney(moneyRef.current);
+
+    // Every shop article, reroll included, comes through here. Free picks and
+    // sales do not: a $0 transaction is not spending.
+    if (cost > 0) {
+      shopSpentRef.current += cost;
+      const settled = JOKER_EFFECTS.applyShopSpend(
+        activeJokersRef.current,
+        shopSpentRef.current,
+        contoSospesoPaidRef.current
+      );
+      if (settled.paidInstanceIds.length > 0) {
+        settled.paidInstanceIds.forEach((id) => contoSospesoPaidRef.current.add(id));
+        activeJokersRef.current = settled.jokers;
+        setActiveJokers(settled.jokers);
+      }
+    }
     return true;
   };
 
@@ -1574,6 +1611,8 @@ export function App() {
     setPhase('blind_select');
     // Boundary 5: out of the shop, the next encounter not yet dealt.
     setShopState(null);
+    shopSpentRef.current = 0;
+    contoSospesoPaidRef.current = new Set();
     requestSave('blind_select');
   };
 
@@ -1706,6 +1745,7 @@ export function App() {
     setTricksPlayedInRound(encounter.tricksPlayedInRound);
     setCapturedDenariRanksThisRound(restored.capturedDenariRanks);
     setConsecutiveWinStreak(encounter.consecutiveWinStreak);
+    setConsecutiveLossStreak(encounter.consecutiveLossStreak ?? 0);
     setDiscardsLeft(encounter.discardsLeft);
 
     // Derived from the boss and the position, never stored: two copies of the
@@ -1807,6 +1847,7 @@ export function App() {
                 tricksPlayedInRound,
                 capturedDenariRanks: capturedDenariRanksThisRound,
                 consecutiveWinStreak,
+                consecutiveLossStreak,
                 discardsLeft,
                 isPlayerTurn,
                 boss: activeBoss,

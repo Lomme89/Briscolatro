@@ -185,6 +185,7 @@ export function simulateEncounter(config: EncounterConfig): EncounterReport {
 
   const captured = new Set<number>();
   let streak = 0;
+  let lossStreak = 0;
   let played = 0;
   let playerLeads = true;
   let lastWinningSuit: Suit | null = null;
@@ -274,6 +275,9 @@ export function simulateEncounter(config: EncounterConfig): EncounterReport {
       })!;
     }
 
+    // Read before the two cards join the record: Il Contacarte only ever sees
+    // the ranks of PREVIOUS tricks.
+    const seenRanksBeforeTrick = new Set(playedCards.map((card) => card.rank));
     playedCards = [...playedCards, playerCard, oppCard!];
     live.hand = live.hand.filter((c) => c.id !== playerCard.id);
     live.oppHand = live.oppHand.filter((c) => c.id !== oppCard!.id);
@@ -312,6 +316,10 @@ export function simulateEncounter(config: EncounterConfig): EncounterReport {
           totalTricksPlayedThisRound: played,
           remainingTricksCount: Math.floor(live.pile.length / 2) + live.hand.length,
           capturedDenariRanksThisRound: captured,
+          consecutiveLossStreak: lossStreak,
+          seenRanksBeforeTrick,
+          roundPointsTaken: report.briscolaPoints,
+          opponentPointsTaken: report.opponentBriscolaPoints,
         },
         live.activeUnoMultiplier,
         silencedIndex,
@@ -362,6 +370,7 @@ export function simulateEncounter(config: EncounterConfig): EncounterReport {
       report.briscolaPoints += clash.rawPoints;
       report.tricksWon++;
       streak++;
+      lossStreak = 0;
       lastWinningSuit = playerCard.suit;
       if (playerCard.suit === 'denari') captured.add(playerCard.rank);
       if (oppCard!.suit === 'denari') captured.add(oppCard!.rank);
@@ -381,6 +390,7 @@ export function simulateEncounter(config: EncounterConfig): EncounterReport {
       report.opponentBriscolaPoints += clash.rawPoints;
       report.tricksLost++;
       streak = 0;
+      lossStreak++;
       lastWinningSuit = null;
     }
 

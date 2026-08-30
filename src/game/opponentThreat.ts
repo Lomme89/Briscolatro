@@ -146,6 +146,15 @@ export function readPlayerThreat(jokers: Joker[], context: ThreatContext): Playe
         if (context.remainingTricks <= 3) threat.winBounty += value;
         break;
 
+      case 'tirchio_min_power':
+      case 'sottobicchiere_chips':
+      case 'due_chips':
+      case 'volpone_reserve':
+      case 'contropiede_xmult':
+      case 'temerario_mult':
+      case 'restauratore_chips':
+      case 'contacarte_mult':
+      case 'segnapunti_mult':
       case 'liscia_win_mult':
       case 'lucky_points':
       case 'legend_sovrano':

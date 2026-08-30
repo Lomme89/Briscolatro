@@ -457,10 +457,19 @@ function visitShop(state: RunState, buyer: BuyerPolicy, ledger: Ledger): void {
   };
   noteShelf(offer.jokers);
 
+  // Il Conto Sospeso settles at the till, once per visit per copy.
+  let spentThisShop = 0;
+  const contoSospesoPaid = new Set<string>();
+
   const spend = (cost: number) => {
     state.money -= cost;
     ledger.spent += cost;
     if (state.money < 0) throw new Error('simulatore: saldo negativo dopo un acquisto');
+    if (cost <= 0) return;
+    spentThisShop += cost;
+    const settled = JOKER_EFFECTS.applyShopSpend(state.jokers, spentThisShop, contoSospesoPaid);
+    settled.paidInstanceIds.forEach((id) => contoSospesoPaid.add(id));
+    state.jokers = settled.jokers;
   };
 
   const actions: ShopActions = {

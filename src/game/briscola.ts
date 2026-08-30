@@ -117,6 +117,19 @@ function effectiveSuit(
 }
 
 /**
+ * Whether a card STILL IN HAND counts as trump under the current rules.
+ *
+ * Same reading of the card as `effectiveSuit`, minus the parts that only exist
+ * once a card is on the table (the opponent-only boss promotion): a Wild is
+ * trump, a Stone is nothing, everything else is its own suit.
+ */
+export function isBriscolaInHand(card: PlayingCard, briscolaSuit: Suit): boolean {
+  if (isStone(card)) return false;
+  if (card.enhancement === 'wild') return true;
+  return card.suit === briscolaSuit;
+}
+
+/**
  * Compare two cards only when normal Briscola rules say their rank is comparable
  * (same effective suit, or both trump). On the impossible/effect-generated tie,
  * the leader keeps the trick. `isReverse` reverses rank hierarchy only: it never

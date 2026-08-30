@@ -1,5 +1,5 @@
 import { Joker, PlayingCard, Suit } from '../types/game';
-import { TrickClashResult } from './briscola';
+import { isBriscolaInHand, TrickClashResult } from './briscola';
 
 export interface JokerScoringContext {
   playerCard: PlayingCard;
@@ -14,7 +14,27 @@ export interface JokerScoringContext {
   remainingTricksCount: number;
   capturedDenariRanksThisRound: Set<number>;
   disabledJokerIndex: number | null;
+  /** Tricks lost back to back immediately before this one. Il Contropiede. */
+  consecutiveLossStreak?: number;
+  /**
+   * Ranks already face-up in the PREVIOUS tricks of this match, never this one:
+   * Il Contacarte must not be able to satisfy itself with the card it is
+   * looking at.
+   */
+  seenRanksBeforeTrick?: Set<number>;
+  /** Raw Briscola points taken so far this round, BEFORE this trick lands. */
+  roundPointsTaken?: number;
+  opponentPointsTaken?: number;
+  /**
+   * The played card's Azzardo actually paid out this trick. Il Temerario asks
+   * for the outcome, not for the badge: a Traditrice that answered and won has
+   * the badge and no payout, and pays the Temerario nothing.
+   */
+  azzardoPaidOff?: boolean;
 }
+
+/** Il Conto Sospeso wakes up at this much real spending inside one shop. */
+export const CONTO_SOSPESO_SPEND_THRESHOLD = 8;
 
 /** Permanent growth a joker earned this trick, kept for the rest of the run. */
 export interface JokerStatGrowth {
@@ -68,6 +88,11 @@ export const JOKER_EFFECTS = {
       remainingTricksCount,
       capturedDenariRanksThisRound,
       disabledJokerIndex,
+      consecutiveLossStreak = 0,
+      seenRanksBeforeTrick,
+      roundPointsTaken = 0,
+      opponentPointsTaken = 0,
+      azzardoPaidOff = false,
     } = ctx;
 
     jokers.forEach((joker, index) => {
@@ -83,6 +108,16 @@ export const JOKER_EFFECTS = {
       if (joker.id === 'j_jolly_sport') {
         if (money > 0) {
           multToAdd += money;
+          didTrigger = true;
+        }
+      }
+
+      // Il Conto Sospeso pays out what the shops already bought it. The growth
+      // itself is banked at the till (applyShopSpend), never here.
+      if (joker.id === 'j_conto_sospeso') {
+        const banked = joker.stats?.accumulatedMult || 0;
+        if (banked > 0) {
+          multToAdd += banked;
           didTrigger = true;
         }
       }
@@ -154,6 +189,99 @@ export const JOKER_EFFECTS = {
             }
             break;
           }
+
+          case 'j_tirchio': {
+            // `playerHand` is the hand AFTER the card left it, so the pre-play
+            // hand is that plus the card: nothing else needs threading in. A
+            // tie on the minimum still counts as the cheapest card.
+            const wasCheapest = playerHand.every((card) => card.power >= playerCard.power);
+            if (wasCheapest) {
+              multToAdd += joker.multBonus ?? 0;
+              didTrigger = true;
+            }
+            break;
+          }
+
+          case 'j_sottobicchiere':
+            // Effective suits, so a Wild counts as the trump it plays as.
+            if (
+              !clashResult.playerIsBriscola &&
+              clashResult.playerEffectiveSuit !== clashResult.opponentEffectiveSuit
+            ) {
+              chipsToAdd += joker.chipsBonus ?? 0;
+              didTrigger = true;
+            }
+            break;
+
+          case 'j_due_di_picche':
+            // The Due the PLAYER put down. Capturing theirs pays nothing.
+            if (playerCard.rank === 2) {
+              chipsToAdd += joker.chipsBonus ?? 0;
+              didTrigger = true;
+            }
+            break;
+
+          case 'j_vecchio_volpone':
+            // Won without spending trump, and still holding trump afterwards.
+            if (
+              !clashResult.playerIsBriscola &&
+              playerHand.some((card) => isBriscolaInHand(card, briscolaSuit))
+            ) {
+              multToAdd += joker.multBonus ?? 0;
+              didTrigger = true;
+            }
+            break;
+
+          case 'j_contropiede':
+            // Armed at two losses in a row, and stays armed through any further
+            // loss; the win that collects it also ends the streak.
+            if (consecutiveLossStreak >= 2) {
+              xMultToMultiply *= joker.xMultBonus ?? 1;
+              didTrigger = true;
+            }
+            break;
+
+          case 'j_temerario':
+            // Flat, and only flat: whatever the Azzardo itself paid has already
+            // been counted by the time this runs.
+            if (playerCard.special !== 'none' && azzardoPaidOff) {
+              multToAdd += joker.multBonus ?? 0;
+              didTrigger = true;
+            }
+            break;
+
+          case 'j_restauratore': {
+            // Categories present, not how much each one is worth: a Foil with a
+            // Sigillo Rosso is two categories, never four.
+            const categories =
+              (playerCard.edition !== 'standard' ? 1 : 0) +
+              (playerCard.enhancement !== 'none' ? 1 : 0) +
+              (playerCard.seal !== 'none' ? 1 : 0) +
+              (playerCard.special !== 'none' ? 1 : 0);
+            if (categories > 0) {
+              chipsToAdd += categories * (joker.chipsBonus ?? 0);
+              didTrigger = true;
+            }
+            break;
+          }
+
+          case 'j_contacarte':
+            // Only ranks from earlier tricks: the set is built before this
+            // trick's two cards join the record, so it cannot satisfy itself.
+            if (seenRanksBeforeTrick?.has(opponentCard.rank)) {
+              multToAdd += joker.multBonus ?? 0;
+              didTrigger = true;
+            }
+            break;
+
+          case 'j_segnapunti':
+            // Raw Briscola points, read BEFORE this trick is added. Level is
+            // not behind, so a tie pays nothing.
+            if (roundPointsTaken < opponentPointsTaken) {
+              multToAdd += joker.multBonus ?? 0;
+              didTrigger = true;
+            }
+            break;
 
           case 'j_cacciatore_carichi':
             if (opponentCard.points >= 10) {
@@ -346,6 +474,34 @@ export const JOKER_EFFECTS = {
       }
       return { ...joker, stats };
     });
+  },
+
+  /**
+   * Il Conto Sospeso, settled at the till.
+   *
+   * The caller owns the per-shop bookkeeping - how much has really been spent
+   * on this visit, and which copies already collected - because both are
+   * transient by design: only the +1 Mult it earns is permanent, and that lives
+   * in the joker's stats like every other growth in the game.
+   */
+  applyShopSpend(
+    jokers: Joker[],
+    spentThisShop: number,
+    alreadyPaidInstanceIds: ReadonlySet<string>
+  ): { jokers: Joker[]; paidInstanceIds: string[] } {
+    if (spentThisShop < CONTO_SOSPESO_SPEND_THRESHOLD) return { jokers, paidInstanceIds: [] };
+
+    const paidInstanceIds: string[] = [];
+    const growth: JokerStatGrowth[] = [];
+    for (const joker of jokers) {
+      if (joker.id !== 'j_conto_sospeso') continue;
+      const ownedId = joker.instanceId || joker.id;
+      if (alreadyPaidInstanceIds.has(ownedId)) continue;
+      paidInstanceIds.push(ownedId);
+      growth.push({ jokerId: joker.id, jokerInstanceId: ownedId, addMult: joker.multBonus ?? 1 });
+    }
+    if (growth.length === 0) return { jokers, paidInstanceIds };
+    return { jokers: JOKER_EFFECTS.applyStatGrowth(jokers, growth), paidInstanceIds };
   },
 
   /**

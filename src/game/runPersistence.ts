@@ -60,6 +60,8 @@ export interface EncounterSnapshotV1 {
   tricksPlayedInRound: number;
   capturedDenariRanks: number[];
   consecutiveWinStreak: number;
+  /** Tricks lost back to back. Absent in pre-Contropiede saves: read as 0. */
+  consecutiveLossStreak?: number;
   discardsLeft: number;
   /** False means the opponent opens the next trick; the table is clear either way. */
   isPlayerTurn: boolean;
@@ -148,6 +150,7 @@ function serializeEncounter(input: EncounterSnapshotInput): EncounterSnapshotV1 
     tricksPlayedInRound: input.tricksPlayedInRound,
     capturedDenariRanks: [...input.capturedDenariRanks],
     consecutiveWinStreak: input.consecutiveWinStreak,
+    consecutiveLossStreak: input.consecutiveLossStreak ?? 0,
     discardsLeft: input.discardsLeft,
     isPlayerTurn: input.isPlayerTurn,
     bossId: input.boss ? input.boss.id : null,

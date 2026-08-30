@@ -162,6 +162,10 @@ export function calculateTrickScore(
     clashResult,
     briscolaSuit,
     disabledJokerIndex,
+    // Il Temerario reads the Azzardo OUTCOME, not the badge: an Azzardo that
+    // did not meet its own condition paid nothing and buys nothing here.
+    azzardoPaidOff:
+      special.chipsToAdd > 0 || special.multToAdd > 0 || special.xMultToMultiply > 1,
   };
 
   const jokerMod = JOKER_EFFECTS.applyJokersToTrick(activeJokers, fullJokerContext);
