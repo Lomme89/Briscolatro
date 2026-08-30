@@ -53,7 +53,7 @@ export const VICTORY_MODES: Record<VictoryMode, VictoryModeInfo> = {
   sbaraglio: {
     id: 'sbaraglio',
     label: 'Sbaraglio',
-    description: 'Fai il target oppure conquista 61 punti.',
+    description: 'Fai il target oppure conquista 61 Punti Briscola.',
     // Not "easy": the 61 does not scale with the Ante while the target does, so
     // it opens up as the run goes on. Named for what it is, not for a rung on
     // a ladder.
@@ -68,7 +68,7 @@ export const VICTORY_MODES: Record<VictoryMode, VictoryModeInfo> = {
   traditional: {
     id: 'traditional',
     label: 'Briscola',
-    description: 'Conquista 61 punti.',
+    description: 'Conquista 61 Punti Briscola.',
     badge: 'TRADIZIONALE',
     badgeClass: 'bg-emerald-600 border-emerald-300 text-white',
     needsChips: false,
@@ -80,7 +80,7 @@ export const VICTORY_MODES: Record<VictoryMode, VictoryModeInfo> = {
   double_challenge: {
     id: 'double_challenge',
     label: 'Doppia Sfida',
-    description: 'Fai il target e conquista 61 punti.',
+    description: 'Fai il target e conquista 61 Punti Briscola.',
     badge: 'DIFFICILE',
     badgeClass: 'bg-rose-600 border-rose-300 text-white',
     needsChips: true,
@@ -100,6 +100,41 @@ export const ALL_VICTORY_MODES: VictoryModeInfo[] = [
 
 /** Anything the game did before modes existed was this one. */
 export const DEFAULT_VICTORY_MODE: VictoryMode = 'briscolatro';
+
+export interface VictoryHudPresentation {
+  primary: 'chips' | 'briscola';
+  showChipsObjective: boolean;
+  showBriscolaObjective: boolean;
+  connector: 'OPPURE' | 'E' | null;
+}
+
+/** UI mapping for the two win currencies. It deliberately reads the mode config. */
+export function getVictoryHudPresentation(mode: VictoryMode): VictoryHudPresentation {
+  const info = VICTORY_MODES[mode] ?? VICTORY_MODES[DEFAULT_VICTORY_MODE];
+  return {
+    primary: info.needsChips ? 'chips' : 'briscola',
+    showChipsObjective: info.needsChips,
+    showBriscolaObjective: info.needsBriscola,
+    connector:
+      info.needsChips && info.needsBriscola
+        ? info.eitherIsEnough
+          ? 'OPPURE'
+          : 'E'
+        : null,
+  };
+}
+
+export interface TrickHudPresentation {
+  current: number;
+  total: 20;
+  isFinalThree: boolean;
+}
+
+/** The current hand is the completed count plus one, clamped to a full deck. */
+export function getTrickHudPresentation(tricksPlayedInRound: number): TrickHudPresentation {
+  const current = Math.min(20, Math.max(1, Math.floor(tricksPlayedInRound) + 1));
+  return { current, total: 20, isFinalThree: current >= 18 };
+}
 
 export type VictoryRoute = 'chips' | 'briscola' | 'both' | 'none';
 

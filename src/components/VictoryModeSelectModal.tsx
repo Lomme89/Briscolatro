@@ -17,7 +17,7 @@ interface VictoryModeSelectModalProps {
 /** The requirement, drawn the way the blind screen will draw it. */
 const Requirement: React.FC<{ info: VictoryModeInfo }> = ({ info }) => {
   const chips = <span className="text-amber-300">TARGET CHIPS</span>;
-  const briscola = <span className="text-emerald-300">61 PUNTI</span>;
+  const briscola = <span className="text-emerald-300">61 PUNTI BRISCOLA</span>;
 
   if (!info.needsChips) return <>{briscola}</>;
   if (!info.needsBriscola) return <>{chips}</>;

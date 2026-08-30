@@ -4,11 +4,50 @@ import {
   BRISCOLA_TARGET_POINTS,
   DEFAULT_VICTORY_MODE,
   evaluateVictoryCondition,
+  getTrickHudPresentation,
+  getVictoryHudPresentation,
   parseVictoryMode,
   VICTORY_MODES,
   VictoryMode,
   victoryHeadline,
 } from './victoryModes';
+
+describe('presentazione HUD delle modalita', () => {
+  it('Traditional presenta Briscola come obiettivo e non richiede Chips', () => {
+    expect(getVictoryHudPresentation('traditional')).toEqual({
+      primary: 'briscola',
+      showChipsObjective: false,
+      showBriscolaObjective: true,
+      connector: null,
+    });
+  });
+
+  it('Sbaraglio presenta le due vie con OPPURE', () => {
+    expect(getVictoryHudPresentation('sbaraglio').connector).toBe('OPPURE');
+  });
+
+  it('Doppia Sfida presenta i due requisiti con E', () => {
+    expect(getVictoryHudPresentation('double_challenge').connector).toBe('E');
+  });
+
+  it('mappa tutte le modalita senza inventare requisiti', () => {
+    expect(getVictoryHudPresentation('briscolatro')).toMatchObject({
+      primary: 'chips',
+      showChipsObjective: true,
+      showBriscolaObjective: false,
+    });
+  });
+});
+
+describe('contatore presa HUD', () => {
+  it('copre 1..20 ed enfatizza solo le ultime tre', () => {
+    expect(getTrickHudPresentation(0)).toEqual({ current: 1, total: 20, isFinalThree: false });
+    expect(getTrickHudPresentation(16).isFinalThree).toBe(false);
+    expect(getTrickHudPresentation(17)).toEqual({ current: 18, total: 20, isFinalThree: true });
+    expect(getTrickHudPresentation(19).current).toBe(20);
+    expect(getTrickHudPresentation(99).current).toBe(20);
+  });
+});
 import { calculateRoundOutcome, getBlindTargetScore, RoundStateSnapshot } from './gameState';
 import { BOSS_RULES } from './bossRules';
 import { ALL_BOSS_BLINDS } from '../data/bosses';

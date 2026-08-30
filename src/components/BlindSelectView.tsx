@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { PixelAvatar } from './PixelAvatar';
 import { TableFeltPattern } from './TableFeltPattern';
 import { getTableThemeForAnte } from '../data/tableThemes';
@@ -9,7 +9,12 @@ import {
   getEncounterReward,
   isBossEncounter,
 } from '../game/gameState';
-import { BRISCOLA_TARGET_POINTS, VICTORY_MODES, VictoryMode } from '../game/victoryModes';
+import {
+  BRISCOLA_TARGET_POINTS,
+  getVictoryHudPresentation,
+  VICTORY_MODES,
+  VictoryMode,
+} from '../game/victoryModes';
 import { BOSS_RULES } from '../game/bossRules';
 import { ALL_BOSS_BLINDS } from '../data/bosses';
 import { sound } from '../services/soundEngine';
@@ -52,6 +57,7 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
   victoryMode,
   onSitDown,
 }) => {
+  const reduceMotion = useReducedMotion();
   const theme = getTableThemeForAnte(ante);
   const opponent = getOpponentIntro(ante, round);
   const boss = ALL_BOSS_BLINDS.find((candidate) => candidate.ante === ante) || ALL_BOSS_BLINDS[0];
@@ -63,20 +69,24 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
   useEffect(() => {
     // Whoever sits down gets their own motif; the boss keeps the alarm on top.
     sound.playOpponentJingle(opponent.characterId, opponent.isBoss);
-    const timer = setTimeout(() => setRevealed(true), opponent.isBoss ? 620 : 380);
+    const timer = setTimeout(() => setRevealed(true), reduceMotion ? 0 : opponent.isBoss ? 620 : 380);
     return () => clearTimeout(timer);
-  }, [ante, round, opponent.isBoss]);
+  }, [ante, round, opponent.isBoss, reduceMotion]);
 
   useEffect(() => {
     if (!revealed) return;
     let index = 0;
+    if (reduceMotion) {
+      setTypedQuote(opponent.quote);
+      return;
+    }
     const interval = setInterval(() => {
       index += 2;
       setTypedQuote(opponent.quote.slice(0, index));
       if (index >= opponent.quote.length) clearInterval(interval);
     }, 22);
     return () => clearInterval(interval);
-  }, [revealed, opponent.quote]);
+  }, [revealed, opponent.quote, reduceMotion]);
 
   const skipIntro = () => {
     setRevealed(true);
@@ -93,6 +103,7 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
   // so each card carries its own figure. Interest and the Briscola bonus are
   // earned at the table, not promised here.
   const modeInfo = VICTORY_MODES[victoryMode];
+  const hud = getVictoryHudPresentation(victoryMode);
 
   return (
     <div
@@ -166,8 +177,8 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
                 />
                 {opponent.isBoss && (
                   <motion.span
-                    animate={{ scale: [1, 1.12, 1] }}
-                    transition={{ repeat: Infinity, duration: 1.4 }}
+                    animate={reduceMotion ? undefined : { scale: [1, 1.12, 1] }}
+                    transition={reduceMotion ? undefined : { repeat: Infinity, duration: 1.4 }}
                     className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-red-600 border border-red-300 text-white font-pixel text-[8px] sm:text-[9px] px-2 py-0.5 rounded uppercase font-bold whitespace-nowrap"
                   >
                     💀 Boss dell'Ante
@@ -262,27 +273,27 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
                 <div className="font-pixel text-[8px] sm:text-[10px] text-slate-200 leading-tight">
                   {info.name}
                 </div>
-                <div className="flex items-baseline gap-1">
+                {hud.showChipsObjective && <div className="flex items-baseline gap-1">
                   <span className="text-[7px] sm:text-[8px] font-pixel text-slate-500">🎯</span>
                   <span
                     className={`font-pixel text-[9px] sm:text-xs font-bold tabular-nums ${
                       isCurrent ? 'text-emerald-300' : 'text-slate-400'
                     }`}
                   >
-                    {targetFor(blindRound).toLocaleString('it-IT')}
+                    {targetFor(blindRound).toLocaleString('it-IT')} CHIPS
                   </span>
-                </div>
-                {modeInfo.needsBriscola && (
+                </div>}
+                {hud.showBriscolaObjective && (
                   <div className="flex items-baseline gap-1">
                     <span className="text-[7px] sm:text-[8px] font-pixel text-slate-500">
-                      {modeInfo.needsChips ? (modeInfo.eitherIsEnough ? 'O' : 'E') : '🃏'}
+                      {hud.connector ?? '🃏'}
                     </span>
                     <span
                       className={`font-pixel text-[9px] sm:text-xs font-bold tabular-nums ${
                         isCurrent ? 'text-emerald-300' : 'text-slate-400'
                       }`}
                     >
-                      {BRISCOLA_TARGET_POINTS} punti
+                      {BRISCOLA_TARGET_POINTS} PT BRISCOLA
                     </span>
                   </div>
                 )}
@@ -310,16 +321,16 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
               </span>
             </div>
             <div className="font-pixel text-[9px] sm:text-[11px] leading-tight mt-1 flex items-center flex-wrap gap-1">
-              {modeInfo.needsChips && (
+              {hud.showChipsObjective && (
                 <span className="text-amber-200">
                   {targetFor(round).toLocaleString('it-IT')} CHIPS
                 </span>
               )}
-              {modeInfo.needsChips && modeInfo.needsBriscola && (
-                <span className="text-slate-400">{modeInfo.eitherIsEnough ? 'OPPURE' : 'E'}</span>
+              {hud.connector && (
+                <span className="text-slate-400">{hud.connector}</span>
               )}
-              {modeInfo.needsBriscola && (
-                <span className="text-emerald-300">{BRISCOLA_TARGET_POINTS} PUNTI</span>
+              {hud.showBriscolaObjective && (
+                <span className="text-emerald-300">{BRISCOLA_TARGET_POINTS} PUNTI BRISCOLA</span>
               )}
             </div>
           </div>

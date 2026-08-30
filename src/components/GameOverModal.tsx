@@ -103,7 +103,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
             {won
               ? 'Sei il nuovo Campione indiscusso del Torneo di Briscolatro! Tutti i bari e i veterani del Bar Sport si inchinano alla tua maestria.'
               : summary.defeatReason ||
-                `Non hai raggiunto il punteggio richiesto di ${targetScore.toLocaleString()} punti ad Ante ${ante}. Riprova combinando nuovi Jolly e Carte Sola!`}
+                `Non hai raggiunto il target di ${targetScore.toLocaleString()} Chips ad Ante ${ante}. Riprova combinando nuovi Jolly e Carte Sola!`}
           </p>
         </div>
 
@@ -119,7 +119,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
         {/* 1. PRIMARY SCORE & OUTCOME METRICS */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3 font-pixel">
           <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-2.5 text-center flex flex-col justify-between">
-            <span className="text-[8px] sm:text-[9px] text-slate-400 uppercase">PUNTEGGIO TOTALE</span>
+            <span className="text-[8px] sm:text-[9px] text-slate-400 uppercase">SCORE TOTALE</span>
             <span className="text-sm sm:text-base text-amber-300 font-bold mt-1">
               {totalScore.toLocaleString()}
             </span>
@@ -173,8 +173,8 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
             <div className="flex justify-between items-center py-0.5">
               <span className="text-slate-400">Punti Briscola Catturati (Tu vs Avversario):</span>
               <span className="font-bold text-blue-300">
-                {totalBriscolaPointsPlayer} pt <span className="text-slate-400 font-normal">vs</span>{' '}
-                <span className="text-red-400">{totalBriscolaPointsOpponent} pt</span>
+                {totalBriscolaPointsPlayer} PT <span className="text-slate-400 font-normal">vs</span>{' '}
+                <span className="text-red-400">{totalBriscolaPointsOpponent} PT</span>
               </span>
             </div>
 
@@ -220,7 +220,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
 
         {/* 4. UNLOCKED DECK REWARD BANNER */}
         {newUnlockedDecks && newUnlockedDecks.length > 0 && (
-          <div className="bg-emerald-950/80 border-2 border-emerald-500 p-2.5 rounded-xl pixel-box text-emerald-200 text-xs font-pixel mb-3 flex items-center justify-center gap-2 animate-bounce">
+          <div className="bg-emerald-950/80 border-2 border-emerald-500 p-2.5 rounded-xl pixel-box text-emerald-200 text-xs font-pixel mb-3 flex items-center justify-center gap-2">
             <span>🎁</span>
             <span>NUOVI MAZZI SBLOCCATI NELLA COLLEZIONE!</span>
           </div>

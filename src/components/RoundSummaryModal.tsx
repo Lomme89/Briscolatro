@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { isBossEncounter } from '../game/gameState';
 import {
   BRISCOLA_TARGET_POINTS,
+  getVictoryHudPresentation,
   VICTORY_MODES,
   VictoryCheck,
   victoryHeadline,
@@ -57,6 +58,7 @@ export const RoundSummaryModal: React.FC<RoundSummaryModalProps> = ({
   const isBriscolaMajority = data.playerTrickPoints >= BRISCOLA_TARGET_POINTS;
   const scoreExceeded = data.victory.chipsPassed;
   const modeInfo = VICTORY_MODES[data.victory.mode];
+  const hud = getVictoryHudPresentation(data.victory.mode);
   const headline = victoryHeadline(data.victory, data.playerTrickPoints);
 
   return (
@@ -103,7 +105,7 @@ export const RoundSummaryModal: React.FC<RoundSummaryModalProps> = ({
         </div>
 
         {/* 1. SCORE COMPARISON HERO CARD */}
-        <div className="bg-slate-950/90 rounded-xl p-2.5 border border-slate-800 pixel-box mb-2 space-y-1.5">
+        {hud.showChipsObjective && <div className="bg-slate-950/90 rounded-xl p-2.5 border border-slate-800 pixel-box mb-2 space-y-1.5">
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 text-[9px] font-pixel">
             <span className="text-slate-400">CHIPS × MULT</span>
             <span className={scoreExceeded ? 'text-emerald-400 font-bold' : 'text-red-300 font-bold'}>
@@ -142,7 +144,7 @@ export const RoundSummaryModal: React.FC<RoundSummaryModalProps> = ({
               }}
             />
           </div>
-        </div>
+        </div>}
 
         {/* 2. BRISCOLA TRADITIONAL POINT BREAKDOWN (60/120 PT) */}
         <div className="bg-slate-950/90 rounded-xl p-2.5 border border-slate-800 pixel-box mb-2 space-y-1.5">

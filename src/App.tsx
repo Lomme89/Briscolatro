@@ -464,7 +464,10 @@ export function App() {
   }, []);
 
   const triggerScreenShake = () => {
-    if (!settings.screenShake) return;
+    if (
+      !settings.screenShake ||
+      (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+    ) return;
     setIsShaking(true);
     setTimeout(() => setIsShaking(false), 350);
   };
@@ -1665,6 +1668,12 @@ export function App() {
             playerTrickCard={playerTrickCard}
             opponentTrickCard={opponentTrickCard}
             isPlayerTurn={isPlayerTurn && trickPhase !== 'resolving' && trickPhase !== 'tally' && !isDealing}
+            canPlay={
+              (trickPhase === 'idle' || trickPhase === 'waiting_player_follow') &&
+              isPlayerTurn &&
+              playerTrickCard === null &&
+              !isDealing
+            }
             canDiscard={canDiscardCardNow({
               discardsLeft,
               trickPhase,
@@ -1672,6 +1681,11 @@ export function App() {
               drawPileCount: drawPile.length,
               playerCardAlreadyPlayed: playerTrickCard !== null,
             })}
+            canUseSola={
+              (trickPhase === 'idle' || trickPhase === 'waiting_player_follow') &&
+              isPlayerTurn &&
+              !castingUno
+            }
             isDealing={isDealing}
             visionActive={
               tricksPlayedInRound === 0 &&
@@ -1697,6 +1711,8 @@ export function App() {
             onOpenSettings={() => setShowSettings(true)}
             triggeringJokerId={triggeringJokerId}
             roundPointsTaken={roundPointsTaken}
+            opponentPointsTaken={opponentPointsTaken}
+            tricksPlayedInRound={tricksPlayedInRound}
             totalPointsDeck={120}
           />
         )}
@@ -1737,6 +1753,12 @@ export function App() {
             onComplete={handleTallyComplete}
             targetScore={targetScore}
             currentTotalScore={currentRoundScore}
+            playerBriscolaPoints={
+              roundPointsTaken + (tallyData.playerWon ? tallyData.trickPoints : 0)
+            }
+            opponentBriscolaPoints={
+              opponentPointsTaken + (tallyData.playerWon ? 0 : tallyData.trickPoints)
+            }
           />
         )}
 

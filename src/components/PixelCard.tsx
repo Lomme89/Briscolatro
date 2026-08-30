@@ -351,14 +351,14 @@ export const PixelCard: React.FC<PixelCardProps> = ({
                     textShadow: '0 1px 2px rgba(245,244,232,0.95)',
                   }}
                 >
-                  {info.points}pt
+                  {info.points} PT CARTA
                 </span>
               ) : info.points > 0 ? (
                 <span className={`font-pixel text-[7px] sm:text-[8px] md:text-[9px] px-1 py-0.5 rounded shadow-xs font-bold ${styleDef.pointsBadgeClass}`}>
-                  {info.points}pt
+                  {info.points} PT CARTA
                 </span>
               ) : (
-                <span className="font-pixel text-[7px] sm:text-[8px] text-slate-400 opacity-60">0pt</span>
+                <span className="font-pixel text-[6px] sm:text-[7px] text-slate-400 opacity-60">0 PT CARTA</span>
               )}
             </div>
           ) : <div />}

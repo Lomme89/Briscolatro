@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { PlayingCard, Joker, UnoCard, Suit, BossBlind } from '../types/game';
 import { PixelCard } from './PixelCard';
 import { PixelSuitIcon } from './PixelSuitIcon';
@@ -16,7 +16,8 @@ import { getTableThemeForAnte } from '../data/tableThemes';
 import {
   BRISCOLA_TARGET_POINTS,
   evaluateVictoryCondition,
-  VICTORY_MODES,
+  getTrickHudPresentation,
+  getVictoryHudPresentation,
   VictoryMode,
 } from '../game/victoryModes';
 import { getRegularForAnte } from '../data/opponents';
@@ -39,8 +40,12 @@ interface GameTableProps {
   playerTrickCard: PlayingCard | null;
   opponentTrickCard: PlayingCard | null;
   isPlayerTurn: boolean;
+  /** Exact same play window accepted by App. */
+  canPlay: boolean;
   /** Exact same exchange-discard decision used by App. */
   canDiscard: boolean;
+  /** Exact same Carta Sola window accepted by App. */
+  canUseSola: boolean;
   /** True when the player opened the trick currently on the table. */
   trickLeadIsPlayer: boolean;
   /** True while the opening hand is being dealt, so cards fly in one by one. */
@@ -70,6 +75,8 @@ interface GameTableProps {
   onOpenSettings: () => void;
   triggeringJokerId: string | null;
   roundPointsTaken: number;
+  opponentPointsTaken: number;
+  tricksPlayedInRound: number;
   totalPointsDeck: number;
 }
 
@@ -102,7 +109,9 @@ export const GameTable: React.FC<GameTableProps> = ({
   playerTrickCard,
   opponentTrickCard,
   isPlayerTurn,
+  canPlay,
   canDiscard,
+  canUseSola,
   trickLeadIsPlayer,
   isDealing,
   visionActive,
@@ -125,7 +134,10 @@ export const GameTable: React.FC<GameTableProps> = ({
   onOpenSettings,
   triggeringJokerId,
   roundPointsTaken,
+  opponentPointsTaken,
+  tricksPlayedInRound,
 }) => {
+  const reduceMotion = useReducedMotion();
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [activeUnoToApply, setActiveUnoToApply] = useState<UnoCard | null>(null);
   // A UNO card is consumed on use, so it asks before firing.
@@ -174,6 +186,8 @@ export const GameTable: React.FC<GameTableProps> = ({
   };
 
   const handleCardClick = (card: PlayingCard) => {
+    if (activeUnoToApply && !canUseSola) return;
+    if (!activeUnoToApply && !canPlay) return;
     sound.playCardSelect();
     if (activeUnoToApply) {
       // Apply UNO action card to this card!
@@ -189,7 +203,7 @@ export const GameTable: React.FC<GameTableProps> = ({
 
     if (selectedCardId === card.id) {
       // Double click or tap when already selected -> play it directly!
-      if (isPlayerTurn) {
+      if (canPlay) {
         onPlayCard(card);
         setSelectedCardId(null);
       }
@@ -199,7 +213,7 @@ export const GameTable: React.FC<GameTableProps> = ({
   };
 
   const handlePlaySelected = () => {
-    if (!selectedCard || !isPlayerTurn) return;
+    if (!selectedCard || !canPlay || !isCardPlayable(selectedCard)) return;
     onPlayCard(selectedCard);
     setSelectedCardId(null);
   };
@@ -211,6 +225,7 @@ export const GameTable: React.FC<GameTableProps> = ({
   };
 
   const handleUnoCardClick = (unoCard: UnoCard) => {
+    if (!canUseSola) return;
     // Tapping the one already armed for targeting disarms it.
     if (activeUnoToApply?.id === unoCard.id) {
       setActiveUnoToApply(null);
@@ -236,7 +251,8 @@ export const GameTable: React.FC<GameTableProps> = ({
   // What this table actually needs, asked of the one function that decides it.
   // The HUD used to test `score >= target` on its own, which reads as a lie the
   // moment the blind is not won that way.
-  const modeInfo = VICTORY_MODES[victoryMode];
+  const hud = getVictoryHudPresentation(victoryMode);
+  const trickHud = getTrickHudPresentation(tricksPlayedInRound);
   const victory = evaluateVictoryCondition({
     mode: victoryMode,
     score: currentRoundScore,
@@ -341,7 +357,7 @@ export const GameTable: React.FC<GameTableProps> = ({
   // Particle burst condition: Player plays or wins with Asso (1, 11pt) or Tre (3, 10pt)
   const isPlayerCarico = playerTrickCard && (playerTrickCard.rank === 1 || playerTrickCard.rank === 3);
   const showPlayerCaricoParticles = Boolean(
-    isPlayerCarico && (!opponentTrickCard || playerWonTrick)
+    !reduceMotion && isPlayerCarico && (!opponentTrickCard || playerWonTrick)
   );
 
   // The particles were silent: a Carico landing is the loudest thing that
@@ -353,7 +369,7 @@ export const GameTable: React.FC<GameTableProps> = ({
   // If opponent played an Ace or Three and player captures it!
   const isOpponentCarico = opponentTrickCard && (opponentTrickCard.rank === 1 || opponentTrickCard.rank === 3);
   const showOpponentCaricoCaptured = Boolean(
-    isOpponentCarico && playerTrickCard && playerWonTrick
+    !reduceMotion && isOpponentCarico && playerTrickCard && playerWonTrick
   );
 
   return (
@@ -397,31 +413,15 @@ export const GameTable: React.FC<GameTableProps> = ({
               <span>{discardsLeft}</span>
             </div>
 
-            {/* Briscola points taken. It used to flank the table, where on a
-                narrow phone it hung off the right edge of the screen. */}
             <div
-              className={`bg-slate-950 border px-1.5 sm:px-2 py-0.5 rounded font-pixel text-[8px] sm:text-[9.5px] font-bold flex items-center gap-0.5 tabular-nums ${
-                modeInfo.needsBriscola
-                  ? victory.briscolaPassed
-                    ? 'border-emerald-400 text-emerald-300'
-                    : 'border-emerald-500/50 text-emerald-300'
-                  : 'border-amber-500/50 text-amber-300'
+              className={`border px-1.5 sm:px-2 py-0.5 rounded font-pixel text-[8px] sm:text-[9.5px] font-bold tabular-nums whitespace-nowrap ${
+                trickHud.isFinalThree
+                  ? 'bg-rose-950 border-rose-400 text-rose-200 shadow-sm shadow-rose-500/30'
+                  : 'bg-slate-950 border-slate-600 text-slate-300'
               }`}
-              title={
-                modeInfo.needsBriscola
-                  ? `Punti Briscola: ${roundPointsTaken} su 120, ne servono ${BRISCOLA_TARGET_POINTS}`
-                  : 'Punti Briscola presi su 120'
-              }
+              title={trickHud.isFinalThree ? 'Ultime tre prese' : 'Presa corrente'}
             >
-              <span>🃏</span>
-              {modeInfo.needsBriscola ? (
-                <span>
-                  {victory.briscolaPassed ? '✓ ' : ''}
-                  {roundPointsTaken}/{BRISCOLA_TARGET_POINTS}
-                </span>
-              ) : (
-                <span>{roundPointsTaken}</span>
-              )}
+              PRESA {trickHud.current} / {trickHud.total}
             </div>
 
             {/* Extra Menu buttons */}
@@ -452,14 +452,14 @@ export const GameTable: React.FC<GameTableProps> = ({
           </div>
         </div>
 
-        {/* Score and target on their own row: on a narrow phone they cannot share
-            a line with the money, the discards and the menu. */}
+        {/* Each mode gives visual priority to its actual win condition. */}
+        {hud.showChipsObjective && (
         <div className="flex items-center gap-2 mt-1 min-w-0">
           <div className="flex items-baseline gap-1 shrink-0">
-            <span className="font-pixel text-[7.5px] sm:text-[9px] text-slate-400 uppercase">Punti</span>
+            <span className="font-pixel text-[7.5px] sm:text-[9px] text-blue-300 uppercase">Chips</span>
             <motion.span
               key={currentRoundScore}
-              initial={{ scale: 1.3, color: '#fbbf24' }}
+              initial={reduceMotion ? false : { scale: 1.3, color: '#fbbf24' }}
               animate={{ scale: 1, color: reachedTarget ? '#34d399' : '#f8fafc' }}
               transition={{ type: 'spring', damping: 12, stiffness: 320 }}
               className="font-pixel text-xs sm:text-lg font-bold leading-none tabular-nums"
@@ -483,12 +483,31 @@ export const GameTable: React.FC<GameTableProps> = ({
               reachedTarget ? 'text-emerald-300' : 'text-slate-400'
             }`}
           >
-            {modeInfo.needsChips
-              ? reachedTarget
-                ? '✓ FATTO'
-                : `🎯 ${targetScore.toLocaleString('it-IT')}`
-              : 'PUNTEGGIO'}
+            {reachedTarget ? '✓ TARGET RAGGIUNTO' : `🎯 ${targetScore.toLocaleString('it-IT')}`}
           </span>
+        </div>
+        )}
+
+        {reachedTarget && hud.showChipsObjective && (
+          <div className="font-retro text-[9px] text-emerald-200 mt-0.5 text-center">
+            Continua: Punti Briscola · economia · crescita build
+          </div>
+        )}
+
+        <div className={`mt-1 flex items-center justify-center gap-2 rounded-md border px-2 py-1 font-pixel tabular-nums ${
+          hud.primary === 'briscola'
+            ? 'bg-emerald-950/70 border-emerald-500/70 text-[10px] sm:text-xs'
+            : 'bg-slate-950/70 border-slate-700 text-[8px] sm:text-[9.5px]'
+        }`}>
+          <span className="text-slate-400">BRISCOLA</span>
+          <span className="text-blue-200">TU <strong>{roundPointsTaken}</strong></span>
+          <span className="text-slate-500">—</span>
+          <span className="text-red-200"><strong>{opponentPointsTaken}</strong> AVVERSARIO</span>
+          {hud.showBriscolaObjective && (
+            <span className={victory.briscolaPassed ? 'text-emerald-300' : 'text-emerald-400/80'}>
+              {hud.connector ? `${hud.connector} ` : ''}{victory.briscolaPassed ? '✓ ' : ''}/ {BRISCOLA_TARGET_POINTS}
+            </span>
+          )}
         </div>
 
         {/* The build, always on screen. It used to live behind a toggle, which
@@ -525,7 +544,7 @@ export const GameTable: React.FC<GameTableProps> = ({
                     key={`${unoCard.id}-${i}`}
                     unoCard={unoCard}
                     onUse={() => handleUnoCardClick(unoCard)}
-                    canUse={true}
+                    canUse={canUseSola}
                     isSelected={activeUnoToApply?.id === unoCard.id}
                     size="sm"
                   />
@@ -598,7 +617,7 @@ export const GameTable: React.FC<GameTableProps> = ({
             className="my-1 bg-red-950/95 border-2 border-red-400 px-2.5 py-1 rounded-xl pixel-box flex items-center justify-between shadow-xl z-20 shrink-0"
           >
             <div className="flex items-center gap-1.5">
-              <span className="text-sm animate-bounce">🃏</span>
+              <span className="text-sm">🃏</span>
               <span className="text-[8.5px] sm:text-[9.5px] font-pixel text-red-200">
                 <strong>{activeUnoToApply.name} ({activeUnoToApply.symbol}):</strong> Tocca una carta nella tua mano per applicare!
               </span>
@@ -657,7 +676,7 @@ export const GameTable: React.FC<GameTableProps> = ({
                   {currentBoss ? currentBoss.name : regular.name}
                 </span>
                 {currentBoss && (
-                  <span className="text-[6.5px] sm:text-[7.5px] bg-red-900 border border-red-500 text-red-200 px-1 py-0.5 rounded font-pixel uppercase font-bold animate-pulse">
+                  <span className={`text-[6.5px] sm:text-[7.5px] bg-red-900 border border-red-500 text-red-200 px-1 py-0.5 rounded font-pixel uppercase font-bold ${reduceMotion ? '' : 'animate-pulse'}`}>
                     BOSS
                   </span>
                 )}
@@ -820,7 +839,7 @@ export const GameTable: React.FC<GameTableProps> = ({
                   <div className="relative">
                     {/* Landing Impact Shockwave Ring */}
                     <motion.div
-                      initial={{ scale: 0.3, opacity: 0.9 }}
+                      initial={reduceMotion ? { opacity: 0 } : { scale: 0.3, opacity: 0.9 }}
                       animate={{ scale: 1.5, opacity: 0 }}
                       transition={{ duration: 0.4, ease: 'easeOut' }}
                       className="absolute inset-0 rounded-xl bg-amber-400/30 border border-amber-300 pointer-events-none -z-10"
@@ -828,7 +847,7 @@ export const GameTable: React.FC<GameTableProps> = ({
                     {/* Opponent Slam Trajectory Motion */}
                     <motion.div
                       key={opponentTrickCard.id}
-                      initial={{ y: -80, scale: 0.5, rotate: 18, opacity: 0 }}
+                      initial={reduceMotion ? { opacity: 0 } : { y: -80, scale: 0.5, rotate: 18, opacity: 0 }}
                       animate={{ 
                         y: 0,
                         scale: 1,
@@ -875,8 +894,8 @@ export const GameTable: React.FC<GameTableProps> = ({
             {/* VS Emblem & Energy Clash Indicator */}
             <div className="flex flex-col items-center px-0.5 relative shrink-0">
               <motion.div
-                animate={{ scale: opponentTrickCard && playerTrickCard ? [1, 1.25, 1] : 1 }}
-                transition={{ repeat: Infinity, duration: 1.2 }}
+                animate={{ scale: !reduceMotion && opponentTrickCard && playerTrickCard ? [1, 1.25, 1] : 1 }}
+                transition={reduceMotion ? undefined : { repeat: Infinity, duration: 1.2 }}
                 className="text-xs sm:text-sm font-pixel font-black text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)]"
               >
                 VS
@@ -891,7 +910,7 @@ export const GameTable: React.FC<GameTableProps> = ({
                   <div className="relative">
                     {/* Landing Impact Shockwave Ring */}
                     <motion.div
-                      initial={{ scale: 0.3, opacity: 0.9 }}
+                      initial={reduceMotion ? { opacity: 0 } : { scale: 0.3, opacity: 0.9 }}
                       animate={{ scale: 1.5, opacity: 0 }}
                       transition={{ duration: 0.4, ease: 'easeOut' }}
                       className={`absolute inset-0 rounded-xl border pointer-events-none -z-10 ${
@@ -903,7 +922,7 @@ export const GameTable: React.FC<GameTableProps> = ({
                     {/* Player Slam Trajectory Motion */}
                     <motion.div
                       key={playerTrickCard.id}
-                      initial={{ y: 80, scale: 0.5, rotate: -18, opacity: 0 }}
+                      initial={reduceMotion ? { opacity: 0 } : { y: 80, scale: 0.5, rotate: -18, opacity: 0 }}
                       animate={{ 
                         y: 0,
                         scale: 1,
@@ -968,7 +987,7 @@ export const GameTable: React.FC<GameTableProps> = ({
                 }`}
               >
                 <span>{followPreview.wins ? '✔ PRENDI' : '✘ PERDI'}</span>
-                <span className="text-slate-300">{followPreview.points} pt</span>
+                <span className="text-slate-300">{followPreview.points} PT BRISCOLA</span>
                 {followPreview.wins && followPreview.baseMult > 1 && (
                   <span className="text-red-300">MULT ×{followPreview.baseMult}</span>
                 )}
@@ -1016,8 +1035,8 @@ export const GameTable: React.FC<GameTableProps> = ({
                     initial={{ x: -150, y: -110, opacity: 0, scale: 0.45, rotate: -40 }}
                     animate={{
                       x: 0,
-                      y: isSelected ? -20 : [fanY, fanY - 4, fanY],
-                      rotate: isSelected ? 0 : [fanRotate, fanRotate + (offset < 0 ? -0.8 : offset > 0 ? 0.8 : 0), fanRotate],
+                      y: isSelected ? -20 : reduceMotion ? fanY : [fanY, fanY - 4, fanY],
+                      rotate: isSelected ? 0 : reduceMotion ? fanRotate : [fanRotate, fanRotate + (offset < 0 ? -0.8 : offset > 0 ? 0.8 : 0), fanRotate],
                       scale: isSelected ? 1.08 : 1,
                       opacity: 1,
                       zIndex: isSelected ? 30 : 10 + i,
@@ -1025,13 +1044,13 @@ export const GameTable: React.FC<GameTableProps> = ({
                     transition={{
                       x: { type: 'spring', damping: 18, stiffness: 260, delay: dealDelay },
                       y: {
-                        repeat: isSelected ? 0 : Infinity,
+                        repeat: isSelected || reduceMotion ? 0 : Infinity,
                         duration: 2.8 + i * 0.4,
                         ease: 'easeInOut',
                         delay: dealDelay,
                       },
                       rotate: {
-                        repeat: isSelected ? 0 : Infinity,
+                        repeat: isSelected || reduceMotion ? 0 : Infinity,
                         duration: 3.4 + i * 0.4,
                         ease: 'easeInOut',
                         delay: dealDelay,
@@ -1059,7 +1078,7 @@ export const GameTable: React.FC<GameTableProps> = ({
                     <PixelCard
                       card={card}
                       selected={isSelected}
-                      disabled={!isCardPlayable(card)}
+                      disabled={!canPlay || !isCardPlayable(card)}
                       onClick={() => handleCardClick(card)}
                       isBriscola={card.suit === briscolaSuit}
                       size={handCardSize}
@@ -1102,9 +1121,9 @@ export const GameTable: React.FC<GameTableProps> = ({
             <button
               type="button"
               onClick={handlePlaySelected}
-              disabled={!selectedCard || !isPlayerTurn}
+              disabled={!selectedCard || !canPlay || !isCardPlayable(selectedCard)}
               className={`flex-1 font-pixel text-[10px] sm:text-xs py-1.5 sm:py-2 rounded-xl pixel-box font-bold flex items-center justify-center gap-1 shadow-lg cursor-pointer transition-all active:scale-[0.98] min-h-[36px] sm:min-h-[40px] ${
-                selectedCard && isPlayerTurn
+                selectedCard && canPlay && isCardPlayable(selectedCard)
                   ? 'bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 text-slate-950 shadow-amber-500/20'
                   : 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-40'
               }`}
