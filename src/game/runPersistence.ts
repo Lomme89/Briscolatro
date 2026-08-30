@@ -13,6 +13,8 @@ import { ALL_BOSS_BLINDS } from '../data/bosses';
 import { ALL_UNO_CARDS, ALL_VOUCHERS } from '../data/unoCards';
 import { checkRunDeckIntegrity } from './gameState';
 import { VICTORY_MODES, VictoryMode } from './victoryModes';
+import { RunPhase } from './endless';
+import { restoreEndlessBoss } from './endlessBosses';
 import { isRunRngState, RunRngState } from './runRng';
 
 /**
@@ -66,6 +68,13 @@ export interface EncounterSnapshotV1 {
   /** False means the opponent opens the next trick; the table is clear either way. */
   isPlayerTurn: boolean;
   bossId: string | null;
+  /**
+   * An Endless Boss is a base Boss plus modifiers. Only the ids are stored: the
+   * catalogue would not recognise a synthetic composed Boss, and rebuilding it
+   * on restore is what keeps the save honest about where its rules came from.
+   */
+  bossEndlessTierId?: string | null;
+  bossEndlessModifierIds?: string[];
   bossDebuffNeutralized: boolean;
   bossShieldTricks: number;
   /** The suit the player last won a trick with, for Il Maestro dei Bastoni. */
@@ -80,6 +89,12 @@ export interface RunSnapshotV1 {
   phase: RunSnapshotPhase;
   deckId: string;
   victoryMode: VictoryMode;
+  /**
+   * Campaign or Endless. Absent in pre-Endless saves, which are all campaign
+   * runs by definition: read as 'campaign' rather than inferred from the Ante,
+   * so a run that stopped at Ante 8 is never mistaken for one that went on.
+   */
+  runPhase?: RunPhase;
   ante: number;
   round: number;
   money: number;
@@ -113,6 +128,7 @@ export interface RunSnapshotInput {
   phase: RunSnapshotPhase;
   deck: DeckDefinition;
   victoryMode: VictoryMode;
+  runPhase?: RunPhase;
   ante: number;
   round: number;
   money: number;
@@ -154,6 +170,8 @@ function serializeEncounter(input: EncounterSnapshotInput): EncounterSnapshotV1 
     discardsLeft: input.discardsLeft,
     isPlayerTurn: input.isPlayerTurn,
     bossId: input.boss ? input.boss.id : null,
+    bossEndlessTierId: input.boss?.endless?.tierId ?? null,
+    bossEndlessModifierIds: input.boss?.endless?.modifierIds ?? [],
     bossDebuffNeutralized: input.bossDebuffNeutralized,
     bossShieldTricks: input.bossShieldTricks,
     lastWinningSuit: input.lastWinningSuit,
@@ -168,6 +186,7 @@ export function serializeRun(input: RunSnapshotInput): RunSnapshotV1 {
     phase: input.phase,
     deckId: input.deck.id,
     victoryMode: input.victoryMode,
+    runPhase: input.runPhase ?? 'campaign',
     ante: input.ante,
     round: input.round,
     money: input.money,
@@ -254,6 +273,13 @@ export function validateRunSnapshot(value: unknown): RunSnapshotValidation {
   }
   if (typeof value.victoryMode !== 'string' || !(value.victoryMode in VICTORY_MODES)) {
     return fail(`modalita di vittoria non valida: ${String(value.victoryMode)}`);
+  }
+  if (
+    value.runPhase !== undefined &&
+    value.runPhase !== 'campaign' &&
+    value.runPhase !== 'endless'
+  ) {
+    return fail(`fase della run non valida: ${String(value.runPhase)}`);
   }
   if (!isRunRngState(value.rng)) return fail('stato RNG mancante o non valido');
 
@@ -421,9 +447,15 @@ export function restoreRun(raw: string | null | undefined): RestoredRun | null {
   if (!deck) return null;
 
   const encounter = snapshot.encounter;
-  const boss = encounter?.bossId
+  const baseBoss = encounter?.bossId
     ? ALL_BOSS_BLINDS.find((entry) => entry.id === encounter.bossId) ?? null
     : null;
+  // An Endless Boss comes back as the same composition it was rolled as: the
+  // modifiers are rebuilt from their ids, never re-rolled.
+  const boss =
+    baseBoss && encounter?.bossEndlessTierId
+      ? restoreEndlessBoss(baseBoss, encounter.bossEndlessModifierIds ?? [], encounter.bossEndlessTierId)
+      : baseBoss;
 
   const byId = new Map(snapshot.runDeck.map((card) => [card.id, card] as const));
   const playedCards = (encounter?.playedCardIds ?? [])

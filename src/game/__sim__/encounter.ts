@@ -12,6 +12,7 @@ import { chooseOpponentFollow, chooseOpponentLead } from '../ai';
 import { AI_PROFILES } from '../aiProfiles';
 import { BOSS_RULES } from '../bossRules';
 import { calculateTrickScore } from '../scoring';
+import { getActiveBossRules } from '../endlessBosses';
 import { JOKER_EFFECTS } from '../jokerEffects';
 import { resolveSpecialForTrick, visiblePlayerCards } from '../specialCards';
 import { executeUnoCard } from '../unoEffects';
@@ -228,7 +229,7 @@ export function simulateEncounter(config: EncounterConfig): EncounterReport {
     if (!playerLeads) {
       oppCard = chooseOpponentLead(live.oppHand, {
         briscolaSuit: live.briscolaSuit,
-        bossDebuff: boss?.debuffType,
+        bossDebuff: getActiveBossRules(boss),
         isReverse: live.isReverseActive,
         knownPlayerCards: visiblePlayerCards(live.hand),
         profile: HOUSE,
@@ -266,7 +267,7 @@ export function simulateEncounter(config: EncounterConfig): EncounterReport {
     if (playerLeads) {
       oppCard = chooseOpponentFollow(live.oppHand, playerCard, {
         briscolaSuit: live.briscolaSuit,
-        bossDebuff: boss?.debuffType,
+        bossDebuff: getActiveBossRules(boss),
         isReverse: live.isReverseActive,
         knownPlayerCards: visiblePlayerCards(live.hand),
         profile: HOUSE,
@@ -296,7 +297,7 @@ export function simulateEncounter(config: EncounterConfig): EncounterReport {
       resolvedLeadIsPlayer ? oppCard! : playerCard,
       live.briscolaSuit,
       resolvedLeadIsPlayer,
-      boss?.debuffType,
+      getActiveBossRules(boss),
       live.isReverseActive
     );
 

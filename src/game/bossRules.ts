@@ -1,5 +1,18 @@
 import { BossBlind, Suit, PlayingCard } from '../types/game';
+import { getActiveBossRules, getBriscolaRotationPeriod } from './endlessBosses';
 import { pickRun } from './runRng';
+
+/**
+ * Does this Boss enforce this rule right now?
+ *
+ * A campaign Boss has exactly one; an Endless Boss has its own plus whatever
+ * modifiers were rolled on top. Every check below goes through here, so a
+ * composed Boss enforces all of its rules and nothing has to know which of them
+ * came from where.
+ */
+function bossEnforces(boss: BossBlind | null, rule: string): boolean {
+  return getActiveBossRules(boss).includes(rule as never);
+}
 
 export interface BossRuleContext {
   boss: BossBlind | null;
@@ -12,6 +25,11 @@ export interface BossRuleContext {
 }
 
 export const BOSS_RULES = {
+  /** Every rule this Boss enforces, base plus Endless modifiers. */
+  getActiveRules(boss: BossBlind | null): string[] {
+    return getActiveBossRules(boss);
+  },
+
   /**
    * The suit the player is obliged to open with, or null when they are free.
    *
@@ -28,7 +46,7 @@ export const BOSS_RULES = {
     lastWinningSuit: Suit | null,
     hand: PlayingCard[]
   ): Suit | null {
-    if (!boss || boss.debuffType !== 'forced_suit_chain') return null;
+    if (!bossEnforces(boss, 'forced_suit_chain')) return null;
     if (!lastWinningSuit) return null;
     return hand.some((card) => card.suit === lastWinningSuit) ? lastWinningSuit : null;
   },
@@ -48,7 +66,7 @@ export const BOSS_RULES = {
   ): { allowed: boolean; reason?: string } {
     if (!boss) return { allowed: true };
 
-    if (boss.debuffType === 'no_denari_first' && card.suit === 'denari') {
+    if (bossEnforces(boss, 'no_denari_first') && card.suit === 'denari') {
       const hasOtherSuit = hand.some((c) => c.suit !== 'denari');
       if (!hasOtherSuit) return { allowed: true };
       return {
@@ -57,7 +75,7 @@ export const BOSS_RULES = {
       };
     }
 
-    if (boss.debuffType === 'forced_suit_chain') {
+    if (bossEnforces(boss, 'forced_suit_chain')) {
       const forced = BOSS_RULES.getForcedLeadSuit(boss, lastWinningSuit, hand);
       if (forced && card.suit !== forced) {
         return {
@@ -74,8 +92,10 @@ export const BOSS_RULES = {
    * Returns whether rotating briscola triggers this trick (every 3 tricks).
    */
   shouldRotateBriscola(trickCount: number, boss: BossBlind | null): boolean {
-    if (!boss || boss.debuffType !== 'rotating_briscola') return false;
-    return trickCount > 0 && trickCount % 3 === 0;
+    if (!bossEnforces(boss, 'rotating_briscola')) return false;
+    // Mescolo Stretto tightens the period; everything else keeps the printed 3.
+    const period = getBriscolaRotationPeriod(boss);
+    return trickCount > 0 && trickCount % period === 0;
   },
 
   /**
@@ -91,7 +111,7 @@ export const BOSS_RULES = {
    * Checks if opponent played card should remain face-down until player plays.
    */
   isOpponentCardHidden(boss: BossBlind | null, playerHasPlayed: boolean): boolean {
-    if (!boss || boss.debuffType !== 'hidden_opponent_card') return false;
+    if (!bossEnforces(boss, 'hidden_opponent_card')) return false;
     return !playerHasPlayed;
   },
 
@@ -139,7 +159,7 @@ export const BOSS_RULES = {
     trickCount: number,
     jokersCount: number
   ): number | null {
-    if (!boss || boss.debuffType !== 'rotating_joker_silence' || jokersCount === 0) return null;
+    if (!bossEnforces(boss, 'rotating_joker_silence') || jokersCount === 0) return null;
     return trickCount % jokersCount;
   },
 };

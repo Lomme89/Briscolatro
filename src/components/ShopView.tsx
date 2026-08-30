@@ -22,6 +22,7 @@ import {
   getNextJokerExpansion,
   isTavoloAllargatoUseful,
   SlotExpansion,
+  SlotRules,
 } from '../game/slotExpansions';
 import { createRunRng, pickRun, shuffleRun } from '../game/runRng';
 import { ShopSnapshotV1 } from '../game/runPersistence';
@@ -42,6 +43,8 @@ interface ShopViewProps {
   onBuyJokerSlot: () => boolean;
   /** ALLARGA TASCA. Returns false when it could not be paid for. */
   onBuyConsumableSlot: () => boolean;
+  /** The caps this Ante plays under: campaign 7/4, then the Endless tier's. */
+  slotRules: SlotRules;
   /** Applies the upgrade to the card of the same suit and rank in the deck. */
   onUpgradeCard: (upgraded: PlayingCard) => void;
   runDeck: PlayingCard[];
@@ -68,6 +71,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
   onSellUnoCard,
   onBuyJokerSlot,
   onBuyConsumableSlot,
+  slotRules,
   onUpgradeCard,
   runDeck,
   onNextRound,
@@ -83,8 +87,8 @@ export const ShopView: React.FC<ShopViewProps> = ({
   // The two permanent services. Same helpers the till uses, so the price on the
   // button is the price that gets charged - there is no second formula here.
   const slotContext = { hasTavoloAllargato: hasTavolo, hasHouseDiscount: hasSconto };
-  const jokerSlotOffer = getNextJokerExpansion(maxJokers, slotContext);
-  const consumableSlotOffer = getNextConsumableExpansion(maxConsumables, slotContext);
+  const jokerSlotOffer = getNextJokerExpansion(maxJokers, slotContext, slotRules);
+  const consumableSlotOffer = getNextConsumableExpansion(maxConsumables, slotContext, slotRules);
 
   // Three on the shelf, not two.
   //
@@ -129,7 +133,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
     // Tavolo Allargato at the jolly cap has no chair to give and no later
     // expansion to discount: an empty box is not an offer.
     const useful = (voucher: Voucher) =>
-      voucher.id !== 'v_tavolo' || isTavoloAllargatoUseful(maxJokers);
+      voucher.id !== 'v_tavolo' || isTavoloAllargatoUseful(maxJokers, slotRules);
     return createRunRng(shopSeed + 4 * 7919)
       .shuffle(ALL_VOUCHERS.filter((v) => !owned.has(v.id) && useful(v)))
       .slice(0, 2);
@@ -472,7 +476,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
             label="AMPLIA TAVOLO"
             microcopy="+1 SLOT JOLLY"
             currentSlots={maxJokers}
-            cap={getJokerSlotCap()}
+            cap={getJokerSlotCap(slotRules)}
             offer={jokerSlotOffer}
             money={money}
             accent="amber"
@@ -483,7 +487,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
             label="ALLARGA TASCA"
             microcopy="+1 SLOT CARTE SOLA"
             currentSlots={maxConsumables}
-            cap={getConsumableSlotCap()}
+            cap={getConsumableSlotCap(slotRules)}
             offer={consumableSlotOffer}
             money={money}
             accent="red"

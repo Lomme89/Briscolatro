@@ -1,6 +1,7 @@
 import { PlayingCard, Suit, CardRank, DeckDefinition, BossBlind, Voucher, Joker } from '../types/game';
 import { createStandardDeck, shuffleDeck } from './briscola';
 import { randomRun } from './runRng';
+import { CAMPAIGN_FINAL_ANTE, getEndlessTargetMultiplier } from './endless';
 import {
   DEFAULT_VICTORY_MODE,
   evaluateVictoryCondition,
@@ -138,9 +139,10 @@ export function getBlindTargetScore(
   options: { bossMultiplier?: number; deckMultiplier?: number } = {}
 ): number {
   const capped = Math.min(ante, ANTE_BASE_TARGETS.length);
-  let base = ANTE_BASE_TARGETS[capped - 1];
-  // Endless antes beyond the table keep climbing at the final ratio.
-  for (let extra = ANTE_BASE_TARGETS.length; extra < ante; extra++) base *= 1.7;
+  // Antes 1-8 read straight off the measured table and are untouched. Past the
+  // table the curve is Endless's, and it is continuous here by construction:
+  // getEndlessTargetMultiplier(8) is exactly 1.
+  const base = ANTE_BASE_TARGETS[capped - 1] * getEndlessTargetMultiplier(ante);
 
   const blind = ENCOUNTER_TARGET_MULTIPLIERS[encounterFor(round)];
   const boss = options.bossMultiplier ?? 1;
@@ -533,6 +535,10 @@ export function calculateRoundOutcome(
     totalReward,
     newHighScore,
     newUnlockedDecks,
-    isAnte8Victory: won && snapshot.ante >= 8 && isBossEncounter(snapshot.round),
+    // Exactly Ante 8, not "8 or later": in Endless every Boss is past 8, and
+    // the tournament is won once. The campaign behaviour is unchanged, because
+    // the campaign never reached Ante 9.
+    isAnte8Victory:
+      won && snapshot.ante === CAMPAIGN_FINAL_ANTE && isBossEncounter(snapshot.round),
   };
 }

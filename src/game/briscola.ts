@@ -1,6 +1,20 @@
 import { PlayingCard, Suit, CardRank, Edition, Seal, Enhancement, CardSpecial } from '../types/game';
 import { randomRun, shuffleRun } from './runRng';
 
+/**
+ * The Boss rules in force, as one rule or as several.
+ *
+ * Endless composes Bosses out of more than one rule, so every entry point that
+ * used to take a single debuff string takes a list too. A bare string keeps
+ * working exactly as it did - which is what the whole campaign still passes.
+ */
+export type BossDebuffInput = string | readonly string[] | undefined;
+
+export function hasBossRule(debuff: BossDebuffInput, rule: string): boolean {
+  if (!debuff) return false;
+  return typeof debuff === 'string' ? debuff === rule : debuff.includes(rule);
+}
+
 export const SUITS: { id: Suit; name: string; symbol: string; color: string; bgColor: string }[] = [
   { id: 'denari', name: 'Denari', symbol: '🪙', color: '#fbbf24', bgColor: '#78350f' },
   { id: 'coppe', name: 'Coppe', symbol: '🏆', color: '#f87171', bgColor: '#7f1d1d' },
@@ -104,13 +118,13 @@ function effectiveSuit(
   card: PlayingCard,
   briscolaSuit: Suit,
   belongsToOpponent: boolean,
-  bossDebuff?: string
+  bossDebuff?: BossDebuffInput
 ): Suit {
   // Wild is deliberately interpreted as trump in the current roguelite rules.
   if (card.enhancement === 'wild') return briscolaSuit;
 
   // This boss rule is asymmetric by design: opponent Spade count as trump.
-  if (belongsToOpponent && bossDebuff === 'spades_are_briscola' && card.suit === 'spade') {
+  if (belongsToOpponent && hasBossRule(bossDebuff, 'spades_are_briscola') && card.suit === 'spade') {
     return briscolaSuit;
   }
   return card.suit;
@@ -155,7 +169,7 @@ export function resolveTrick(
   followCard: PlayingCard,
   briscolaSuit: Suit,
   leadIsPlayer: boolean,
-  bossDebuff?: string,
+  bossDebuff?: BossDebuffInput,
   isReverse = false
 ): TrickClashResult {
   const leadBelongsToOpponent = !leadIsPlayer;
@@ -164,7 +178,9 @@ export function resolveTrick(
   // Il Conte promotes only an opponent Spade crossing another suit. Spade vs
   // Spade is still an ordinary same-suit duel, so rank hierarchy must decide.
   const effectiveBossDebuff =
-    bossDebuff === 'spades_are_briscola' && leadCard.suit === 'spade' && followCard.suit === 'spade'
+    hasBossRule(bossDebuff, 'spades_are_briscola') &&
+    leadCard.suit === 'spade' &&
+    followCard.suit === 'spade'
       ? undefined
       : bossDebuff;
 
@@ -197,7 +213,7 @@ export function resolveTrick(
 
   const rawPoints = playerCard.points + opponentCard.points;
   let points = rawPoints;
-  if (bossDebuff === 'half_carichi') {
+  if (hasBossRule(bossDebuff, 'half_carichi')) {
     const adjusted = (value: number) => value >= 10 ? Math.floor(value / 2) : value;
     points = adjusted(playerCard.points) + adjusted(opponentCard.points);
   }

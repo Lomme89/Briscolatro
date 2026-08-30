@@ -1,12 +1,12 @@
 import { CardRank, PlayingCard, Suit } from '../types/game';
-import { resolveTrick } from './briscola';
+import { resolveTrick, BossDebuffInput } from './briscola';
 import { NEUTRAL_PROFILE, OpponentAiProfile } from './aiProfiles';
 import { giftValue, PlayerThreat } from './opponentThreat';
 import { randomRun } from './runRng';
 
 export interface OpponentAiContext {
   briscolaSuit: Suit;
-  bossDebuff?: string;
+  bossDebuff?: BossDebuffInput;
   isReverse?: boolean;
   /**
    * The player cards the opponent is allowed to know about: Segnata cards, and

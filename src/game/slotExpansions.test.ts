@@ -181,8 +181,14 @@ describe('i cap sono un parametro, non una costante sparsa', () => {
     const endlessish = { jokerCap: 9, consumableCap: 6 };
     expect(getJokerSlotCap(endlessish)).toBe(9);
     expect(getConsumableSlotCap(endlessish)).toBe(6);
-    // La scala non ha ancora pioli oltre il cap campagna: nessun prezzo, nessuna offerta.
-    expect(getNextJokerExpansion(7, PLAIN, endlessish)).toBeNull();
+    // Alzato il cap, la scala Endless apre lo scalino successivo.
+    expect(getNextJokerExpansion(7, PLAIN, endlessish)).toMatchObject({
+      fromSlots: 7,
+      toSlots: 8,
+      cost: 40,
+    });
     expect(isTavoloAllargatoUseful(7, endlessish)).toBe(true);
+    // Oltre l'ultimo piolo definito non c'e' prezzo, quindi non c'e' offerta.
+    expect(getNextJokerExpansion(10, PLAIN, { jokerCap: 20, consumableCap: 4 })).toBeNull();
   });
 });

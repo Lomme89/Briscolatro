@@ -13,6 +13,7 @@ import { UnoConfirmModal } from './UnoConfirmModal';
 import { sound } from '../services/soundEngine';
 import { SPECIAL_INFO } from '../game/specialCards';
 import { getTableThemeForAnte } from '../data/tableThemes';
+import { getEndlessTier } from '../game/endless';
 import {
   BRISCOLA_TARGET_POINTS,
   evaluateVictoryCondition,
@@ -350,6 +351,8 @@ export const GameTable: React.FC<GameTableProps> = ({
   })();
 
   const tableTheme = getTableThemeForAnte(ante);
+  // null through the whole campaign: the HUD only grows the extra line past Ante 8.
+  const endlessTier = getEndlessTier(ante);
   // Who is sitting opposite when it is not the boss of the ante: every venue
   // has its own regular, so the name and the face have to follow the ante.
   const regular = getRegularForAnte(ante);
@@ -379,10 +382,25 @@ export const GameTable: React.FC<GameTableProps> = ({
         <div className="flex items-center justify-between gap-2">
           {/* Left: Ante/Round & Target Score */}
           <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-            <div className="bg-slate-950 px-1.5 sm:px-2 py-0.5 rounded border border-amber-500/50 flex flex-col items-center justify-center shrink-0">
-              <span className="font-pixel text-[8px] sm:text-[9.5px] text-amber-400 font-bold leading-none">
+            {/* The tier rides along with the Ante, compact: A19 R2 · SOVRACCARICO */}
+            <div
+              className="bg-slate-950 px-1.5 sm:px-2 py-0.5 rounded border flex flex-col items-center justify-center shrink-0"
+              style={{ borderColor: endlessTier ? endlessTier.accentColor : 'rgba(245,158,11,0.5)' }}
+            >
+              <span
+                className="font-pixel text-[8px] sm:text-[9.5px] font-bold leading-none"
+                style={{ color: endlessTier ? endlessTier.accentColor : '#fbbf24' }}
+              >
                 A{ante} R{round}
               </span>
+              {endlessTier && (
+                <span
+                  className="font-pixel text-[6.5px] sm:text-[7px] font-bold leading-none mt-0.5"
+                  style={{ color: endlessTier.accentColor }}
+                >
+                  {endlessTier.name}
+                </span>
+              )}
             </div>
 
             {/* Ante Venue Atmosphere Tag */}

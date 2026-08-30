@@ -17,6 +17,8 @@ import {
 } from '../game/victoryModes';
 import { BOSS_RULES } from '../game/bossRules';
 import { ALL_BOSS_BLINDS } from '../data/bosses';
+import { CAMPAIGN_FINAL_ANTE, getEndlessTier } from '../game/endless';
+import { BossBlind } from '../types/game';
 import { sound } from '../services/soundEngine';
 
 interface BlindSelectViewProps {
@@ -26,6 +28,12 @@ interface BlindSelectViewProps {
   deckMultiplier: number;
   /** The rule this run is played under: it decides what clearing means. */
   victoryMode: VictoryMode;
+  /**
+   * The Boss this Ante actually ends with. Endless composes it out of a base
+   * Boss and its modifiers, and the blind has to show the composition rather
+   * than the catalogue entry - every active rule is public before sitting down.
+   */
+  endlessBoss?: BossBlind | null;
   onSitDown: () => void;
 }
 
@@ -55,12 +63,17 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
   money,
   deckMultiplier,
   victoryMode,
+  endlessBoss,
   onSitDown,
 }) => {
   const reduceMotion = useReducedMotion();
   const theme = getTableThemeForAnte(ante);
   const opponent = getOpponentIntro(ante, round);
-  const boss = ALL_BOSS_BLINDS.find((candidate) => candidate.ante === ante) || ALL_BOSS_BLINDS[0];
+  const tier = getEndlessTier(ante);
+  const boss =
+    endlessBoss ??
+    ALL_BOSS_BLINDS.find((candidate) => candidate.ante === ante) ??
+    ALL_BOSS_BLINDS[0];
 
   const [revealed, setRevealed] = useState(false);
   const [typedQuote, setTypedQuote] = useState('');
@@ -143,8 +156,19 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
             </div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            <span className="bg-slate-950/80 border border-amber-500/60 px-2 py-1 rounded font-pixel text-[9px] sm:text-[10px] text-amber-300 font-bold">
-              ANTE {ante}/8
+            {/*
+              The Ante is never replaced by the tier: the player counts antes,
+              and the tier only says how bad this stretch of them is.
+            */}
+            <span
+              className="bg-slate-950/80 border px-2 py-1 rounded font-pixel text-[9px] sm:text-[10px] font-bold"
+              style={
+                tier
+                  ? { borderColor: tier.accentColor, color: tier.accentColor }
+                  : { borderColor: 'rgba(245,158,11,0.6)', color: '#fcd34d' }
+              }
+            >
+              {tier ? `ANTE ${ante} · ${tier.name}` : `ANTE ${ante}/${CAMPAIGN_FINAL_ANTE}`}
             </span>
             <span className="bg-slate-950/80 border border-amber-500/60 px-2 py-1 rounded font-pixel text-[9px] sm:text-[10px] text-amber-300 font-bold">
               ${money}

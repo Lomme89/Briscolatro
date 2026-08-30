@@ -19,6 +19,7 @@ import {
 } from './runPersistence';
 import { getRunRngState, randomRun, seedRunRng, setRunRngState } from './runRng';
 import { getNextConsumableExpansion, getNextJokerExpansion } from './slotExpansions';
+import { endlessBossForAnte, getActiveBossRules } from './endlessBosses';
 
 /** The tests run in node: localStorage has to exist before they touch it. */
 function installLocalStorage(): void {
@@ -101,6 +102,45 @@ function roundTrip(snapshot: RunSnapshotV1) {
 beforeEach(() => {
   installLocalStorage();
   clearRunSnapshot();
+});
+
+describe('Endless attraverso il salvataggio', () => {
+  it('conserva la fase della run e il Boss composto, senza ri-tirarlo', () => {
+    const endlessBoss = endlessBossForAnte(35, 2024).boss;
+    expect(endlessBoss.endless!.modifierIds.length).toBeGreaterThan(0);
+
+    const input = buildInput({ runPhase: 'endless', ante: 35 });
+    input.encounter!.boss = endlessBoss;
+    const restored = roundTrip(serializeRun(input))!;
+
+    expect(restored.snapshot.runPhase).toBe('endless');
+    expect(restored.snapshot.ante).toBe(35);
+    // Stesso Boss di base, stessi modificatori, stesse regole in vigore.
+    expect(restored.boss!.id).toBe(endlessBoss.id);
+    expect(restored.boss!.endless).toEqual(endlessBoss.endless);
+    expect(getActiveBossRules(restored.boss)).toEqual(getActiveBossRules(endlessBoss));
+    expect(restored.boss!.debuffDescription).toBe(endlessBoss.debuffDescription);
+  });
+
+  it('un salvataggio pre-Endless vale ancora e vale come campagna', () => {
+    const snapshot = serializeRun(buildInput()) as unknown as Record<string, unknown>;
+    delete snapshot.runPhase;
+    expect(validateRunSnapshot(snapshot).valid).toBe(true);
+    const restored = roundTrip(snapshot as unknown as RunSnapshotV1)!;
+    expect(restored.snapshot.runPhase ?? 'campaign').toBe('campaign');
+  });
+
+  it('rifiuta una fase della run inventata', () => {
+    const snapshot = serializeRun(buildInput()) as unknown as Record<string, unknown>;
+    snapshot.runPhase = 'ascension';
+    expect(validateRunSnapshot(snapshot).valid).toBe(false);
+  });
+
+  it("un Boss di campagna non porta con se modificatori Endless", () => {
+    const restored = roundTrip(serializeRun(buildInput()))!;
+    expect(restored.boss!.endless).toBeUndefined();
+    expect(getActiveBossRules(restored.boss)).toHaveLength(1);
+  });
 });
 
 describe('serialize -> parse -> validate -> restore', () => {

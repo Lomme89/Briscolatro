@@ -13,6 +13,8 @@ import {
 } from '../gameState';
 import { BOSS_RULES } from '../bossRules';
 import { JOKER_EFFECTS } from '../jokerEffects';
+import { CAMPAIGN_FINAL_ANTE, getEndlessTier, getSlotRulesForAnte, isEndlessAnte } from '../endless';
+import { endlessBossForAnte, getBossDiscardPenalty } from '../endlessBosses';
 import {
   applyTavoloAllargato,
   getNextConsumableExpansion,
@@ -156,8 +158,19 @@ export interface RunResult {
   seed: number;
   /** The last ante the run was alive in. */
   reachedAnte: number;
-  /** Cleared the boss of ante 8. */
+  /** Cleared the boss of ante 8. The campaign result, in both modes. */
   completed: boolean;
+  /** This run was allowed to continue past Ante 8. */
+  endless: boolean;
+  /**
+   * Highest Endless Ante reached, or 0 for a campaign run. Kept apart from
+   * `reachedAnte` for the same reason the game keeps two records: one says how
+   * far the tournament went, the other how far past it the run got.
+   */
+  endlessAnte: number;
+  endlessTierId: string | null;
+  /** Ids of the Endless modifiers on the Boss that finally ended the run. */
+  endlessDeathModifiers: string[];
   rounds: RoundRecord[];
   finalMoney: number;
   maxMoney: number;
@@ -202,6 +215,16 @@ export interface SimulateRunOptions {
   startingJokerIds?: string[];
   /** Reported back so any run can be replayed exactly. */
   seed?: number;
+  /**
+   * Keep playing past the Ante 8 Boss.
+   *
+   * Off by default, and deliberately so: an Endless run must never be counted
+   * in the campaign win rate. `completed` still means "cleared Ante 8" in both
+   * modes, so the two measurements stay comparable.
+   */
+  endless?: boolean;
+  /** Where an Endless run gives up, so a sim cannot spin forever. */
+  endlessAnteLimit?: number;
 }
 
 /**
@@ -271,6 +294,9 @@ export function simulateRun(
   let reachedAnte = 1;
   let completed = false;
   let lossCause: LossCause = 'none';
+  const playEndless = options.endless ?? false;
+  const anteLimit = playEndless ? options.endlessAnteLimit ?? 60 : CAMPAIGN_FINAL_ANTE;
+  let endlessDeathModifiers: string[] = [];
 
   const countFoil = () => state.runDeck.filter((card) => card.edition === 'foil').length;
 
@@ -282,6 +308,10 @@ export function simulateRun(
     seed,
     reachedAnte,
     completed,
+    endless: playEndless,
+    endlessAnte: isEndlessAnte(reachedAnte) ? reachedAnte : 0,
+    endlessTierId: getEndlessTier(reachedAnte)?.id ?? null,
+    endlessDeathModifiers,
     rounds,
     finalMoney: state.money,
     maxMoney: ledger.maxMoney,
@@ -311,7 +341,7 @@ export function simulateRun(
     jokerTriggerScore,
   });
 
-  for (let ante = 1; ante <= 8; ante++) {
+  for (let ante = 1; ante <= anteLimit; ante++) {
     state.ante = ante;
     reachedAnte = ante;
 
@@ -319,8 +349,12 @@ export function simulateRun(
     for (let round = 1; round <= ENCOUNTERS_PER_ANTE; round++) {
       state.round = round;
       const isBoss = isBossEncounter(round);
+      // Same derivation the app uses: a pure function of (seed, ante), so the
+      // sim faces the compositions a real run would face.
       const boss: BossBlind | null = isBoss
-        ? ALL_BOSS_BLINDS.find((b) => b.ante === ante) ?? null
+        ? isEndlessAnte(ante)
+          ? endlessBossForAnte(ante, seed).boss
+          : ALL_BOSS_BLINDS.find((b) => b.ante === ante) ?? null
         : null;
 
       const target = getBlindTargetScore(ante, round, {
@@ -330,10 +364,14 @@ export function simulateRun(
 
       // initRound resets the discards from the deck, the voucher and il Caffe
       // Corretto: they do not accumulate across encounters.
-      state.discardsLeft =
+      // Mani Legate takes one away in Endless; never below zero.
+      state.discardsLeft = Math.max(
+        0,
         deckDef.startingDiscards +
-        (state.vouchers.some((v) => v.id === 'v_scarto' && v.bought) ? 1 : 0) +
-        JOKER_EFFECTS.getExtraDiscards(state.jokers);
+          (state.vouchers.some((v) => v.id === 'v_scarto' && v.bought) ? 1 : 0) +
+          JOKER_EFFECTS.getExtraDiscards(state.jokers) -
+          getBossDiscardPenalty(boss)
+      );
 
       const moneyBefore = state.money;
       const report = simulateEncounter({
@@ -421,15 +459,17 @@ export function simulateRun(
           : !verdict.chipsPassed
             ? 'chips'
             : 'briscola';
+        endlessDeathModifiers = boss?.endless?.modifierIds ?? [];
         return finish();
       }
 
-      // Clearing the Ante 8 Boss ends the run: no shop after the last hand.
-      if (ante === 8 && isBoss) {
+      // The Ante 8 Boss is the campaign result, recorded the moment it falls.
+      // A campaign sim stops here; an Endless sim keeps the win and plays on.
+      if (ante === CAMPAIGN_FINAL_ANTE && isBoss) {
         completed = true;
-        break;
+        if (!playEndless) break;
       }
-      visitShop(state, buyer, ledger);
+      visitShop(state, buyer, ledger, getSlotRulesForAnte(ante + (isBoss ? 1 : 0)));
       ledger.moneyAfterShop.push(state.money);
     }
 
@@ -451,7 +491,12 @@ interface Ledger {
 }
 
 /** One visit: draw the shelves the way ShopView draws them, then let the policy spend. */
-function visitShop(state: RunState, buyer: BuyerPolicy, ledger: Ledger): void {
+function visitShop(
+  state: RunState,
+  buyer: BuyerPolicy,
+  ledger: Ledger,
+  slotRules = getSlotRulesForAnte(state.ante)
+): void {
   const discount = state.vouchers.some((v) => v.id === 'v_sconto') ? 2 : 0;
   const ownedVouchers = new Set(state.vouchers.map((v) => v.id));
 
@@ -463,7 +508,7 @@ function visitShop(state: RunState, buyer: BuyerPolicy, ledger: Ledger): void {
       ALL_VOUCHERS.filter(
         (v) =>
           !ownedVouchers.has(v.id) &&
-          (v.id !== 'v_tavolo' || isTavoloAllargatoUseful(state.maxJokers))
+          (v.id !== 'v_tavolo' || isTavoloAllargatoUseful(state.maxJokers, slotRules))
       )
     ).slice(0, 2),
     rerollCost: 5 - discount,
@@ -520,7 +565,7 @@ function visitShop(state: RunState, buyer: BuyerPolicy, ledger: Ledger): void {
       if (state.money < cost) return false;
       spend(cost);
       state.vouchers.push({ ...voucher, bought: true });
-      if (voucher.id === 'v_tavolo') state.maxJokers = applyTavoloAllargato(state.maxJokers);
+      if (voucher.id === 'v_tavolo') state.maxJokers = applyTavoloAllargato(state.maxJokers, slotRules);
       offer.vouchers = offer.vouchers.filter((v) => v !== voucher);
       return true;
     },
@@ -542,7 +587,7 @@ function visitShop(state: RunState, buyer: BuyerPolicy, ledger: Ledger): void {
       return true;
     },
     buyJokerSlot() {
-      const offer = getNextJokerExpansion(state.maxJokers, slotContext());
+      const offer = getNextJokerExpansion(state.maxJokers, slotContext(), slotRules);
       const till = purchaseSlotExpansion(offer, state.money, state.maxJokers);
       if (!till.bought) return false;
       spend(offer!.cost);
@@ -550,7 +595,7 @@ function visitShop(state: RunState, buyer: BuyerPolicy, ledger: Ledger): void {
       return true;
     },
     buySolaSlot() {
-      const offer = getNextConsumableExpansion(state.maxConsumables, slotContext());
+      const offer = getNextConsumableExpansion(state.maxConsumables, slotContext(), slotRules);
       const till = purchaseSlotExpansion(offer, state.money, state.maxConsumables);
       if (!till.bought) return false;
       spend(offer!.cost);

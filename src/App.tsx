@@ -48,6 +48,19 @@ import {
   purchaseSlotExpansion,
 } from './game/slotExpansions';
 import {
+  CAMPAIGN_FINAL_ANTE,
+  formatAnteLabel,
+  getEndlessTier,
+  getSlotRulesForAnte,
+  isEndlessAnte,
+  RunPhase,
+} from './game/endless';
+import {
+  endlessBossForAnte,
+  getBossDiscardPenalty,
+  getActiveBossRules,
+} from './game/endlessBosses';
+import {
   clearRunSnapshot,
   hasStoredRun,
   loadRunSnapshot,
@@ -80,6 +93,7 @@ import { BlindSelectView } from './components/BlindSelectView';
 import { ScoreTallyOverlay } from './components/ScoreTallyOverlay';
 import { RoundSummaryModal, RoundSummaryData } from './components/RoundSummaryModal';
 import { GameOverModal, GameOverSummaryData } from './components/GameOverModal';
+import { EndlessOfferModal } from './components/EndlessOfferModal';
 import { TutorialModal } from './components/TutorialModal';
 import { DeckSelectModal } from './components/DeckSelectModal';
 import { VictoryModeSelectModal } from './components/VictoryModeSelectModal';
@@ -262,6 +276,24 @@ export function App() {
       return { briscolatro: 0, sbaraglio: 0, traditional: 0, double_challenge: 0 };
     }
   });
+  /**
+   * Highest Endless Ante per mode. Deliberately its own record: mixing it with
+   * the best campaign Ante would let an Endless run inflate a number that is
+   * supposed to say how far the tournament itself was played.
+   */
+  const [modeBestEndlessAnte, setModeBestEndlessAnte] = useState<Record<VictoryMode, number>>(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem('briscolatro_mode_endless') || '{}');
+      return {
+        briscolatro: raw.briscolatro ?? 0,
+        sbaraglio: raw.sbaraglio ?? 0,
+        traditional: raw.traditional ?? 0,
+        double_challenge: raw.double_challenge ?? 0,
+      };
+    } catch {
+      return { briscolatro: 0, sbaraglio: 0, traditional: 0, double_challenge: 0 };
+    }
+  });
   /** The verdict on the round just played, for the summary and the HUD. */
   const [lastVictory, setLastVictory] = useState<VictoryCheck | null>(null);
 
@@ -281,11 +313,13 @@ export function App() {
     setHighScores({ briscolatro: 0, sbaraglio: 0, traditional: 0, double_challenge: 0 });
     setModeWins({ briscolatro: 0, sbaraglio: 0, traditional: 0, double_challenge: 0 });
     setModeBestAnte({ briscolatro: 0, sbaraglio: 0, traditional: 0, double_challenge: 0 });
+    setModeBestEndlessAnte({ briscolatro: 0, sbaraglio: 0, traditional: 0, double_challenge: 0 });
     try {
       localStorage.removeItem('briscolatro_unlocked_decks');
       localStorage.removeItem('briscolatro_sola_used');
       localStorage.removeItem('briscolatro_mode_wins');
       localStorage.removeItem('briscolatro_mode_ante');
+      localStorage.removeItem('briscolatro_mode_endless');
       for (const info of Object.values(VICTORY_MODES)) localStorage.removeItem(info.highScoreKey);
     } catch {}
     sound.playCardFlick();
@@ -349,6 +383,19 @@ export function App() {
   const [roundTricksWon, setRoundTricksWon] = useState<number>(0);
   const [roundTricksLost, setRoundTricksLost] = useState<number>(0);
   const [activeBoss, setActiveBoss] = useState<BossBlind | null>(null);
+  /**
+   * Which half of the run this is.
+   *
+   * Never derived from `ante > 8` at the call sites: a run sitting on the
+   * Ante 8 victory screen has not chosen yet, and the two states have to be
+   * distinguishable. Everything Endless reads this or the helpers in
+   * `game/endless.ts`.
+   */
+  const [runPhase, setRunPhase] = useState<RunPhase>('campaign');
+  /** The tournament has been won in this run, whatever happens from here. */
+  const [campaignVictory, setCampaignVictory] = useState<boolean>(false);
+  /** The Ante 8 Boss is down and the player has not yet said stop or double. */
+  const [endlessOffer, setEndlessOffer] = useState<GameOverSummaryData | null>(null);
   // The round the blind-select screen is announcing, dealt only once you sit down.
   const [pendingRound, setPendingRound] = useState<{
     ante: number;
@@ -512,6 +559,9 @@ export function App() {
    * that closed over an older render: reading the cap out of state there is how
    * a double tap buys the same chair twice.
    */
+  const runPhaseRef = useRef<RunPhase>(runPhase);
+  runPhaseRef.current = runPhase;
+  const anteRef = useRef<number>(1);
   const maxJokersRef = useRef<number>(maxJokers);
   maxJokersRef.current = maxJokers;
   const maxConsumablesRef = useRef<number>(maxConsumables);
@@ -537,7 +587,17 @@ export function App() {
     bossDebuffNeutralizedRef.current ? null : activeBossRef.current;
 
   /** Boss debuff currently in force, or undefined while the shield is up. */
-  const getActiveBossDebuff = (): string | undefined => getEnforcedBoss()?.debuffType;
+  /**
+   * Every rule in force this trick, not just one.
+   *
+   * An Endless Boss enforces its own rule plus its modifiers', so the engine is
+   * handed the whole list. A campaign Boss returns a single-entry list, which
+   * every resolver reads exactly as it read the bare string.
+   */
+  const getActiveBossDebuff = (): string[] | undefined => {
+    const rules = getActiveBossRules(getEnforcedBoss());
+    return rules.length > 0 ? rules : undefined;
+  };
 
   useEffect(() => {
     return () => {
@@ -591,10 +651,17 @@ export function App() {
     tallyGuardRef.current = false;
     setTallyData(null);
 
-    // The second encounter of every Ante is the Boss.
+    anteRef.current = currentAnte;
+
+    // The second encounter of every Ante is the Boss. Past Ante 8 the pool is
+    // the same eight, rolled from the run's own generator and dressed with the
+    // tier's modifiers - so reloading sits down at the same table, with the
+    // same rules, every time.
     let bossToSet: BossBlind | null = null;
     if (isBossEncounter(currentRoundNum)) {
-      bossToSet = ALL_BOSS_BLINDS.find((b) => b.ante === currentAnte) || ALL_BOSS_BLINDS[0];
+      bossToSet = isEndlessAnte(currentAnte)
+        ? endlessBossForAnte(currentAnte, getRunRngState().seed).boss
+        : ALL_BOSS_BLINDS.find((b) => b.ante === currentAnte) || ALL_BOSS_BLINDS[0];
       setActiveBoss(bossToSet);
       activeBossRef.current = bossToSet;
       setOpponentSpeech(bossToSet.bossQuote);
@@ -616,7 +683,12 @@ export function App() {
     // Reset Discards
     const extraScarto = vouchers.some((v) => v.id === 'v_scarto' && v.bought) ? 1 : 0;
     const jokerExtraDiscards = JOKER_EFFECTS.getExtraDiscards(activeJokers);
-    setDiscardsLeft(deckDef.startingDiscards + extraScarto + jokerExtraDiscards);
+    // An Endless modifier can take one away. Never below zero: a negative
+    // allowance is not a rule, it is a bug with a minus sign.
+    const bossPenalty = getBossDiscardPenalty(bossToSet);
+    setDiscardsLeft(
+      Math.max(0, deckDef.startingDiscards + extraScarto + jokerExtraDiscards - bossPenalty)
+    );
 
     // Prepare Round Deal from persistent runDeck
     const { roundDrawPile, trumpCard: dealTrump, briscolaSuit: dealSuit, playerHand: pHand, opponentHand: oHand } =
@@ -686,6 +758,11 @@ export function App() {
     // Slots
     const initialMaxJokers = 5;
     const initialMaxConsumables = deck.specialDeckPerk === 'holo_figures' ? 3 : 2;
+    setRunPhase('campaign');
+    runPhaseRef.current = 'campaign';
+    setCampaignVictory(false);
+    setEndlessOffer(null);
+    anteRef.current = 1;
     setMaxJokers(initialMaxJokers);
     maxJokersRef.current = initialMaxJokers;
     setMaxConsumables(initialMaxConsumables);
@@ -1155,7 +1232,9 @@ export function App() {
       }
       if (outcome.newHighScore) setHighScore(nextSnapshot.totalScore);
 
-      if (ante > modeBestAnte[victoryMode]) {
+      // The campaign record counts campaign antes. An Endless run keeps its own
+      // number, a few lines down, so one cannot inflate the other.
+      if (runPhaseRef.current === 'campaign' && ante > modeBestAnte[victoryMode]) {
         const updatedAnte = { ...modeBestAnte, [victoryMode]: ante };
         setModeBestAnte(updatedAnte);
         try {
@@ -1218,16 +1297,21 @@ export function App() {
 
         if (outcome.isAnte8Victory) {
           // The whole run, not just a blind: this is what the fanfare is for.
+          //
+          // Everything that makes this a VICTORY is registered right here,
+          // before the player is asked anything. Whatever they pick next - walk
+          // out or double the stake - the tournament is already won and the
+          // record already written.
           const wins = { ...modeWins, [victoryMode]: modeWins[victoryMode] + 1 };
           setModeWins(wins);
           try {
             localStorage.setItem('briscolatro_mode_wins', JSON.stringify(wins));
           } catch {}
+          setCampaignVictory(true);
           sound.playVictoryFanfare();
-          // A finished run has nothing left to resume.
-          clearRunSnapshot();
-          setResumableRun(null);
-          setGameOverSummary({
+          // The snapshot is NOT cleared yet: the run may well continue. It is
+          // cleared when the player closes it out, or when Endless kills them.
+          setEndlessOffer({
             won: true,
             ante,
             round,
@@ -1243,6 +1327,7 @@ export function App() {
             deckName: selectedDeck.name,
             newUnlockedDecks: outcome.newUnlockedDecks,
             isNewHighScore: outcome.newHighScore,
+            campaignVictory: true,
           });
         }
       } else {
@@ -1272,10 +1357,25 @@ export function App() {
           activeJokersCount: activeJokers.length,
         });
 
+        const endlessTier = getEndlessTier(ante);
+        const isNewEndlessRecord =
+          runPhaseRef.current === 'endless' && ante > modeBestEndlessAnte[victoryMode];
+        if (isNewEndlessRecord) {
+          const updated = { ...modeBestEndlessAnte, [victoryMode]: ante };
+          setModeBestEndlessAnte(updated);
+          try {
+            localStorage.setItem('briscolatro_mode_endless', JSON.stringify(updated));
+          } catch {}
+        }
+
         setGameOverSummary({
           won: false,
           ante,
           round,
+          campaignVictory,
+          endlessAnte: runPhaseRef.current === 'endless' ? ante : undefined,
+          endlessTierName: endlessTier?.name,
+          isNewEndlessRecord,
           totalScore: nextSnapshot.totalScore,
           targetScore,
           totalTricksWon: nextSnapshot.totalTricksWon,
@@ -1501,13 +1601,48 @@ export function App() {
     }
   };
 
+  /**
+   * CHIUDI LA PARTITA: the victorious game over, exactly as it always was.
+   * The win was registered when the Boss fell; this only closes the run out.
+   */
+  const handleCloseCampaign = () => {
+    if (!endlessOffer) return;
+    sound.playCardFlick();
+    clearRunSnapshot();
+    setResumableRun(null);
+    setGameOverSummary(endlessOffer);
+    setEndlessOffer(null);
+    setPhase('game_over');
+  };
+
+  /**
+   * RADDOPPIA LA POSTA: on into Endless, through the shop like any other Ante.
+   * The macroloop is untouched - Tavolo, shop, Boss, shop, next Ante - so the
+   * first Endless Ante is reached exactly the way Ante 8 was.
+   */
+  const handleDoubleDown = () => {
+    if (!endlessOffer) return;
+    sound.playShopEnter();
+    setRunPhase('endless');
+    runPhaseRef.current = 'endless';
+    setEndlessOffer(null);
+    shopSpentRef.current = 0;
+    contoSospesoPaidRef.current = new Set();
+    setShopState({ seed: Math.floor(randomRun() * 0x7fffffff), rerolls: 0, boughtKeys: [] });
+    setPhase('shop');
+    requestSave('shop');
+  };
+
   // --- Round Summary Continue ---
   const handleContinueFromRoundSummary = () => {
     if (!roundSummary) return;
 
     if (roundSummary.won) {
       setRoundSummary(null);
-      if (ante >= 8 && isBossEncounter(round)) {
+      // The Ante 8 Boss is the only encounter that does not lead to a shop: it
+      // leads to the question. Every Endless Boss after it goes back to the
+      // shop like any other.
+      if (endlessOffer) {
         setPhase('game_over');
       } else {
         sound.playShopEnter();
@@ -1580,7 +1715,7 @@ export function App() {
     if (voucher.id === 'v_tavolo') {
       // A free chair, never past the cap. The 25% off later expansions is read
       // straight off the owned vouchers, so there is nothing else to store.
-      const widened = applyTavoloAllargato(maxJokersRef.current);
+      const widened = applyTavoloAllargato(maxJokersRef.current, slotRules());
       maxJokersRef.current = widened;
       setMaxJokers(widened);
     }
@@ -1589,6 +1724,9 @@ export function App() {
   };
 
   /** What the two permanent services cost right now, vouchers included. */
+  /** The caps this Ante plays under. Campaign 7, then 8 / 9 / 10 by tier. */
+  const slotRules = () => getSlotRulesForAnte(anteRef.current);
+
   const slotExpansionContext = () => ({
     hasTavoloAllargato: vouchersRef.current.some((v) => v.id === 'v_tavolo' && v.bought),
     hasHouseDiscount: vouchersRef.current.some((v) => v.id === 'v_sconto' && v.bought),
@@ -1607,8 +1745,8 @@ export function App() {
     const currentRef = kind === 'joker' ? maxJokersRef : maxConsumablesRef;
     const offer =
       kind === 'joker'
-        ? getNextJokerExpansion(currentRef.current, slotExpansionContext())
-        : getNextConsumableExpansion(currentRef.current, slotExpansionContext());
+        ? getNextJokerExpansion(currentRef.current, slotExpansionContext(), slotRules())
+        : getNextConsumableExpansion(currentRef.current, slotExpansionContext(), slotRules());
     const till = purchaseSlotExpansion(offer, moneyRef.current, currentRef.current);
     if (!till.bought) return false;
 
@@ -1727,6 +1865,12 @@ export function App() {
     setTotalBriscolaPointsPlayer(snap.totalBriscolaPointsPlayer);
     setTotalBriscolaPointsOpponent(snap.totalBriscolaPointsOpponent);
     setTotalMoneyEarned(snap.totalMoneyEarned);
+    const restoredPhase = snap.runPhase ?? 'campaign';
+    setRunPhase(restoredPhase);
+    runPhaseRef.current = restoredPhase;
+    setCampaignVictory(restoredPhase === 'endless');
+    setEndlessOffer(null);
+    anteRef.current = snap.ante;
     setMaxJokers(snap.maxJokers);
     maxJokersRef.current = snap.maxJokers;
     setMaxConsumables(snap.maxConsumables);
@@ -1879,6 +2023,7 @@ export function App() {
         phase: phaseForSave,
         deck: selectedDeck,
         victoryMode,
+        runPhase,
         ante,
         round,
         money,
@@ -2125,6 +2270,11 @@ export function App() {
               pendingRound.deck.specialDeckPerk === 'high_stakes_vision' ? 1.25 : 1
             }
             victoryMode={victoryMode}
+            endlessBoss={
+              isEndlessAnte(pendingRound.ante)
+                ? endlessBossForAnte(pendingRound.ante, getRunRngState().seed).boss
+                : null
+            }
             onSitDown={handleSitDown}
           />
         )}
@@ -2212,6 +2362,7 @@ export function App() {
             onSellUnoCard={handleSellUnoCard}
             onBuyJokerSlot={handleBuyJokerSlot}
             onBuyConsumableSlot={handleBuyConsumableSlot}
+            slotRules={getSlotRulesForAnte(ante)}
             onUpgradeCard={handleUpgradeCard}
             runDeck={runDeck}
             onNextRound={handleNextRoundFromShop}
@@ -2252,8 +2403,17 @@ export function App() {
           onContinue={handleContinueFromRoundSummary}
         />
 
+        {/* ANTE 8 CLEARED: cash out, or double the stake. */}
+        <EndlessOfferModal
+          isOpen={phase === 'game_over' && endlessOffer !== null}
+          nextAnte={CAMPAIGN_FINAL_ANTE + 1}
+          totalScore={endlessOffer?.totalScore ?? 0}
+          onClose={handleCloseCampaign}
+          onDouble={handleDoubleDown}
+        />
+
         {/* GAME OVER / VICTORY MODAL */}
-        {gameOverSummary && (
+        {gameOverSummary && !endlessOffer && (
           <GameOverModal
             isOpen={phase === 'game_over'}
             summary={gameOverSummary}

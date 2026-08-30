@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { isBossEncounter } from '../game/gameState';
+import { getEndlessTier } from '../game/endless';
 import {
   BRISCOLA_TARGET_POINTS,
   getVictoryHudPresentation,
@@ -100,7 +101,7 @@ export const RoundSummaryModal: React.FC<RoundSummaryModalProps> = ({
             </div>
           </div>
           <span className="inline-block mt-2 font-pixel text-[8.5px] sm:text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
-            ANTE {data.ante} • {isBossEncounter(data.round) ? 'BOSS' : 'TAVOLO'}
+            ANTE {data.ante}{getEndlessTier(data.ante) ? ` · ${getEndlessTier(data.ante)!.name}` : ''} • {isBossEncounter(data.round) ? 'BOSS' : 'TAVOLO'}
           </span>
         </div>
 

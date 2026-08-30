@@ -168,15 +168,31 @@ export interface BossBlind {
   targetScore: number;
   reward: number;
   debuffDescription: string;
-  debuffType: 
-    | 'half_carichi' 
-    | 'no_lisce_chips' 
-    | 'rotating_briscola' 
-    | 'hidden_opponent_card' 
-    | 'no_denari_first' 
-    | 'spades_are_briscola' 
-    | 'forced_suit_chain' 
-    | 'rotating_joker_silence';
+  debuffType: BossDebuffType;
+  /**
+   * Set only on an Endless variant of a base Boss: which modifiers were rolled
+   * on top of its own rule. The base id is kept, so a save stores the base Boss
+   * plus these ids and rebuilds the variant rather than storing a synthetic one.
+   */
+  endless?: BossEndlessBrief;
+}
+
+/** Every rule the engine knows how to enforce. Endless composes these. */
+export type BossDebuffType =
+  | 'half_carichi'
+  | 'no_lisce_chips'
+  | 'rotating_briscola'
+  | 'hidden_opponent_card'
+  | 'no_denari_first'
+  | 'spades_are_briscola'
+  | 'forced_suit_chain'
+  | 'rotating_joker_silence';
+
+export interface BossEndlessBrief {
+  /** Tier the encounter belongs to, for the label on the blind. */
+  tierId: string;
+  /** Ids of the Endless modifiers layered on top of the base rule. */
+  modifierIds: string[];
 }
 
 export interface DeckDefinition {

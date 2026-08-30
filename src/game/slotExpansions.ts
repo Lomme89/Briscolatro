@@ -31,6 +31,12 @@ export const CAMPAIGN_SLOT_RULES: SlotRules = {
 const JOKER_SLOT_LADDER: Record<number, number> = {
   5: 12,
   6: 24,
+  // Endless rungs. The cap moves with the tier, so these only ever become
+  // reachable once the tier that allows them has been reached - the shop puts
+  // the chair on the shelf, it is never handed over.
+  7: 40,
+  8: 64,
+  9: 96,
 };
 
 const CONSUMABLE_SLOT_LADDER: Record<number, number> = {

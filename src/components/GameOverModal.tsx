@@ -22,6 +22,15 @@ export interface GameOverSummaryData {
   newUnlockedDecks: string[];
   isNewHighScore: boolean;
   defeatReason?: string;
+  /**
+   * The tournament was won in this run. Set on an Endless defeat too: dying at
+   * Ante 23 does not un-win Ante 8, and the screen must not say it did.
+   */
+  campaignVictory?: boolean;
+  /** Highest Endless Ante reached, when the run went past the campaign. */
+  endlessAnte?: number;
+  endlessTierName?: string;
+  isNewEndlessRecord?: boolean;
 }
 
 interface GameOverModalProps {
@@ -98,6 +107,33 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
               ? 'HAI COMPLETATO TUTTI GLI 8 ANTE DEL TORNEO!'
               : `ELIMINATO AD ANTE ${ante} • ${isBossEncounter(round) ? 'BOSS' : 'TAVOLO'}`}
           </div>
+
+          {/*
+            An Endless run that ends is still a run that was won. The campaign
+            result and the Endless record are two separate lines on purpose: one
+            says the tournament was taken, the other says how far past it the
+            player got before the table took them back.
+          */}
+          {summary.campaignVictory && !won && (
+            <div className="mt-2.5 mx-auto max-w-sm bg-emerald-950/60 border-2 border-emerald-600 rounded-xl px-3 py-2 flex flex-col gap-1">
+              <span className="font-pixel text-[9px] sm:text-[10px] text-emerald-300 font-bold">
+                CAMPAGNA COMPLETATA ✓
+              </span>
+              {summary.endlessAnte !== undefined && (
+                <span className="font-pixel text-[9px] sm:text-[10px] text-amber-300 font-bold">
+                  RECORD ENDLESS: ANTE {summary.endlessAnte}
+                </span>
+              )}
+              {summary.endlessTierName && (
+                <span className="font-pixel text-[8.5px] sm:text-[9px] text-slate-300">
+                  TIER: {summary.endlessTierName}
+                </span>
+              )}
+              {summary.isNewEndlessRecord && (
+                <span className="font-pixel text-[8px] text-amber-400">⭐ NUOVO RECORD ENDLESS</span>
+              )}
+            </div>
+          )}
 
           <p className="font-retro text-xs text-slate-300 mt-2 max-w-md mx-auto">
             {won
