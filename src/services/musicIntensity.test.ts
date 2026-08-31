@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { musicIntensityFor } from './soundEngine';
+import { musicDissonanceFor, musicIntensityFor } from './soundEngine';
 
 /**
  * The level is what the room sounds like, so the rule is worth pinning: it is
@@ -28,5 +28,20 @@ describe('livello della musica', () => {
   it('il Boss prende il tavolo, qualunque cosa stesse succedendo', () => {
     expect(at({ hasBoss: true })).toBe(3);
     expect(at({ hasBoss: true, winStreak: 9, ante: 8 })).toBe(3);
+  });
+});
+
+describe('dissonanza Endless', () => {
+  it('la campagna resta intonata', () => {
+    expect(musicDissonanceFor(null)).toBe(0);
+  });
+
+  it('cresce di un gradino per tier', () => {
+    expect(musicDissonanceFor(0)).toBe(1);
+    expect(musicDissonanceFor(4)).toBe(5);
+  });
+
+  it('non sfonda il tetto oltre l ultimo tier', () => {
+    expect(musicDissonanceFor(99)).toBe(5);
   });
 });

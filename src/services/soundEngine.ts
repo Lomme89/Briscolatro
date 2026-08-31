@@ -222,6 +222,17 @@ export function cardSlamVoice(points: number, isBriscola = false) {
  * now. Short of one it climbs with a win streak, and the deep Antes are never
  * quiet even when you are losing.
  */
+/**
+ * How far out of tune the room is, 0 to 5, one step per Endless tier.
+ *
+ * Intensity says how much is playing; this says whether it still agrees with
+ * itself. The campaign is always in tune, and past Ante 8 it stops being.
+ */
+export function musicDissonanceFor(tierIndex: number | null): number {
+  if (tierIndex === null || tierIndex < 0) return 0;
+  return Math.min(5, tierIndex + 1);
+}
+
 export function musicIntensityFor(state: {
   hasBoss: boolean;
   winStreak: number;
@@ -793,8 +804,14 @@ class SoundEngine {
    */
   private musicIntensity = 0;
 
+  private musicDissonance = 0;
+
   public setMusicIntensity(level: number) {
     this.musicIntensity = Math.max(0, Math.min(3, Math.round(level)));
+  }
+
+  public setMusicDissonance(level: number) {
+    this.musicDissonance = Math.max(0, Math.min(5, Math.round(level)));
   }
 
   // Background Synth Loop (Balatro vibes)
@@ -863,6 +880,19 @@ class SoundEngine {
       if (intensity >= 3) {
         voice('sawtooth', bassline[beat] / 2, now, 0.3, 0.13);
         voice('sawtooth', bassline[beat] / 2 + 1.5, now, 0.3, 0.1);
+      }
+
+      // Endless: the room stops agreeing with itself. A tritone over the bass,
+      // pushed further off pitch each tier, plus a slow drift so it never
+      // settles. It is the same bassline underneath the whole way down - what
+      // changes is that something is now arguing with it.
+      if (this.musicDissonance > 0) {
+        const d = this.musicDissonance;
+        const drift = Math.sin(step * 0.37) * d * 1.6;
+        voice('triangle', bassline[beat] * 1.414 + drift, now, 0.26, 0.02 + d * 0.014);
+        if (d >= 3) {
+          voice('sawtooth', bassline[beat] * 2.02 + drift * 2, now + 0.06, 0.2, 0.012 + d * 0.008);
+        }
       }
 
       step++;

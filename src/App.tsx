@@ -48,6 +48,7 @@ import {
 } from './game/slotExpansions';
 import {
   CAMPAIGN_FINAL_ANTE,
+  ENDLESS_TIERS,
   getEndlessTier,
   getSlotRulesForAnte,
   isEndlessAnte,
@@ -64,7 +65,7 @@ import {
   ShopSnapshotV1,
 } from './game/runPersistence';
 import { getRunRngState, randomRun, seedRunRng, setRunRngState } from './game/runRng';
-import { musicIntensityFor, sound } from './services/soundEngine';
+import { musicDissonanceFor, musicIntensityFor, sound } from './services/soundEngine';
 
 import { GameTable } from './components/GameTable';
 import { getOpponentIntro } from './data/opponents';
@@ -392,6 +393,12 @@ function App() {
         ante,
         isEndless: isEndlessAnte(ante),
       })
+    );
+    // The Endless tier is a second dial: how much is playing, and whether it
+    // still agrees with itself.
+    const tier = getEndlessTier(ante);
+    sound.setMusicDissonance(
+      musicDissonanceFor(tier ? ENDLESS_TIERS.findIndex((entry) => entry.id === tier.id) : null)
     );
   }, [activeBoss, consecutiveWinStreak, ante]);
 
