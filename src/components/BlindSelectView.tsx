@@ -68,12 +68,14 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
 }) => {
   const reduceMotion = useReducedMotion();
   const theme = getTableThemeForAnte(ante);
-  const opponent = getOpponentIntro(ante, round);
   const tier = getEndlessTier(ante);
   const boss =
     endlessBoss ??
     ALL_BOSS_BLINDS.find((candidate) => candidate.ante === ante) ??
     ALL_BOSS_BLINDS[0];
+  // One Boss for the whole screen. Deriving the portrait separately from the
+  // rules panel is how the two came to disagree.
+  const opponent = getOpponentIntro(ante, round, boss);
 
   const [revealed, setRevealed] = useState(false);
   const [typedQuote, setTypedQuote] = useState('');

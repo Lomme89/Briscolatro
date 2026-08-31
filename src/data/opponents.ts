@@ -149,10 +149,26 @@ export function getRegularForAnte(ante: number): Regular {
   return REGULARS[index];
 }
 
-export function getOpponentIntro(ante: number, round: number): OpponentIntro {
+/**
+ * Who is sitting across the table tonight.
+ *
+ * `encounterBoss` is the Boss the round will actually be played against, when
+ * the caller already holds it. Looking one up by Ante cannot answer that past
+ * Ante 8: Endless composes its Boss from the run's own seed, no catalogue entry
+ * carries an Ante above eight, and the lookup below quietly fell back to the
+ * first Boss in the list. That put Gigi's face over Don Vito's name on the
+ * blind screen. Pass the real one and there is nothing to fall back from.
+ */
+export function getOpponentIntro(
+  ante: number,
+  round: number,
+  encounterBoss?: BossBlind | null
+): OpponentIntro {
   if (isBossEncounter(round)) {
     const boss =
-      ALL_BOSS_BLINDS.find((candidate) => candidate.ante === ante) || ALL_BOSS_BLINDS[0];
+      encounterBoss ??
+      ALL_BOSS_BLINDS.find((candidate) => candidate.ante === ante) ??
+      ALL_BOSS_BLINDS[0];
     return {
       characterId: boss.id,
       name: boss.name,
