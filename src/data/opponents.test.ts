@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getOpponentIntro, getRegularForAnte } from './opponents';
+import { getOpponentIntro, getRegularForAnte, getVoiceIdForAnte } from './opponents';
 import { ALL_BOSS_BLINDS } from './bosses';
 import { endlessBossForAnte } from '../game/endlessBosses';
 import { ENDLESS_BANTER, ENDLESS_INTROS, ENDLESS_TITLES } from './endlessBanter';
@@ -88,7 +88,7 @@ describe('opponents', () => {
   it('la frase di apertura e sempre del personaggio, un gradino piu in la', () => {
     for (const ante of [9, 17, 25, 33, 41]) {
       const tier = getEndlessTier(ante)!;
-      const who = getRegularForAnte(ante).characterId;
+      const who = getVoiceIdForAnte(ante);
       expect(getOpponentIntro(ante, 1).quote).toBe(ENDLESS_INTROS[tier.id][who]);
     }
 
@@ -99,7 +99,7 @@ describe('opponents', () => {
 
   it('ogni personaggio ha una frase di apertura per ogni tier', () => {
     const everyone = [
-      ...new Set([1, 2, 3, 4, 5, 6, 7, 8].map((ante) => getRegularForAnte(ante).characterId)),
+      ...new Set([1, 2, 3, 4, 5, 6, 7, 8].map(getVoiceIdForAnte)),
       ...ALL_BOSS_BLINDS.map((boss) => boss.id),
     ];
     for (const tier of ENDLESS_TIERS) {
@@ -116,7 +116,7 @@ describe('opponents', () => {
   });
   it('ogni personaggio ha un titolo per ogni tier', () => {
     const everyone = [
-      ...new Set([1, 2, 3, 4, 5, 6, 7, 8].map((ante) => getRegularForAnte(ante).characterId)),
+      ...new Set([1, 2, 3, 4, 5, 6, 7, 8].map(getVoiceIdForAnte)),
       ...ALL_BOSS_BLINDS.map((boss) => boss.id),
     ];
     for (const tier of ENDLESS_TIERS) {
@@ -140,5 +140,24 @@ describe('opponents', () => {
       expect(getOpponentIntro(ante, 1).title).toContain(getRegularForAnte(ante).epithet);
       expect(getOpponentIntro(ante, 2).title).toBe(getOpponentIntro(ante, 2).boss!.characterTitle);
     }
+  });
+
+  it('i due Gennaro non condividono lo stesso arco', () => {
+    // One sprite, two people: the habitue who opens the run and the rival who
+    // stands between you and the Sovrano. Keying the Endless tables on the face
+    // handed the rival the drunk's whole arc.
+    for (const ante of [9, 16]) {
+      expect(getRegularForAnte(ante).characterId).toBe('gennaro');
+    }
+    expect(getVoiceIdForAnte(9)).toBe('gennaro');
+    expect(getVoiceIdForAnte(16)).toBe('gennaro_rivale');
+
+    for (const tier of ENDLESS_TIERS) {
+      expect(ENDLESS_TITLES[tier.id].gennaro).not.toBe(ENDLESS_TITLES[tier.id].gennaro_rivale);
+      expect(ENDLESS_INTROS[tier.id].gennaro).not.toBe(ENDLESS_INTROS[tier.id].gennaro_rivale);
+    }
+
+    expect(getOpponentIntro(9, 1).quote).not.toBe(getOpponentIntro(16, 1).quote);
+    expect(getOpponentIntro(9, 1).title).not.toBe(getOpponentIntro(16, 1).title);
   });
 });

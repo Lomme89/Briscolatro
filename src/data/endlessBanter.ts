@@ -66,6 +66,7 @@ export const ENDLESS_BANTER: Record<EndlessTierId, string[]> = {
  */
 export const ENDLESS_TITLES: Record<EndlessTierId, Record<string, string>> = {
   asceso: {
+    gennaro_rivale: 'Il Rivale che Non Molla',
     gennaro: 'Habitué del Turno di Notte',
     assunta: 'Matriarca della Bocciofila',
     mimi: 'Stella del Varietà di Provincia',
@@ -83,6 +84,7 @@ export const ENDLESS_TITLES: Record<EndlessTierId, Record<string, string>> = {
     boss_ante_8: "Campione Supremo dell'Infinito",
   },
   sovraccarico: {
+    gennaro_rivale: 'Lo Sfidante Speculare',
     gennaro: 'Alcolista Anonimo di Grado Ignoto',
     assunta: 'Vedova Nera della Bocciofila',
     mimi: 'Diva del Sipario che Non Cala',
@@ -100,6 +102,7 @@ export const ENDLESS_TITLES: Record<EndlessTierId, Record<string, string>> = {
     boss_ante_8: 'Sovrano del Tavolo Senza Fine',
   },
   ultra_istinto: {
+    gennaro_rivale: 'Il Tuo Riflesso col Mazzo in Mano',
     gennaro: 'Cavaliere Errante del Bancone',
     assunta: 'Custode delle Bocce Proibite',
     mimi: 'Prima Donna del Teatro Vuoto',
@@ -117,6 +120,7 @@ export const ENDLESS_TITLES: Record<EndlessTierId, Record<string, string>> = {
     boss_ante_8: 'Monarca di un Regno di Quaranta Carte',
   },
   trascendente: {
+    gennaro_rivale: 'L’Avversario che Ti Somiglia Troppo',
     gennaro: 'Supernova di Grappa',
     assunta: 'La Parca che Tiene il Punteggio',
     mimi: 'La Voce che Canta a Luci Spente',
@@ -134,6 +138,7 @@ export const ENDLESS_TITLES: Record<EndlessTierId, Record<string, string>> = {
     boss_ante_8: 'Corona Vuota sul Trono Vuoto',
   },
   fuori_scala: {
+    gennaro_rivale: 'Gennaro, la Tua Stessa Mano',
     gennaro: 'Gennaro, Primo e Ultimo di Sé Stesso',
     assunta: 'Assunta, Antecedente al Bar',
     mimi: 'Mimì, Applauso Senza Pubblico',
@@ -163,6 +168,7 @@ export const ENDLESS_TITLES: Record<EndlessTierId, Record<string, string>> = {
  */
 export const ENDLESS_INTROS: Record<EndlessTierId, Record<string, string>> = {
   asceso: {
+    gennaro_rivale: 'Siamo arrivati fin qui insieme. E ci stiamo ancora arrivando.',
     gennaro: 'Il bar ha chiuso alle due. Sono le due da un bel pezzo. Siediti.',
     assunta: 'La bocciofila l’hanno chiusa nel Settantanove. Io gioco ancora.',
     mimi: 'Ultimo spettacolo. Come ieri. Come domani.',
@@ -180,6 +186,7 @@ export const ENDLESS_INTROS: Record<EndlessTierId, Record<string, string>> = {
     boss_ante_8: 'Mi hai già battuto. Rieccomi. Non chiedermi come.',
   },
   sovraccarico: {
+    gennaro_rivale: 'Ogni volta che ti guardo mi trovo più simile. Non mi piace.',
     gennaro: 'Sono trentasette giorni che non bevo. Ed è la stessa sera da trentasette giorni.',
     assunta: 'Ho sepolto tre mariti e nessuno di loro sapeva contare le carte.',
     mimi: 'Il sipario non cala più. Ho smesso di aspettarlo.',
@@ -197,6 +204,7 @@ export const ENDLESS_INTROS: Record<EndlessTierId, Record<string, string>> = {
     boss_ante_8: 'Il tavolo non finisce. Il mio regno nemmeno.',
   },
   ultra_istinto: {
+    gennaro_rivale: 'Gioco la tua carta un istante prima di te. Chiedimi come.',
     gennaro: 'Non ti offro più da bere. Ormai il bicchiere lo sogniamo insieme.',
     assunta: 'Ai miei tempi il mazzo aveva più carte. O meno. Cambiano da sole.',
     mimi: 'Canto per la sala vuota. La sala vuota risponde.',
@@ -214,6 +222,7 @@ export const ENDLESS_INTROS: Record<EndlessTierId, Record<string, string>> = {
     boss_ante_8: 'Quaranta carte per un regno intero. Ridicolo, vero?',
   },
   trascendente: {
+    gennaro_rivale: 'Uno di noi due è il riflesso. Non ricordo quale.',
     gennaro: 'Bruci anche tu, vero? Io ho smesso di distinguere la grappa dal fuoco.',
     assunta: 'Il punteggio lo tengo io. L’ho sempre tenuto io. Anche il tuo.',
     mimi: 'Spegni pure le luci. Ormai brillo da sola.',
@@ -231,6 +240,7 @@ export const ENDLESS_INTROS: Record<EndlessTierId, Record<string, string>> = {
     boss_ante_8: 'La corona è vuota, il trono è vuoto. Gioca comunque.',
   },
   fuori_scala: {
+    gennaro_rivale: 'Non c’è nessun rivale. C’è solo la tua mano, giocata due volte.',
     gennaro: 'Ci siamo solo io e te. Anzi, ci sono solo io. Ma tu gioca lo stesso.',
     assunta: 'Il bar l’hanno costruito intorno a me. Non avevo chiesto niente.',
     mimi: 'Senti l’applauso? Nemmeno io. Eppure c’è.',

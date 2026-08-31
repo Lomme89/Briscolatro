@@ -21,6 +21,13 @@ export interface OpponentIntro {
 
 interface Regular {
   characterId: string;
+  /**
+   * Who this is for the Endless tables, when that is not the same as whose
+   * face it is. Gennaro sits down twice - the habitue of Ante 1 and the rival
+   * of Ante 8 - behind one sprite, and keying the tables on the sprite gave the
+   * rival the drunk's whole arc. Defaults to characterId.
+   */
+  voiceId?: string;
   name: string;
   epithet: string;
   /** Which temperament in aiProfiles.ts sits behind the face. */
@@ -134,6 +141,7 @@ const REGULARS: Regular[] = [
   },
   {
     characterId: 'gennaro',
+    voiceId: 'gennaro_rivale',
     name: 'Gennaro',
     epithet: 'Il Rivale di Sempre',
     aiProfileId: 'gennaro_rivale',
@@ -180,6 +188,12 @@ function endlessVoice(
     // inheriting somebody else's arc.
     title: ENDLESS_TITLES[tier.id][characterId] ?? ownTitle,
   };
+}
+
+/** Whose arc an Ante's regular follows in the Endless tables. */
+export function getVoiceIdForAnte(ante: number): string {
+  const regular = getRegularForAnte(ante);
+  return regular.voiceId ?? regular.characterId;
 }
 
 export function getRegularForAnte(ante: number): Regular {
@@ -231,7 +245,7 @@ export function getOpponentIntro(
   const regular = getRegularForAnte(ante);
   const voice = endlessVoice(
     ante,
-    regular.characterId,
+    regular.voiceId ?? regular.characterId,
     regular.intro,
     regular.banter,
     regular.epithet
