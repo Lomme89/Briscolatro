@@ -143,8 +143,10 @@ export const PixelCard: React.FC<PixelCardProps> = ({
     return (
       <motion.div
         layoutId={layoutId}
-        initial={animateDeal ? { scale: 0.3, y: -60, opacity: 0, rotate: -15 } : false}
-        animate={{ scale: 1, y: 0, opacity: 1, rotate: 0 }}
+        // Face-down cards are dealt, and dealing happens from the stock: they
+        // come in from its side rather than dropping out of nowhere.
+        initial={animateDeal ? { scale: 0.45, x: -130, y: 44, opacity: 0, rotate: -34 } : false}
+        animate={{ scale: 1, x: 0, y: 0, opacity: 1, rotate: 0 }}
         transition={{ type: 'spring', damping: 20, stiffness: 300, delay: dealDelay }}
         className={`${sizeClasses} ${styleDef.cardBackBg} rounded-lg pixel-box flex flex-col items-center justify-center relative overflow-hidden select-none cursor-not-allowed shadow-md ${className}`}
       >

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { PlayingCard, Joker, UnoCard, Suit, BossBlind } from '../types/game';
 import { PixelCard } from './PixelCard';
@@ -100,6 +100,9 @@ function useMediaQuery(query: string): boolean {
   return matches;
 }
 
+/** Seconds into the deal at which the stock is turned over. */
+const TRUMP_FLIP_DELAY = 0.9;
+
 export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
   const {
     hud: {
@@ -177,6 +180,28 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
   // Opening the trick is where both lead restrictions bite. Working it out here
   // means an illegal card is visibly out of reach instead of being refused
   // after the tap - the rule reads as part of the table, not as a rejection.
+  // The deal runs for about a second before the stock is turned over; the flip
+  // has to land after the last card, not on top of it.
+  const briscolaName = getSuitDisplayName(briscolaSuit);
+
+  // The suit that decides the whole hand deserves to be said out loud once,
+  // when it is turned over, and then get out of the way.
+  const [announceBriscola, setAnnounceBriscola] = useState(false);
+  const trumpId = trumpCard?.id ?? null;
+  // Keyed on the trump alone, not on the deal: isDealing is released well
+  // before the call has finished being read, and tearing the effect down with
+  // it took the banner off the table half a second after it appeared.
+  useEffect(() => {
+    if (!trumpId) return;
+    const show = setTimeout(() => setAnnounceBriscola(true), TRUMP_FLIP_DELAY * 1000);
+    const hide = setTimeout(() => setAnnounceBriscola(false), TRUMP_FLIP_DELAY * 1000 + 1600);
+    return () => {
+      clearTimeout(show);
+      clearTimeout(hide);
+      setAnnounceBriscola(false);
+    };
+  }, [trumpId]);
+
   const isOpeningTrick = opponentTrickCard === null;
   const effectiveBoss = bossDebuffNeutralized ? null : currentBoss;
   // Ciccio il Baro: his card lands face down and stays that way until the
@@ -682,6 +707,31 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
           <span className="uppercase font-bold tracking-wider">{tableTheme.name}</span>
         </div>
 
+        {/* THE CALL: what suit is trump, once, as it is turned over. */}
+        <AnimatePresence>
+          {announceBriscola && (
+            <motion.div
+              initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.7, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 1.15, y: -14 }}
+              transition={{ type: 'spring', damping: 16, stiffness: 260 }}
+              className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none"
+            >
+              <div className="flex items-center gap-2.5 bg-slate-950/95 border-3 border-orange-500 px-4 py-2.5 rounded-2xl pixel-box shadow-2xl">
+                <PixelSuitIcon suit={briscolaSuit} size={26} />
+                <div className="text-left leading-tight">
+                  <div className="font-pixel text-[7.5px] text-orange-300/80 uppercase tracking-widest">
+                    Briscola
+                  </div>
+                  <div className="font-pixel text-sm text-orange-400 font-bold uppercase">
+                    {briscolaName}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* OPPONENT SECTION (Top of felt table) */}
         <div className={`flex flex-col z-10 shrink-0 border-b ${tableTheme.dividerBorder} pb-1.5`}>
           <div className="flex items-center justify-between gap-2">
@@ -830,17 +880,52 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                 </div>
               )}
 
-              {/* Briscola card face-up IN FRONT (foreground z-20) */}
+              {/* Briscola card face-up IN FRONT (foreground z-20).
+
+                  It used to simply be there once the round existed, which made
+                  the one moment that decides the whole hand the only one with no
+                  gesture attached. It is turned over now: dealt face-down with
+                  the rest, then flipped. Two stacked faces with their backs
+                  hidden, because rotating a single face just shows it mirrored
+                  halfway through. */}
               {trumpCard && (
-                <div className="relative -ml-3 sm:-ml-4 z-20 transform rotate-6 group-hover:rotate-0 transition-transform duration-200 shadow-xl drop-shadow-[0_4px_8px_rgba(0,0,0,0.6)]">
-                  <PixelCard
-                    card={trumpCard}
-                    isBriscola={true}
-                    showBriscolaBadge={false}
-                    size="xs"
-                    showPoints={true}
-                  />
-                </div>
+                <motion.div
+                  key={trumpCard.id}
+                  initial={
+                    reduceMotion
+                      ? { opacity: 0 }
+                      : { rotateY: 180, x: -34, y: -16, scale: 0.7, opacity: 0 }
+                  }
+                  animate={{ rotateY: 0, x: 0, y: 0, scale: 1, opacity: 1 }}
+                  transition={
+                    reduceMotion
+                      ? { duration: 0.2 }
+                      : {
+                          type: 'spring',
+                          damping: 15,
+                          stiffness: 260,
+                          delay: isDealing ? TRUMP_FLIP_DELAY : 0,
+                        }
+                  }
+                  style={{ transformPerspective: 900, transformStyle: 'preserve-3d' }}
+                  className="relative -ml-3 sm:-ml-4 z-20 rotate-6 group-hover:rotate-0 transition-transform duration-200 shadow-xl drop-shadow-[0_4px_8px_rgba(0,0,0,0.6)]"
+                >
+                  <div style={{ backfaceVisibility: 'hidden' }}>
+                    <PixelCard
+                      card={trumpCard}
+                      isBriscola={true}
+                      showBriscolaBadge={false}
+                      size="xs"
+                      showPoints={true}
+                    />
+                  </div>
+                  <div
+                    className="absolute inset-0"
+                    style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+                  >
+                    <PixelCard card={trumpCard} faceDown size="xs" />
+                  </div>
+                </motion.div>
               )}
             </div>
 
@@ -871,7 +956,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                     {/* Opponent Slam Trajectory Motion */}
                     <motion.div
                       key={opponentTrickCard.id}
-                      initial={reduceMotion ? { opacity: 0 } : { y: -80, scale: 0.5, rotate: 18, opacity: 0 }}
+                      initial={reduceMotion ? { opacity: 0 } : { y: -150, scale: 0.55, rotate: 26, opacity: 0 }}
                       animate={{ 
                         y: 0,
                         scale: 1,
@@ -887,7 +972,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                         rotate: playerWonTrick ? 12 : -12,
                         transition: { duration: 0.32, ease: 'easeIn' },
                       }}
-                      transition={{ type: 'spring', damping: 18, stiffness: 300 }}
+                      transition={{ type: 'spring', damping: 13, stiffness: 420, delay: 0.05 }}
                     >
                       <PixelCard
                         card={opponentTrickCard}
@@ -946,7 +1031,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                     {/* Player Slam Trajectory Motion */}
                     <motion.div
                       key={playerTrickCard.id}
-                      initial={reduceMotion ? { opacity: 0 } : { y: 80, scale: 0.5, rotate: -18, opacity: 0 }}
+                      initial={reduceMotion ? { opacity: 0 } : { y: 150, scale: 0.55, rotate: -26, opacity: 0 }}
                       animate={{ 
                         y: 0,
                         scale: 1,
@@ -960,7 +1045,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                         rotate: playerWonTrick ? -12 : 12,
                         transition: { duration: 0.32, ease: 'easeIn' },
                       }}
-                      transition={{ type: 'spring', damping: 18, stiffness: 300 }}
+                      transition={{ type: 'spring', damping: 13, stiffness: 420, delay: 0.05 }}
                     >
                       <PixelCard
                         card={playerTrickCard}
@@ -1089,13 +1174,20 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                       transition: { duration: 0.15 },
                     }}
                     exit={{
-                      y: -50,
+                      // Thrown at the table rather than shrunk where it stood.
+                      // It leaves upward, toward the clash zone, accelerating and
+                      // spinning: the trick card arriving from below then reads
+                      // as the same card landing instead of a second one fading
+                      // in somewhere else.
+                      y: -140,
+                      x: offset * -22,
+                      rotate: offset * -14 + 16,
                       opacity: 0,
-                      scale: 0.5,
+                      scale: 0.8,
                       // Explicit, finite exit: inheriting the infinite float
                       // transition below leaves played cards in the DOM forever,
                       // still taking layout space and pushing the hand off-centre.
-                      transition: { duration: 0.2, ease: 'easeIn' },
+                      transition: { duration: 0.22, ease: 'easeIn' },
                     }}
                     className={`flex flex-col items-center shrink-0 ${handSpacing}`}
                   >

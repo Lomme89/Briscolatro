@@ -496,6 +496,7 @@ function App() {
     for (let card = 0; card < 6; card++) {
       scheduleAction(() => sound.playCardFlick(), 120 + card * 130);
     }
+    // 900ms: the beat GameTable turns the trump over on (TRUMP_FLIP_DELAY).
     scheduleAction(() => sound.playTrumpSlam(), 120 + 6 * 130);
     scheduleAction(() => setIsDealing(false), 1400);
 
