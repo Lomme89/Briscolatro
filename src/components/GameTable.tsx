@@ -718,16 +718,19 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
         </div>
 
         {/* THE CALL: what suit is trump, once, as it is turned over. */}
-        <AnimatePresence>
-          {announceBriscola && (
-            <motion.div
-              initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.7, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 1.15, y: -14 }}
-              transition={{ type: 'spring', damping: 16, stiffness: 260 }}
-              className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none"
-            >
-              <div className="flex items-center gap-2.5 bg-slate-950/95 border-3 border-orange-500 px-4 py-2.5 rounded-2xl pixel-box shadow-2xl">
+        {/* The scaling belongs to the badge, never to this box. Animating a full
+            size `inset-0` overlay to scale 1.15 grows it past the felt on every
+            side, which is enough overflow to flash the page scrollbar for the
+            length of the exit. */}
+        <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
+          <AnimatePresence>
+            {announceBriscola && (
+              <motion.div
+                initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.7, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 1.15, y: -14 }}
+                transition={{ type: 'spring', damping: 16, stiffness: 260 }}
+                className="flex items-center gap-2.5 bg-slate-950/95 border-3 border-orange-500 px-4 py-2.5 rounded-2xl pixel-box shadow-2xl">
                 <PixelSuitIcon suit={briscolaSuit} size={26} />
                 <div className="text-left leading-tight">
                   <div className="font-pixel text-[7.5px] text-orange-300/80 uppercase tracking-widest">
@@ -737,10 +740,10 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                     {briscolaName}
                   </div>
                 </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
         {/* OPPONENT SECTION (Top of felt table) */}
         <div className={`flex flex-col z-10 shrink-0 border-b ${tableTheme.dividerBorder} pb-1.5`}>
