@@ -215,6 +215,25 @@ export function cardSlamVoice(points: number, isBriscola = false) {
   };
 }
 
+/**
+ * How loud the room should be for a given moment of a run, 0 to 3.
+ *
+ * A Boss owns the level outright: whatever the streak was, the table is theirs
+ * now. Short of one it climbs with a win streak, and the deep Antes are never
+ * quiet even when you are losing.
+ */
+export function musicIntensityFor(state: {
+  hasBoss: boolean;
+  winStreak: number;
+  ante: number;
+  isEndless?: boolean;
+}): 0 | 1 | 2 | 3 {
+  if (state.hasBoss) return 3;
+  if (state.winStreak >= 3) return 2;
+  if (state.ante >= 4 || state.isEndless) return 1;
+  return 0;
+}
+
 class SoundEngine {
   private ctx: AudioContext | null = null;
   private musicGain: GainNode | null = null;
@@ -764,6 +783,20 @@ class SoundEngine {
     });
   }
 
+  /**
+   * How loud the room is, 0 to 3.
+   *
+   * The loop is one bassline and always was; what changes with the level is how
+   * many voices are playing over it and how fast they come. Voices on a shared
+   * clock beat stems: there is nothing to keep in sync, a level change lands on
+   * the next step instead of on the next bar, and none of it ships as audio.
+   */
+  private musicIntensity = 0;
+
+  public setMusicIntensity(level: number) {
+    this.musicIntensity = Math.max(0, Math.min(3, Math.round(level)));
+  }
+
   // Background Synth Loop (Balatro vibes)
   public toggleMusic(enable: boolean) {
     if (!enable) {
@@ -776,36 +809,124 @@ class SoundEngine {
 
     this.isMusicPlaying = true;
     const bassline = [110, 110, 130.81, 146.83, 110, 110, 164.81, 146.83];
+    // A minor, which is where the bassline already lives.
+    const arpeggio = [440, 523.25, 659.25, 523.25, 587.33, 493.88, 440, 392];
     let step = 0;
 
     this.musicGain = this.ctx.createGain();
     this.musicGain.gain.setValueAtTime(this.isMuted ? 0 : this.musicVolume, this.ctx.currentTime);
     this.musicGain.connect(this.ctx.destination);
 
+    /** One voice, one note. Every layer below is a call to this. */
+    const voice = (
+      type: OscillatorType,
+      freq: number,
+      at: number,
+      dur: number,
+      level: number
+    ) => {
+      if (!this.ctx || !this.musicGain) return;
+      const osc = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, at);
+      g.gain.setValueAtTime(level, at);
+      g.gain.exponentialRampToValueAtTime(0.001, at + dur);
+      osc.connect(g);
+      g.connect(this.musicGain);
+      osc.start(at);
+      osc.stop(at + dur);
+    };
+
     const playStep = () => {
       if (!this.isMusicPlaying || !this.ctx || !this.musicGain) return;
       const now = this.ctx.currentTime;
-      const osc = this.ctx.createOscillator();
-      const noteGain = this.ctx.createGain();
+      const intensity = this.musicIntensity;
+      const beat = step % bassline.length;
 
-      const freq = bassline[step % bassline.length];
-      osc.type = step % 4 === 0 ? 'sawtooth' : 'triangle';
-      osc.frequency.setValueAtTime(freq, now);
+      // Layer 0: the double bass. Always there, it is the room.
+      voice(step % 4 === 0 ? 'sawtooth' : 'triangle', bassline[beat], now, 0.22, 0.2);
 
-      noteGain.gain.setValueAtTime(0.2, now);
-      noteGain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+      // Layer 1: brushes on the offbeat. The first sign the night is moving.
+      if (intensity >= 1 && step % 2 === 1) {
+        voice('square', 3800, now, 0.03, 0.02);
+      }
 
-      osc.connect(noteGain);
-      noteGain.connect(this.musicGain);
+      // Layer 2: the mandolin comes out on a streak, two notes to the step.
+      if (intensity >= 2) {
+        voice('triangle', arpeggio[beat], now, 0.12, 0.07);
+        voice('triangle', arpeggio[(beat + 2) % arpeggio.length], now + 0.11, 0.12, 0.055);
+      }
 
-      osc.start(now);
-      osc.stop(now + 0.23);
+      // Layer 3: a Boss sits down. An octave under the bass, detuned against
+      // itself so it beats rather than sings, and the brushes stop.
+      if (intensity >= 3) {
+        voice('sawtooth', bassline[beat] / 2, now, 0.3, 0.13);
+        voice('sawtooth', bassline[beat] / 2 + 1.5, now, 0.3, 0.1);
+      }
 
       step++;
-      this.musicTimer = window.setTimeout(playStep, 240);
+      const period = intensity >= 3 ? 190 : intensity >= 2 ? 210 : 240;
+      this.musicTimer = window.setTimeout(playStep, period);
     };
 
     playStep();
+  }
+
+  /**
+   * A Boss sits down: the room stops, you hear your own pulse, and then the
+   * night starts again heavier. Ducks the music rather than stopping it, so
+   * there is no loop to restart and nothing to get out of step.
+   */
+  public playBossSting() {
+    if (this.isMuted || this.sfxVolume <= 0) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+
+    if (this.musicGain) {
+      const target = this.musicVolume;
+      this.musicGain.gain.cancelScheduledValues(now);
+      this.musicGain.gain.setValueAtTime(this.musicGain.gain.value, now);
+      this.musicGain.gain.linearRampToValueAtTime(0.0001, now + 0.12);
+      this.musicGain.gain.setValueAtTime(0.0001, now + 1.5);
+      this.musicGain.gain.linearRampToValueAtTime(target, now + 1.9);
+    }
+
+    const thump = (at: number, gainLevel: number) => {
+      if (!this.ctx) return;
+      const osc = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(64, at);
+      osc.frequency.exponentialRampToValueAtTime(32, at + 0.22);
+      g.gain.setValueAtTime(gainLevel * this.sfxVolume, at);
+      g.gain.exponentialRampToValueAtTime(0.001, at + 0.24);
+      osc.connect(g);
+      g.connect(this.ctx.destination);
+      osc.start(at);
+      osc.stop(at + 0.25);
+    };
+
+    // Two beats, the second weaker, twice over: a heart, not a drum.
+    thump(now + 0.25, 0.5);
+    thump(now + 0.47, 0.3);
+    thump(now + 0.85, 0.55);
+    thump(now + 1.07, 0.34);
+
+    // The drop.
+    const hit = this.ctx.createOscillator();
+    const hitGain = this.ctx.createGain();
+    hit.type = 'sawtooth';
+    hit.frequency.setValueAtTime(180, now + 1.45);
+    hit.frequency.exponentialRampToValueAtTime(41, now + 1.95);
+    hitGain.gain.setValueAtTime(0.55 * this.sfxVolume, now + 1.45);
+    hitGain.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
+    hit.connect(hitGain);
+    hitGain.connect(this.ctx.destination);
+    hit.start(now + 1.45);
+    hit.stop(now + 2.0);
   }
 
 

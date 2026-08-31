@@ -1,4 +1,4 @@
-import React, { useState, useRef, useReducer } from 'react';
+import React, { useState, useRef, useReducer, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import {
   DeckDefinition,
@@ -64,7 +64,7 @@ import {
   ShopSnapshotV1,
 } from './game/runPersistence';
 import { getRunRngState, randomRun, seedRunRng, setRunRngState } from './game/runRng';
-import { sound } from './services/soundEngine';
+import { musicIntensityFor, sound } from './services/soundEngine';
 
 import { GameTable } from './components/GameTable';
 import { getOpponentIntro } from './data/opponents';
@@ -380,6 +380,21 @@ function App() {
    * tenth of it nothing moves: a shake on all twenty tricks of a round stops
    * meaning anything, and on a phone it drags the viewport with it.
    */
+  /**
+   * How loud the room should be. A Boss owns the level outright; short of one
+   * it climbs with a win streak, and the deep Antes are never quiet.
+   */
+  useEffect(() => {
+    sound.setMusicIntensity(
+      musicIntensityFor({
+        hasBoss: !!activeBoss,
+        winStreak: consecutiveWinStreak,
+        ante,
+        isEndless: isEndlessAnte(ante),
+      })
+    );
+  }, [activeBoss, consecutiveWinStreak, ante]);
+
   const triggerScreenShake = (intensity: number = 0.4) => {
     if (
       !settings.screenShake ||
@@ -445,6 +460,7 @@ function App() {
       setActiveBoss(bossToSet);
       activeBossRef.current = bossToSet;
       setOpponentSpeech(bossToSet.bossQuote);
+      sound.playBossSting();
     } else {
       setActiveBoss(null);
       activeBossRef.current = null;
