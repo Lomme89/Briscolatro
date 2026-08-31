@@ -3,7 +3,7 @@ import { ALL_BOSS_BLINDS } from './bosses';
 import { getTableThemeForAnte } from './tableThemes';
 import { isBossEncounter } from '../game/gameState';
 import { ENDLESS_TIERS, getEndlessTier } from '../game/endless';
-import { ENDLESS_BANTER } from './endlessBanter';
+import { ENDLESS_BANTER, ENDLESS_TITLES } from './endlessBanter';
 
 export interface OpponentIntro {
   /** Matches a PixelAvatar character. */
@@ -157,11 +157,13 @@ const REGULARS: Regular[] = [
  */
 function endlessVoice(
   ante: number,
+  characterId: string,
   ownQuote: string,
-  ownBanter: string[]
-): { quote: string; banter: string[] } {
+  ownBanter: string[],
+  ownTitle: string
+): { quote: string; banter: string[]; title: string } {
   const tier = getEndlessTier(ante);
-  if (!tier) return { quote: ownQuote, banter: ownBanter };
+  if (!tier) return { quote: ownQuote, banter: ownBanter, title: ownTitle };
 
   const tierIndex = ENDLESS_TIERS.findIndex((entry) => entry.id === tier.id);
   const strange = ENDLESS_BANTER[tier.id];
@@ -170,6 +172,9 @@ function endlessVoice(
   return {
     quote: tierIndex >= 2 ? strange[tierIndex % strange.length] : ownQuote,
     banter: [...ownBanter, ...bleed],
+    // A character with no entry keeps the name it came with rather than
+    // inheriting somebody else's arc.
+    title: ENDLESS_TITLES[tier.id][characterId] ?? ownTitle,
   };
 }
 
@@ -198,11 +203,17 @@ export function getOpponentIntro(
       encounterBoss ??
       ALL_BOSS_BLINDS.find((candidate) => candidate.ante === ante) ??
       ALL_BOSS_BLINDS[0];
-    const voice = endlessVoice(ante, boss.bossQuote, [boss.bossQuote]);
+    const voice = endlessVoice(
+      ante,
+      boss.id,
+      boss.bossQuote,
+      [boss.bossQuote],
+      boss.characterTitle
+    );
     return {
       characterId: boss.id,
       name: boss.name,
-      title: boss.characterTitle,
+      title: voice.title,
       quote: voice.quote,
       isBoss: true,
       boss,
@@ -214,12 +225,18 @@ export function getOpponentIntro(
   }
 
   const regular = getRegularForAnte(ante);
-  const voice = endlessVoice(ante, regular.intro, regular.banter);
+  const voice = endlessVoice(
+    ante,
+    regular.characterId,
+    regular.intro,
+    regular.banter,
+    regular.epithet
+  );
   return {
     characterId: regular.characterId,
     aiProfileId: regular.aiProfileId,
     name: regular.name,
-    title: `${regular.epithet} · ${getTableThemeForAnte(ante).name}`,
+    title: `${voice.title} · ${getTableThemeForAnte(ante).name}`,
     quote: voice.quote,
     isBoss: false,
     boss: null,

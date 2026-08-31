@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { getOpponentIntro, getRegularForAnte } from './opponents';
 import { ALL_BOSS_BLINDS } from './bosses';
 import { endlessBossForAnte } from '../game/endlessBosses';
-import { ENDLESS_BANTER } from './endlessBanter';
+import { ENDLESS_BANTER, ENDLESS_TITLES } from './endlessBanter';
 import { ENDLESS_TIERS, getEndlessTier } from '../game/endless';
 
 describe('opponents', () => {
@@ -97,6 +97,33 @@ describe('opponents', () => {
   it('ogni tier Endless ha le sue battute', () => {
     for (const tier of ENDLESS_TIERS) {
       expect(ENDLESS_BANTER[tier.id].length).toBeGreaterThanOrEqual(5);
+    }
+  });
+  it('ogni personaggio ha un titolo per ogni tier', () => {
+    const everyone = [
+      ...new Set([1, 2, 3, 4, 5, 6, 7, 8].map((ante) => getRegularForAnte(ante).characterId)),
+      ...ALL_BOSS_BLINDS.map((boss) => boss.id),
+    ];
+    for (const tier of ENDLESS_TIERS) {
+      for (const who of everyone) {
+        expect(ENDLESS_TITLES[tier.id][who], `${tier.id}/${who}`).toBeTruthy();
+      }
+    }
+  });
+
+  it('il titolo cambia a ogni tier, e mai due volte uguale', () => {
+    // Gennaro is the arc the whole idea is named after: habitue, then the
+    // twelve-step joke, then something that is not a person any more.
+    const titles = [9, 17, 25, 33, 41].map((ante) => getOpponentIntro(ante, 1).title);
+    expect(new Set(titles).size).toBe(titles.length);
+    expect(titles[0]).toContain('Habitué');
+    expect(titles[3]).toContain('Supernova');
+  });
+
+  it('nella campagna il titolo resta quello stampato', () => {
+    for (let ante = 1; ante <= 8; ante++) {
+      expect(getOpponentIntro(ante, 1).title).toContain(getRegularForAnte(ante).epithet);
+      expect(getOpponentIntro(ante, 2).title).toBe(getOpponentIntro(ante, 2).boss!.characterTitle);
     }
   });
 });
