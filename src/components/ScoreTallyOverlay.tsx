@@ -23,12 +23,24 @@ interface ScoreTallyProps {
   baseMult?: number;
   /** Halves the count-up: the tally is played 20 times a round. */
   fastMode?: boolean;
+  /**
+   * Fired on the landing frame, with the share of the round's target this
+   * trick was worth. The table shakes by that, or not at all.
+   */
+  onImpact?: (intensity: number) => void;
   onComplete: () => void;
   targetScore: number;
   currentTotalScore: number;
   playerBriscolaPoints: number;
   opponentBriscolaPoints: number;
 }
+
+/**
+ * The chips are gettoni, so they land as gettoni. Built once: shapeFromText
+ * rasterises a glyph, and doing that per trick would be twenty canvases a
+ * round for an effect that lasts a second.
+ */
+const coinShapes = [confetti.shapeFromText({ text: '🪙', scalar: 1.1 })];
 
 export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
   chips,
@@ -41,6 +53,7 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
   baseChips,
   baseMult,
   fastMode = false,
+  onImpact,
   onComplete,
   targetScore,
   currentTotalScore,
@@ -73,6 +86,8 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
 
   const onCompleteRef = React.useRef(onComplete);
   onCompleteRef.current = onComplete;
+  const onImpactRef = React.useRef(onImpact);
+  onImpactRef.current = onImpact;
   const completedRef = React.useRef(false);
   const completeOnceRef = React.useRef<(() => void) | null>(null);
   if (!completeOnceRef.current) {
@@ -132,12 +147,21 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
 
     sound.playMultImpact();
 
-    if (!reduceMotion && (currentTotalScore + finalScore >= targetScore || finalScore >= 500)) {
+    // What fraction of the round this one trick just took. Everything about
+    // how loud the landing is comes off this number.
+    const share = finalScore / Math.max(1, targetScore);
+    onImpactRef.current?.(share);
+
+    const closesTheRound = currentTotalScore + finalScore >= targetScore;
+    if (!reduceMotion && (closesTheRound || share >= 0.09)) {
       confetti({
-        particleCount: finalScore >= 1000 ? 70 : 40,
-        spread: 70,
+        particleCount: share >= 0.6 ? 80 : share >= 0.25 ? 45 : 22,
+        spread: share >= 0.6 ? 90 : 60,
+        scalar: 1.1,
+        startVelocity: share >= 0.6 ? 45 : 32,
+        shapes: coinShapes,
         origin: { y: 0.55 },
-        colors: ['#fbbf24', '#f87171', '#60a5fa', '#4ade80', '#c084fc'],
+        colors: ['#fbbf24', '#f59e0b', '#fde68a', '#b45309'],
       });
     }
 

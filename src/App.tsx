@@ -314,7 +314,8 @@ function App() {
   const [pendingDeck, setPendingDeck] = useState<DeckDefinition | null>(null);
   const [showDeckViewer, setShowDeckViewer] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [isShaking, setIsShaking] = useState(false);
+  /** 0 = still. 1-3 = how hard the table just got hit. */
+  const [shakeTier, setShakeTier] = useState<0 | 1 | 2 | 3>(0);
 
   /**
    * Every pause between tricks goes through here. A round is 20 tricks, so the
@@ -374,13 +375,21 @@ function App() {
     return rules.length > 0 ? rules : undefined;
   };
 
-  const triggerScreenShake = () => {
+  /**
+   * `intensity` is the share of the round's target the hit was worth. Below a
+   * tenth of it nothing moves: a shake on all twenty tricks of a round stops
+   * meaning anything, and on a phone it drags the viewport with it.
+   */
+  const triggerScreenShake = (intensity: number = 0.4) => {
     if (
       !settings.screenShake ||
       (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
     ) return;
-    setIsShaking(true);
-    setTimeout(() => setIsShaking(false), 350);
+    const tier: 0 | 1 | 2 | 3 =
+      intensity >= 0.6 ? 3 : intensity >= 0.25 ? 2 : intensity >= 0.09 ? 1 : 0;
+    if (tier === 0) return;
+    setShakeTier(tier);
+    setTimeout(() => setShakeTier(0), tier === 3 ? 620 : tier === 2 ? 400 : 240);
   };
 
   // --- Initialize Match Round ---
@@ -712,7 +721,6 @@ function App() {
 
     if (clash.playerWon) {
       sound.playTrickWin();
-      triggerScreenShake();
 
       // Calculate score with Jokers and Boss debuffs
       const remainingTricks =
@@ -1799,7 +1807,7 @@ function App() {
         // scroll box that clips the table instead of letting the page grow.
         className={`min-h-screen w-full bar-table text-amber-50 flex flex-col justify-between overflow-x-clip relative ${
           settings.crtScanlines ? 'crt-overlay' : ''
-        } ${settings.screenShake && isShaking ? 'animate-bounce' : ''}`}
+        } ${shakeTier > 0 ? `table-shake-${shakeTier}` : ''}`}
       >
         {/* The lamp over the table. A boss makes the bulb stutter. */}
         <div
@@ -1989,6 +1997,7 @@ function App() {
             playerWon={tallyData.playerWon}
             multReasons={tallyData.scoreResult?.baseMultReasons}
             steps={tallyData.scoreResult?.steps}
+            onImpact={triggerScreenShake}
             baseChips={tallyData.scoreResult?.baseChips}
             baseMult={tallyData.scoreResult?.baseMult}
             fastMode={settings.fastMode}
