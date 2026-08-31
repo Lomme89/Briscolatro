@@ -173,14 +173,14 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
     return () => clearTimeout(timer);
   }, [phase, finalScore, currentTotalScore, targetScore, triggerCompletion, reduceMotion]);
 
-  // The tally used to sit behind a dimmed, blurred backdrop in a bordered card
-  // in the middle of the screen: the one moment you most want to watch the
-  // cards was the one moment they were hidden. It is a strip over the table
-  // now, low enough to leave the clash zone clear, with nothing behind it. The
-  // whole surface still takes a click to fast-forward, because during the tally
-  // there is nothing else to click.
+  // Centred, but not a modal. What made the old tally friction was the dimmed,
+  // blurred backdrop and the panel walling the table off, not where it sat: the
+  // score is the most important thing on screen while it is counting, so it
+  // belongs in the middle at a size you can read across the room. Nothing is
+  // hidden behind it. The whole surface still takes a click to fast-forward,
+  // and space still skips, because there is nothing else to click meanwhile.
   const shell =
-    'absolute inset-0 z-40 flex items-end justify-center px-2 pb-2 sm:pb-3 cursor-pointer';
+    'absolute inset-0 z-40 flex items-center justify-center px-3 cursor-pointer';
 
   if (!playerWon) {
     return (
@@ -199,14 +199,14 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
             initial={reduceMotion ? { opacity: 0 } : { y: 24, opacity: 0 }}
             animate={reduceMotion ? { opacity: 1 } : { y: 0, opacity: 1, rotate: [-1.5, 1.5, 0] }}
             transition={{ type: 'spring', damping: 16, stiffness: 320 }}
-            className="flex items-center gap-2.5 bg-red-950/90 border-2 border-red-500 px-3 py-1.5 rounded-xl pixel-box shadow-2xl backdrop-blur-[2px]"
+            className="flex items-center gap-3.5 bg-red-950/92 border-3 border-red-500 px-5 py-3 rounded-2xl pixel-box shadow-2xl"
           >
-            <span className="text-lg leading-none">💀</span>
+            <span className="text-3xl leading-none">💀</span>
             <div className="text-left leading-tight">
-              <div className="font-pixel text-[9px] text-red-300 font-bold tracking-wider">
+              <div className="font-pixel text-base sm:text-lg text-red-300 font-bold tracking-wider">
                 PRESA LORO
               </div>
-              <div className="font-pixel text-[8px] text-red-100/90 mt-0.5">
+              <div className="font-pixel text-[10px] text-red-100/90 mt-1.5 tabular-nums">
                 +{trickPoints} PT · TU {playerBriscolaPoints} · LORO {opponentBriscolaPoints}
               </div>
             </div>
@@ -232,10 +232,10 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
           initial={reduceMotion ? { opacity: 0 } : { y: 28, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ type: 'spring', damping: 18, stiffness: 320 }}
-          className="flex flex-col items-center gap-1 w-full max-w-md"
+          className="flex flex-col items-center gap-2 w-full max-w-sm sm:max-w-md"
         >
           {/* Who just fired. The number moving without a name teaches nothing. */}
-          <div className="h-5 flex items-center justify-center">
+          <div className="h-7 flex items-center justify-center">
             <AnimatePresence mode="wait">
               {activeStep && (
                 <motion.span
@@ -244,7 +244,7 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.14 }}
-                  className={`px-2 py-0.5 font-pixel text-[8px] rounded uppercase border shadow-lg ${
+                  className={`px-2.5 py-1 font-pixel text-[10px] sm:text-[11px] rounded-lg uppercase border-2 shadow-lg ${
                     activeStep.kind === 'chips'
                       ? 'bg-blue-950 border-blue-400 text-blue-200'
                       : activeStep.kind === 'dollars'
@@ -263,58 +263,63 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
             </AnimatePresence>
           </div>
 
-          {/* Chips x Mult = score, on one line, over the table. */}
-          <div className="flex items-stretch justify-center gap-1.5 w-full">
+          {/* Chips x Mult, then what it came to. The score is the headline and
+              is sized like one: the two factors are how it got there. */}
+          <div className="flex items-stretch justify-center gap-2 w-full">
             <motion.div
               animate={{
                 scale: activeStep?.kind === 'chips' ? 1.06 : 1,
-                boxShadow: activeStep?.kind === 'chips' ? '0 0 14px rgba(59,130,246,0.6)' : 'none',
+                boxShadow: activeStep?.kind === 'chips' ? '0 0 18px rgba(59,130,246,0.65)' : 'none',
               }}
-              className="flex-1 bg-blue-950/90 border-2 border-blue-400 px-2 py-1 rounded-lg text-center pixel-box backdrop-blur-[2px]"
+              className="flex-1 bg-blue-950/92 border-2 border-blue-400 px-3 py-2 rounded-xl text-center pixel-box"
             >
-              <div className="text-[7px] font-pixel text-blue-300 uppercase">CHIPS</div>
-              <div className="text-base font-pixel text-blue-100 font-bold tabular-nums">
+              <div className="text-[8px] sm:text-[9px] font-pixel text-blue-300 uppercase tracking-wider">
+                CHIPS
+              </div>
+              <div className="text-2xl sm:text-3xl font-pixel text-blue-100 font-bold tabular-nums mt-1">
                 {displayChips}
               </div>
             </motion.div>
 
-            <span className="self-center text-base font-pixel text-amber-400 font-bold">×</span>
+            <span className="self-center text-2xl font-pixel text-amber-400 font-bold">×</span>
 
             <motion.div
               animate={{
                 scale: activeStep && activeStep.kind !== 'chips' ? 1.06 : 1,
                 boxShadow:
                   activeStep && activeStep.kind !== 'chips'
-                    ? '0 0 14px rgba(239,68,68,0.6)'
+                    ? '0 0 18px rgba(239,68,68,0.65)'
                     : 'none',
               }}
-              className="flex-1 bg-red-950/90 border-2 border-red-400 px-2 py-1 rounded-lg text-center pixel-box backdrop-blur-[2px]"
+              className="flex-1 bg-red-950/92 border-2 border-red-400 px-3 py-2 rounded-xl text-center pixel-box"
             >
-              <div className="text-[7px] font-pixel text-red-300 uppercase">MOLT.</div>
-              <div className="text-base font-pixel text-red-100 font-bold tabular-nums">
+              <div className="text-[8px] sm:text-[9px] font-pixel text-red-300 uppercase tracking-wider">
+                MOLT.
+              </div>
+              <div className="text-2xl sm:text-3xl font-pixel text-red-100 font-bold tabular-nums mt-1">
                 {Number.isInteger(displayMult) ? displayMult : displayMult.toFixed(2)}
               </div>
             </motion.div>
-
-            <motion.div
-              animate={
-                phase === 'impact' && !reduceMotion
-                  ? {
-                      scale: [1, 1.12, 1],
-                      boxShadow: ['0 0 0px #fbbf24', '0 0 30px #fbbf24', '0 0 10px #fbbf24'],
-                    }
-                  : {}
-              }
-              className="flex-[1.3] bg-gradient-to-r from-amber-950 via-amber-900 to-amber-950 border-2 border-amber-300 px-2 py-1 rounded-lg text-center pixel-box backdrop-blur-[2px]"
-            >
-              <div className="text-[7px] font-pixel text-amber-300 uppercase">
-                PRESA · +{trickPoints} PT
-              </div>
-              <div className="text-lg font-pixel text-amber-300 font-bold leading-tight tabular-nums">
-                +{displayTotal.toLocaleString()}
-              </div>
-            </motion.div>
           </div>
+
+          <motion.div
+            animate={
+              phase === 'impact' && !reduceMotion
+                ? {
+                    scale: [1, 1.14, 1],
+                    boxShadow: ['0 0 0px #fbbf24', '0 0 45px #fbbf24', '0 0 14px #fbbf24'],
+                  }
+                : {}
+            }
+            className="w-full bg-gradient-to-r from-amber-950 via-amber-900 to-amber-950 border-3 border-amber-300 px-3 py-2.5 rounded-2xl text-center pixel-box"
+          >
+            <div className="text-[8px] sm:text-[9px] font-pixel text-amber-300/90 uppercase tracking-widest">
+              PRESA TUA · +{trickPoints} PT
+            </div>
+            <div className="text-4xl sm:text-5xl font-pixel text-amber-300 font-bold leading-none tabular-nums mt-1.5">
+              +{displayTotal.toLocaleString()}
+            </div>
+          </motion.div>
 
           {/* What earned the base Mult: the rule is only learnable if it is shown. */}
           {multReasons.length > 0 && (
@@ -322,12 +327,12 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
               {multReasons.map((reason) => (
                 <span
                   key={reason}
-                  className="px-1.5 py-0.5 bg-red-950/85 border border-red-500/60 text-red-200 font-pixel text-[7px] rounded uppercase"
+                  className="px-2 py-0.5 bg-red-950/90 border border-red-500/60 text-red-200 font-pixel text-[9px] rounded uppercase"
                 >
                   {reason}
                 </span>
               ))}
-              <span className="px-1.5 py-0.5 bg-slate-950/85 border border-slate-600 text-slate-300 font-pixel text-[7px] rounded uppercase tabular-nums">
+              <span className="px-2 py-0.5 bg-slate-950/90 border border-slate-600 text-slate-300 font-pixel text-[9px] rounded uppercase tabular-nums">
                 TU {playerBriscolaPoints} · LORO {opponentBriscolaPoints}
               </span>
             </div>
