@@ -340,6 +340,26 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
   }
 
   /**
+   * The opponent has a body, not just a face.
+   *
+   * The avatar already changed expression; the frame around it never moved, so
+   * a Boss taking your Asso and a Boss losing to it read the same from across
+   * the table. These are the whole vocabulary: recoil, lean in, bounce, sway.
+   * One sprite each, no extra art - the reaction lives in the transform.
+   */
+  const bodyReaction: Record<OpponentEmotion, Record<string, number | number[]>> = {
+    shocked: { x: [0, -5, 4, -2, 0], y: [0, -7, 0], rotate: [0, -5, 3, 0] },
+    angry: { x: [0, 3, -3, 2, 0], y: [0, 4, 0], rotate: [0, 2, -2, 0], scale: [1, 1.06, 1] },
+    happy: { y: [0, -6, 0], rotate: [0, 4, 0] },
+    thinking: { rotate: [0, -2.5, 2.5, 0] },
+    idle: { x: 0, y: 0, rotate: 0 },
+  };
+
+  // Sweat is for being in trouble, which is not the same as having just lost a
+  // trick: it stays up while the player is on the doorstep.
+  const opponentSweating = opponentEmotion === 'shocked' || reachedTarget;
+
+  /**
    * When the opponent has already led, the outcome of the selected card is fully
    * determined - so show it. Balatro never hides what a play is worth once the
    * inputs are known, and the base-Mult rule is only learnable if you can see it
@@ -750,14 +770,50 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
           <div className="flex items-center justify-between gap-2">
             {/* Opponent Info */}
             <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 lg:w-16 lg:h-16 rounded-lg bg-slate-900 border-2 border-amber-500/70 pixel-box flex items-center justify-center p-0.5 shadow-lg shrink-0 overflow-hidden relative">
+              <motion.div
+                key={`${opponentEmotion}-${opponentTrickCard?.id ?? 'none'}`}
+                animate={reduceMotion ? undefined : bodyReaction[opponentEmotion]}
+                transition={
+                  opponentEmotion === 'thinking'
+                    ? { duration: 2.4, repeat: Infinity, ease: 'easeInOut' }
+                    : { duration: 0.45, ease: 'easeOut' }
+                }
+                className="w-9 h-9 sm:w-10 sm:h-10 lg:w-16 lg:h-16 rounded-lg bg-slate-900 border-2 border-amber-500/70 pixel-box flex items-center justify-center p-0.5 shadow-lg shrink-0 relative"
+              >
                 <PixelAvatar
                   characterId={currentBoss ? currentBoss.id : regular.characterId}
                   emotion={opponentEmotion}
                   size={avatarSize}
                   showGlow={!!currentBoss}
                 />
-              </div>
+
+                {/* Beads of sweat. Three divs over whoever is sitting there, so
+                    it costs no art and works for every character and Boss. */}
+                {opponentSweating && !reduceMotion && (
+                  <>
+                    {[
+                      { left: '8%', top: '14%', delay: 0 },
+                      { left: '82%', top: '22%', delay: 0.5 },
+                      { left: '24%', top: '6%', delay: 1.1 },
+                    ].map((bead) => (
+                      <motion.span
+                        key={`${bead.left}-${bead.top}`}
+                        initial={{ opacity: 0, y: 0, scaleY: 0.7 }}
+                        animate={{ opacity: [0, 1, 1, 0], y: [0, 5, 13], scaleY: [0.7, 1, 1.3] }}
+                        transition={{
+                          duration: 1.5,
+                          repeat: Infinity,
+                          repeatDelay: 0.9,
+                          delay: bead.delay,
+                          ease: 'easeIn',
+                        }}
+                        style={{ left: bead.left, top: bead.top }}
+                        className="absolute w-[3px] h-[5px] lg:w-[5px] lg:h-[8px] rounded-b-full bg-sky-300/90 shadow-[0_0_3px_rgba(125,211,252,0.9)] pointer-events-none"
+                      />
+                    ))}
+                  </>
+                )}
+              </motion.div>
               <div className="flex items-center gap-1.5 leading-none">
                 <span className="font-pixel text-[9px] sm:text-[11px] lg:text-[15px] text-amber-300 font-bold">
                   {currentBoss ? currentBoss.name : regular.name}
