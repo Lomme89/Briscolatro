@@ -45,7 +45,7 @@ export type CardSpecial = 'none' | 'segnata' | 'vetro' | 'debito' | 'traditrice'
 // debito:     +120 Chips on a won trick, costs $1 every time you play it
 // traditrice: x2.2 Mult if it opens and wins, -$2 if it answers and loses
 
-export type JokerRarity = 'common' | 'uncommon' | 'rare' | 'legendary';
+type JokerRarity = 'common' | 'uncommon' | 'rare' | 'legendary';
 
 export type GamePhase = 
   | 'title' 
@@ -77,7 +77,7 @@ export interface PlayingCard {
   isDebuffed?: boolean;
 }
 
-export type JokerTrigger = 
+type JokerTrigger =
   | 'on_trick_win' 
   | 'on_card_scored' 
   | 'on_hand_played' 
@@ -112,24 +112,7 @@ export interface Joker {
   };
 }
 
-export type UnoColor = 'red' | 'blue' | 'green' | 'yellow' | 'wild';
-
-export type UnoActionType = 
-  | '+2' 
-  | '+4' 
-  | 'reverse' 
-  | 'skip' 
-  | 'wild_suit' 
-  | 'swap' 
-  | 'uno' 
-  | 'custom_foil' 
-  | 'custom_holo' 
-  | 'custom_polychrome' 
-  | 'gold' 
-  | 'double_cash' 
-  | 'block' 
-  | 'all_wild' 
-  | 'random_joker';
+type UnoColor = 'red' | 'blue' | 'green' | 'yellow' | 'wild';
 
 export interface UnoCard {
   /** Stable catalogue id. Kept dispatchable even when several copies exist. */
@@ -188,7 +171,7 @@ export type BossDebuffType =
   | 'forced_suit_chain'
   | 'rotating_joker_silence';
 
-export interface BossEndlessBrief {
+interface BossEndlessBrief {
   /** Tier the encounter belongs to, for the label on the blind. */
   tierId: string;
   /** Ids of the Endless modifiers layered on top of the base rule. */
@@ -209,26 +192,6 @@ export interface DeckDefinition {
   startingVouchers: string[];
   startingDiscards: number;
   specialDeckPerk?: string;
-}
-
-export type BlindType = 'small' | 'big' | 'boss';
-
-export interface BlindInfo {
-  type: BlindType;
-  name: string;
-  targetScore: number;
-  reward: number;
-  boss?: BossBlind;
-}
-
-export interface TrickRecord {
-  playerCard: PlayingCard;
-  opponentCard: PlayingCard;
-  playerWon: boolean;
-  pointsEarned: number;
-  chipsGained: number;
-  multGained: number;
-  briscolaSuit: Suit;
 }
 
 export interface BoosterPack {
@@ -255,15 +218,4 @@ export interface GameSettings {
   fastMode: boolean;
   /** The rank and point pills drawn on top of the card art. */
   showCardChips: boolean;
-}
-
-export interface OverallProgression {
-  totalRuns: number;
-  wins: number;
-  highScore: number;
-  highestAnte: number;
-  totalTricksWon: number;
-  unlockedDeckIds: string[];
-  discoveredJokerIds: string[];
-  discoveredUnoCardIds: string[];
 }

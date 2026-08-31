@@ -6,7 +6,7 @@ import { CARD_POWER_VALUES as V } from '../data/cardPowers';
 import { randomRun } from './runRng';
 
 /** Side effects a trick's seals produced, applied by the caller. */
-export interface SealEvents {
+interface SealEvents {
   /** A blue seal rolled a free UNO action card. */
   spawnUnoCard: boolean;
   /** A purple seal on the played card refunded a discard. */

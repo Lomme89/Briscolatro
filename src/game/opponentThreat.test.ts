@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { chooseOpponentFollow, chooseOpponentLead, OpponentAiContext } from './ai';
 import { getAiProfile } from './aiProfiles';
-import { giftValue, isEmptyThreat, NO_THREAT, readPlayerThreat } from './opponentThreat';
+import { giftValue, readPlayerThreat } from './opponentThreat';
 import { createCard } from './briscola';
 import { ALL_JOKERS } from '../data/jokers';
 import { ALL_BOSS_BLINDS } from '../data/bosses';
@@ -33,8 +33,13 @@ function ctx(profileId: string, extra: Partial<OpponentAiContext> = {}): Opponen
 
 describe('reading the board across the table', () => {
   it('an empty board threatens nothing', () => {
-    expect(isEmptyThreat(threatOf([]))).toBe(true);
-    expect(isEmptyThreat(NO_THREAT)).toBe(true);
+    expect(threatOf([])).toEqual({
+      suitBounty: {},
+      caricoBounty: 0,
+      figuraBounty: 0,
+      briscolaBounty: 0,
+      winBounty: 0,
+    });
   });
 
   it('a suit jolly prices that suit and leaves the others alone', () => {
@@ -86,7 +91,13 @@ describe('reading the board across the table', () => {
   });
 
   it('money and utility jolly do not change what a trick is worth', () => {
-    expect(isEmptyThreat(threatOf(['j_oste', 'j_jolly_sport', 'j_specchietto_baro']))).toBe(true);
+    expect(threatOf(['j_oste', 'j_jolly_sport', 'j_specchietto_baro'])).toEqual({
+      suitBounty: {},
+      caricoBounty: 0,
+      figuraBounty: 0,
+      briscolaBounty: 0,
+      winBounty: 0,
+    });
   });
 });
 

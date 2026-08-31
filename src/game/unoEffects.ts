@@ -1,6 +1,5 @@
 import { UnoCard, PlayingCard, Suit, Joker } from '../types/game';
 import { ALL_JOKERS } from '../data/jokers';
-import { withRank } from './briscola';
 import { getUnoDefinitionId, instantiateJoker } from './itemInstances';
 import { pickRun, randomRun } from './runRng';
 
@@ -90,7 +89,7 @@ function cycleCardsFromStock(
   return { nextHand, nextPile, cycled };
 }
 
-export const UNO_EFFECT_HANDLERS: Record<
+const UNO_EFFECT_HANDLERS: Record<
   string,
   (ctx: UnoActionContext) => UnoActionResult
 > = {

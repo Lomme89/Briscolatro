@@ -93,15 +93,6 @@ export function getEndlessTier(ante: number): EndlessTier | null {
 }
 
 /**
- * "ANTE 19 · SOVRACCARICO". The Ante is never replaced by the tier: the player
- * counts antes, and the tier says how bad this stretch of them is.
- */
-export function formatAnteLabel(ante: number): string {
-  const tier = getEndlessTier(ante);
-  return tier ? `ANTE ${ante} · ${tier.name}` : `ANTE ${ante}`;
-}
-
-/**
  * How much harder an Endless Ante is than the last campaign one.
  *
  * A single ratio per tier, compounded from Ante 8, so the curve is continuous
@@ -163,7 +154,7 @@ const JOKER_CAP_BY_TIER: Record<EndlessTierId, number> = {
   fuori_scala: 10,
 };
 
-export const CAMPAIGN_JOKER_CAP = 7;
+const CAMPAIGN_JOKER_CAP = 7;
 export const CONSUMABLE_CAP = 4;
 
 export function getSlotRulesForAnte(ante: number): SlotRules {

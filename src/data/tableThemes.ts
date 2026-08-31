@@ -27,7 +27,7 @@ export interface TableTheme {
     | 'royal_damask';
 }
 
-export const TABLE_THEMES: TableTheme[] = [
+const TABLE_THEMES: TableTheme[] = [
   {
     id: 'theme_rustic_bar',
     ante: 1,

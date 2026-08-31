@@ -16,6 +16,7 @@ import { VICTORY_MODES, VictoryMode } from './victoryModes';
 import { RunPhase } from './endless';
 import { restoreEndlessBoss } from './endlessBosses';
 import { isRunRngState, RunRngState } from './runRng';
+import type { GameOverSummaryData } from '../types/runSummaries';
 
 /**
  * Save/Resume V1.
@@ -26,8 +27,8 @@ import { isRunRngState, RunRngState } from './runRng';
  * legal position, not to the exact instant it was left at: the table is clear,
  * nobody is mid-trick, and the next action is the one the position asks for.
  */
-export const RUN_SNAPSHOT_KEY = 'briscolatro_run_v1';
-export const RUN_SNAPSHOT_SCHEMA_VERSION = 1;
+const RUN_SNAPSHOT_KEY = 'briscolatro_run_v1';
+const RUN_SNAPSHOT_SCHEMA_VERSION = 1;
 
 /** Where a snapshot may be taken. Every one of these is a settled position. */
 export type RunSnapshotPhase = 'blind_select' | 'playing' | 'shop';
@@ -44,10 +45,17 @@ export interface ShopSnapshotV1 {
   seed: number;
   rerolls: number;
   boughtKeys: string[];
+  /** Dollars spent in this visit. Absent in older saves: read as 0. */
+  spent?: number;
+  /**
+   * Jolly already paid out by the Conto Sospeso in this visit. Without it a
+   * reload inside the shop would let the same visit pay the same Jolly twice.
+   */
+  contoSospesoPaidIds?: string[];
 }
 
 /** The half of a snapshot that only exists while a match is on the table. */
-export interface EncounterSnapshotV1 {
+interface EncounterSnapshotV1 {
   playerHand: PlayingCard[];
   opponentHand: PlayingCard[];
   drawPile: PlayingCard[];
@@ -114,9 +122,15 @@ export interface RunSnapshotV1 {
   rng: RunRngState;
   shop: ShopSnapshotV1 | null;
   encounter: EncounterSnapshotV1 | null;
+  /**
+   * The Ante 8 victory screen, if the run was left standing on it. The win is
+   * already written to permanent progress by then; this is only what puts the
+   * player back in front of the question instead of back in front of the Boss.
+   */
+  pendingVictory?: GameOverSummaryData | null;
 }
 
-export interface EncounterSnapshotInput
+interface EncounterSnapshotInput
   extends Omit<EncounterSnapshotV1, 'capturedDenariRanks' | 'playedCardIds' | 'bossId'> {
   capturedDenariRanks: Iterable<number>;
   playedCards: PlayingCard[];
@@ -148,6 +162,7 @@ export interface RunSnapshotInput {
   rng: RunRngState;
   shop: ShopSnapshotV1 | null;
   encounter: EncounterSnapshotInput | null;
+  pendingVictory?: GameOverSummaryData | null;
 }
 
 function serializeEncounter(input: EncounterSnapshotInput): EncounterSnapshotV1 {
@@ -209,8 +224,16 @@ export function serializeRun(input: RunSnapshotInput): RunSnapshotV1 {
     consumables: input.consumables.map((card) => ({ ...card })),
     vouchers: input.vouchers.map((voucher) => ({ ...voucher })),
     rng: { ...input.rng },
-    shop: input.shop ? { ...input.shop, boughtKeys: [...input.shop.boughtKeys] } : null,
+    shop: input.shop
+      ? {
+          ...input.shop,
+          boughtKeys: [...input.shop.boughtKeys],
+          spent: input.shop.spent ?? 0,
+          contoSospesoPaidIds: [...(input.shop.contoSospesoPaidIds ?? [])],
+        }
+      : null,
     encounter: input.encounter ? serializeEncounter(input.encounter) : null,
+    pendingVictory: input.pendingVictory ?? null,
   };
 }
 
@@ -346,10 +369,22 @@ export function validateRunSnapshot(value: unknown): RunSnapshotValidation {
       !Number.isFinite(shop.seed) ||
       !isCount(shop.rerolls) ||
       !Array.isArray(shop.boughtKeys) ||
-      !shop.boughtKeys.every((key) => typeof key === 'string')
+      !shop.boughtKeys.every((key) => typeof key === 'string') ||
+      (shop.spent !== undefined && !isCount(shop.spent)) ||
+      (shop.contoSospesoPaidIds !== undefined &&
+        (!Array.isArray(shop.contoSospesoPaidIds) ||
+          !shop.contoSospesoPaidIds.every((id) => typeof id === 'string')))
     ) {
       return fail('stato del negozio non valido');
     }
+  }
+
+  if (
+    value.pendingVictory !== undefined &&
+    value.pendingVictory !== null &&
+    !isRecord(value.pendingVictory)
+  ) {
+    return fail('schermata di vittoria salvata non valida');
   }
 
   if (value.encounter !== null) {

@@ -19,11 +19,9 @@ import { getOpponentIntro } from '../data/opponents';
 import { ALL_BOSS_BLINDS } from '../data/bosses';
 import { ALL_DECKS } from '../data/decks';
 import { evaluateVictoryCondition, VictoryMode } from './victoryModes';
-import { createStandardDeck } from './briscola';
 import { PlayingCard } from '../types/game';
 
 function snapshot(over: Partial<RoundStateSnapshot> = {}): RoundStateSnapshot {
-  const deal = prepareRoundDeck(createStandardDeck());
   return {
     currentRoundScore: 0,
     totalScore: 0,
@@ -40,14 +38,7 @@ function snapshot(over: Partial<RoundStateSnapshot> = {}): RoundStateSnapshot {
     targetScore: 1000,
     ante: 1,
     round: 1,
-    playerHand: deal.playerHand,
-    opponentHand: deal.opponentHand,
-    drawPile: deal.roundDrawPile,
-    trumpCard: deal.trumpCard,
-    briscolaSuit: deal.briscolaSuit,
-    activeBoss: null,
     vouchers: [],
-    activeJokers: [],
     bossesDefeated: 0,
     solaCardsUsed: 0,
     ...over,

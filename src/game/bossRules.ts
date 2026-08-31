@@ -14,16 +14,6 @@ function bossEnforces(boss: BossBlind | null, rule: string): boolean {
   return getActiveBossRules(boss).includes(rule as never);
 }
 
-export interface BossRuleContext {
-  boss: BossBlind | null;
-  briscolaSuit: Suit;
-  trickCount: number;
-  leadIsPlayer: boolean;
-  playerCard?: PlayingCard;
-  opponentCard?: PlayingCard;
-  playerJokersCount?: number;
-}
-
 export const BOSS_RULES = {
   /** Every rule this Boss enforces, base plus Endless modifiers. */
   getActiveRules(boss: BossBlind | null): string[] {

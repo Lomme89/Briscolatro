@@ -8,7 +8,6 @@ import {
   CONSUMABLE_CAP,
   ENDLESS_MAX_TARGET_MULTIPLIER,
   ENDLESS_TIERS,
-  formatAnteLabel,
   getEndlessTargetMultiplier,
   getEndlessTier,
   getSlotRulesForAnte,
@@ -46,7 +45,6 @@ describe('confini dei tier', () => {
     for (let ante = 1; ante <= CAMPAIGN_FINAL_ANTE; ante++) {
       expect(isEndlessAnte(ante)).toBe(false);
       expect(getEndlessTier(ante)).toBeNull();
-      expect(formatAnteLabel(ante)).toBe(`ANTE ${ante}`);
     }
   });
 
@@ -66,11 +64,6 @@ describe('confini dei tier', () => {
     for (const [ante, name] of expected) {
       expect(getEndlessTier(ante)!.name).toBe(name);
     }
-  });
-
-  it('mostra il tier accanto all\'Ante senza sostituirlo', () => {
-    expect(formatAnteLabel(19)).toBe('ANTE 19 · SOVRACCARICO');
-    expect(formatAnteLabel(41)).toBe('ANTE 41 · FUORI SCALA');
   });
 
   it('i tier coprono ogni Ante senza buchi ne\' sovrapposizioni', () => {
@@ -381,14 +374,7 @@ describe('vittoria di campagna e record Endless', () => {
       targetScore: 100,
       ante: 8,
       round: 2,
-      playerHand: [],
-      opponentHand: [],
-      drawPile: [],
-      trumpCard: null,
-      briscolaSuit: 'denari',
-      activeBoss: null,
       vouchers: [],
-      activeJokers: [],
       bossesDefeated: 7,
       solaCardsUsed: 0,
       victoryMode: 'briscolatro',

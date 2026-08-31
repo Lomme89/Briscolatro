@@ -25,60 +25,65 @@ import { getRegularForAnte } from '../data/opponents';
 import { TableFeltPattern } from './TableFeltPattern';
 import { CardFaceArt, getJokerArtUrl, getUnoArtUrl } from './CardFaceArt';
 
-interface GameTableProps {
-  ante: number;
-  round: number;
-  targetScore: number;
-  currentRoundScore: number;
-  money: number;
-  discardsLeft: number;
-  handsLeft: number;
-  briscolaSuit: Suit;
-  trumpCard: PlayingCard | null;
-  deckCount: number;
-  playerHand: PlayingCard[];
-  opponentHand: PlayingCard[];
-  playerTrickCard: PlayingCard | null;
-  opponentTrickCard: PlayingCard | null;
-  isPlayerTurn: boolean;
-  /** Exact same play window accepted by App. */
-  canPlay: boolean;
-  /** Exact same exchange-discard decision used by App. */
-  canDiscard: boolean;
-  /** Exact same Carta Sola window accepted by App. */
-  canUseSola: boolean;
-  /** True when the player opened the trick currently on the table. */
-  trickLeadIsPlayer: boolean;
-  /** True while the opening hand is being dealt, so cards fly in one by one. */
-  isDealing: boolean;
-  /** The Baro's mirror is live: the opponent's hand is face up this trick. */
-  visionActive: boolean;
-  activeJokers: Joker[];
-  consumables: UnoCard[];
-  maxJokers: number;
-  maxConsumables: number;
-  currentBoss: BossBlind | null;
-  bossDebuffNeutralized: boolean;
-  /** Tricks left on the Scudo Protettivo. Zero when the boss is speaking. */
-  bossShieldTricks: number;
-  /** Il Maestro dei Bastoni: the suit the next opening is chained to. */
-  forcedLeadSuit: Suit | null;
-  /** Il Sovrano: which slot on the joker rail is silent this trick. */
-  silencedJokerIndex: number | null;
-  /** The rule this table is being played under. */
-  victoryMode: VictoryMode;
-  opponentSpeech: string;
+interface GameTableModel {
+  hud: {
+    ante: number;
+    round: number;
+    targetScore: number;
+    currentRoundScore: number;
+    money: number;
+    discardsLeft: number;
+    briscolaSuit: Suit;
+    deckCount: number;
+    roundPointsTaken: number;
+    opponentPointsTaken: number;
+    tricksPlayedInRound: number;
+  };
+  cards: {
+    trumpCard: PlayingCard | null;
+    playerHand: PlayingCard[];
+    opponentHand: PlayingCard[];
+    playerTrickCard: PlayingCard | null;
+    opponentTrickCard: PlayingCard | null;
+  };
+  interaction: {
+    isPlayerTurn: boolean;
+    canPlay: boolean;
+    canDiscard: boolean;
+    canUseSola: boolean;
+    trickLeadIsPlayer: boolean;
+    isDealing: boolean;
+    visionActive: boolean;
+  };
+  build: {
+    activeJokers: Joker[];
+    consumables: UnoCard[];
+    maxJokers: number;
+    triggeringJokerId: string | null;
+  };
+  encounter: {
+    currentBoss: BossBlind | null;
+    bossDebuffNeutralized: boolean;
+    bossShieldTricks: number;
+    forcedLeadSuit: Suit | null;
+    silencedJokerIndex: number | null;
+    victoryMode: VictoryMode;
+    opponentSpeech: string;
+  };
+}
+
+interface GameTableActions {
   onPlayCard: (card: PlayingCard) => void;
   onDiscardCard: (card: PlayingCard) => void;
   onUseUnoCard: (card: UnoCard, targetCard?: PlayingCard, chosenSuit?: Suit) => void;
   onOpenDeckViewer: () => void;
   onOpenTutorial: () => void;
   onOpenSettings: () => void;
-  triggeringJokerId: string | null;
-  roundPointsTaken: number;
-  opponentPointsTaken: number;
-  tricksPlayedInRound: number;
-  totalPointsDeck: number;
+}
+
+interface GameTableProps {
+  model: GameTableModel;
+  actions: GameTableActions;
 }
 
 function useMediaQuery(query: string): boolean {
@@ -95,49 +100,50 @@ function useMediaQuery(query: string): boolean {
   return matches;
 }
 
-export const GameTable: React.FC<GameTableProps> = ({
-  ante,
-  round,
-  targetScore,
-  currentRoundScore,
-  money,
-  discardsLeft,
-  briscolaSuit,
-  trumpCard,
-  deckCount,
-  playerHand,
-  opponentHand,
-  playerTrickCard,
-  opponentTrickCard,
-  isPlayerTurn,
-  canPlay,
-  canDiscard,
-  canUseSola,
-  trickLeadIsPlayer,
-  isDealing,
-  visionActive,
-  activeJokers,
-  consumables,
-  maxJokers,
-  maxConsumables,
-  currentBoss,
-  bossDebuffNeutralized,
-  bossShieldTricks,
-  forcedLeadSuit,
-  silencedJokerIndex,
-  victoryMode,
-  opponentSpeech,
-  onPlayCard,
-  onDiscardCard,
-  onUseUnoCard,
-  onOpenDeckViewer,
-  onOpenTutorial,
-  onOpenSettings,
-  triggeringJokerId,
-  roundPointsTaken,
-  opponentPointsTaken,
-  tricksPlayedInRound,
-}) => {
+export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
+  const {
+    hud: {
+      ante,
+      round,
+      targetScore,
+      currentRoundScore,
+      money,
+      discardsLeft,
+      briscolaSuit,
+      deckCount,
+      roundPointsTaken,
+      opponentPointsTaken,
+      tricksPlayedInRound,
+    },
+    cards: { trumpCard, playerHand, opponentHand, playerTrickCard, opponentTrickCard },
+    interaction: {
+      isPlayerTurn,
+      canPlay,
+      canDiscard,
+      canUseSola,
+      trickLeadIsPlayer,
+      isDealing,
+      visionActive,
+    },
+    build: { activeJokers, consumables, maxJokers, triggeringJokerId },
+    encounter: {
+      currentBoss,
+      bossDebuffNeutralized,
+      bossShieldTricks,
+      forcedLeadSuit,
+      silencedJokerIndex,
+      victoryMode,
+      opponentSpeech,
+    },
+  } = model;
+  const {
+    onPlayCard,
+    onDiscardCard,
+    onUseUnoCard,
+    onOpenDeckViewer,
+    onOpenTutorial,
+    onOpenSettings,
+  } = actions;
   const reduceMotion = useReducedMotion();
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [activeUnoToApply, setActiveUnoToApply] = useState<UnoCard | null>(null);

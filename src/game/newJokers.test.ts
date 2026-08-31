@@ -67,7 +67,6 @@ function context(setup: ClashSetup, overrides: Partial<JokerScoringContext> = {}
     briscolaSuit,
     money: 10,
     playerHand: [],
-    tricksWonThisRound: 0,
     consecutiveWinStreak: 0,
     totalTricksPlayedThisRound: 0,
     remainingTricksCount: 20,
@@ -250,7 +249,6 @@ describe('Il Temerario', () => {
     const base = {
       money: 10,
       playerHand: [] as PlayingCard[],
-      tricksWonThisRound: 0,
       consecutiveWinStreak: 0,
       totalTricksPlayedThisRound: 0,
       remainingTricksCount: 20,

@@ -1,4 +1,4 @@
-import { PlayingCard, Suit, CardRank, DeckDefinition, BossBlind, Voucher, Joker } from '../types/game';
+import { PlayingCard, Suit, CardRank, DeckDefinition, Voucher } from '../types/game';
 import { createStandardDeck, shuffleDeck } from './briscola';
 import { randomRun } from './runRng';
 import { CAMPAIGN_FINAL_ANTE, getEndlessTargetMultiplier } from './endless';
@@ -25,14 +25,7 @@ export interface RoundStateSnapshot {
   targetScore: number;
   ante: number;
   round: number;
-  playerHand: PlayingCard[];
-  opponentHand: PlayingCard[];
-  drawPile: PlayingCard[];
-  trumpCard: PlayingCard | null;
-  briscolaSuit: Suit;
-  activeBoss: BossBlind | null;
   vouchers: Voucher[];
-  activeJokers: Joker[];
   /** Boss blinds actually beaten in this run, not the ante you reached. */
   bossesDefeated: number;
   /** Carte Sola spent across every run: the Mazzo Sola counts them for good. */
@@ -123,7 +116,7 @@ export function getBlindBaseReward(ante: number): number {
  * did down to the dollar. Losing a match cost the economy nothing, and it
  * needed no new source to make up for it.
  */
-export const TABLE_REWARD_MULTIPLIER = 1.25;
+const TABLE_REWARD_MULTIPLIER = 1.25;
 /** What an ante paid across its three old blinds, and still pays across two. */
 const ANTE_REWARD_MULTIPLIER = 3;
 

@@ -60,7 +60,7 @@ export interface EncounterConfig {
 }
 
 /** One Carta Sola actually cast, for the consumption audit. */
-export interface SolaCast {
+interface SolaCast {
   definitionId: string;
   instanceId?: string;
   trick: number;
@@ -312,7 +312,6 @@ export function simulateEncounter(config: EncounterConfig): EncounterReport {
         {
           money: live.money,
           playerHand: live.hand,
-          tricksWonThisRound: report.tricksWon,
           consecutiveWinStreak: streak,
           totalTricksPlayedThisRound: played,
           remainingTricksCount: Math.floor(live.pile.length / 2) + live.hand.length,

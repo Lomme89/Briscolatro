@@ -1,6 +1,6 @@
 import { ALL_BOSS_BLINDS } from '../data/bosses';
 import { BossBlind, BossDebuffType } from '../types/game';
-import { EndlessTierId, getEndlessTier, isEndlessAnte } from './endless';
+import { EndlessTierId, getEndlessTier } from './endless';
 import { createRunRng, pickWith, shuffleWith } from './runRng';
 
 /**
@@ -19,7 +19,7 @@ import { createRunRng, pickWith, shuffleWith } from './runRng';
  * legal card to open, must never end up on the same Boss. A less extreme but
  * readable combination beats a spectacular illegal one.
  */
-export type EndlessModifierId =
+type EndlessModifierId =
   | 'mod_pedaggio'
   | 'mod_banco_chiuso'
   | 'mod_lame'
@@ -39,7 +39,7 @@ export type EndlessModifierId =
  * lead restrictions can between them describe a hand with no legal opening,
  * which is a position the round can never leave.
  */
-export type ModifierFamily = 'suit_rewrite' | 'lead_restriction' | 'scoring' | 'resource' | 'silence';
+type ModifierFamily = 'suit_rewrite' | 'lead_restriction' | 'scoring' | 'resource' | 'silence';
 
 export interface EndlessModifier {
   id: EndlessModifierId;
@@ -222,7 +222,7 @@ export interface EndlessBossRoll {
  * and rebuilds this object, rather than storing a synthetic Boss the catalogue
  * would not recognise.
  */
-export function rollEndlessBoss(ante: number, random: () => number): EndlessBossRoll {
+function rollEndlessBoss(ante: number, random: () => number): EndlessBossRoll {
   const tier = getEndlessTier(ante);
   if (!tier) {
     const campaignBoss =
@@ -306,7 +306,7 @@ export function getActiveBossRules(boss: BossBlind | null): BossDebuffType[] {
 }
 
 /** Modifier objects actually attached to a Boss. */
-export function getBossModifiers(boss: BossBlind | null): EndlessModifier[] {
+function getBossModifiers(boss: BossBlind | null): EndlessModifier[] {
   return (boss?.endless?.modifierIds ?? [])
     .map(getEndlessModifier)
     .filter((modifier): modifier is EndlessModifier => modifier !== null);
@@ -339,5 +339,3 @@ export function isLegalBossComposition(boss: BossBlind): boolean {
   );
   return leadRestrictions.length <= 1 && suitRewrites.length <= 1;
 }
-
-export { isEndlessAnte };

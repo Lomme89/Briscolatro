@@ -29,7 +29,7 @@ const INTEREST_STEP = 5;
  * interest compound. It buys jokers only out of what is above the next interest
  * step, so it is almost always the poorest board and the fattest wallet.
  */
-export const ECONOMY_FIRST: BuyerPolicy = {
+const ECONOMY_FIRST: BuyerPolicy = {
   id: 'economy_first',
   name: 'Economy first',
   blurb: 'Compra i tagliandi economici e poi lascia lavorare gli interessi.',
@@ -75,7 +75,7 @@ export const ECONOMY_FIRST: BuyerPolicy = {
  * reroll to go looking. It sells its weakest jolly to make room for a better
  * one, which is the only reason selling exists in the shop.
  */
-export const JOKER_ENGINE: BuyerPolicy = {
+const JOKER_ENGINE: BuyerPolicy = {
   id: 'joker_engine',
   name: 'Joker engine',
   blurb: 'Tutto in Jolly: compra, rerolla e vende il peggiore per fare posto.',
@@ -129,7 +129,7 @@ export const JOKER_ENGINE: BuyerPolicy = {
  * Buys card boosters and upgrades the forty identities it already owns. Slower
  * to come online than a jolly board and, in principle, harder to lose.
  */
-export const DECK_UPGRADES: BuyerPolicy = {
+const DECK_UPGRADES: BuyerPolicy = {
   id: 'deck_upgrades',
   name: 'Deck upgrades',
   blurb: 'Bustine napoletane e carte potenziate: la build sta nel mazzo.',
@@ -307,7 +307,7 @@ export const CASH_HOARDER: BuyerPolicy = {
  * It should look strongest early and thinnest at the antes where the interest
  * would have been paying for a second jolly.
  */
-export const AGGRESSIVE_SPENDER: BuyerPolicy = {
+const AGGRESSIVE_SPENDER: BuyerPolicy = {
   id: 'aggressive_spender',
   name: 'Aggressive spender',
   blurb: 'Investe tutto e subito: slot pieni presto e cassa quasi vuota a ogni uscita dal negozio.',
@@ -363,7 +363,7 @@ export const AGGRESSIVE_SPENDER: BuyerPolicy = {
  * afford without emptying the wallet. Paired with the conservative play policy
  * it is the closest thing here to somebody who came for the Briscola.
  */
-export const TRADITIONAL_BUYER: BuyerPolicy = {
+const TRADITIONAL_BUYER: BuyerPolicy = {
   id: 'traditional_player',
   name: 'Traditional player',
   blurb: 'Compra per i 61 punti: carte potenziate e poco altro, senza rincorrere il motore.',

@@ -31,14 +31,6 @@ export interface PlayerThreat {
   winBounty: number;
 }
 
-export const NO_THREAT: PlayerThreat = {
-  suitBounty: {},
-  caricoBounty: 0,
-  figuraBounty: 0,
-  briscolaBounty: 0,
-  winBounty: 0,
-};
-
 /**
  * The exchange rate between a joker's printed numbers and points on the table.
  *
@@ -191,15 +183,4 @@ export function giftValue(card: PlayingCard, threat: PlayerThreat, briscolaSuit:
   if (card.rank >= 8) value += threat.figuraBounty;
   if (card.suit === briscolaSuit) value += threat.briscolaBounty;
   return Math.min(value, PER_CARD_CAP);
-}
-
-/** True when the player's board says nothing worth reacting to. */
-export function isEmptyThreat(threat: PlayerThreat): boolean {
-  return (
-    threat.caricoBounty === 0 &&
-    threat.figuraBounty === 0 &&
-    threat.briscolaBounty === 0 &&
-    threat.winBounty === 0 &&
-    Object.keys(threat.suitBounty).length === 0
-  );
 }

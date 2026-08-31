@@ -133,7 +133,6 @@ export const PixelCard: React.FC<PixelCardProps> = ({
           rank={card.rank}
           suit={card.suit}
           style={activeStyleId}
-          size={size}
         />
       </div>
     );

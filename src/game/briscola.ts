@@ -10,7 +10,7 @@ import { randomRun, shuffleRun } from './runRng';
  */
 export type BossDebuffInput = string | readonly string[] | undefined;
 
-export function hasBossRule(debuff: BossDebuffInput, rule: string): boolean {
+function hasBossRule(debuff: BossDebuffInput, rule: string): boolean {
   if (!debuff) return false;
   return typeof debuff === 'string' ? debuff === rule : debuff.includes(rule);
 }
@@ -67,11 +67,6 @@ export function createCard(
   };
 }
 
-export function withRank(card: PlayingCard, newRank: CardRank): PlayingCard {
-  const info = RANK_INFO[newRank];
-  return { ...card, rank: newRank, points: info.points, power: info.power };
-}
-
 /** Creates the standard 40-card Italian deck. Total card points = 120. */
 export function createStandardDeck(): PlayingCard[] {
   const suits: Suit[] = ['denari', 'coppe', 'spade', 'bastoni'];
@@ -83,10 +78,6 @@ export function createStandardDeck(): PlayingCard[] {
 
 export function shuffleDeck<T>(deck: T[]): T[] {
   return shuffleRun(deck);
-}
-
-export function getRankDisplayName(rank: CardRank): string {
-  return RANK_INFO[rank]?.name || `${rank}`;
 }
 
 export function getSuitDisplayName(suit: Suit): string {

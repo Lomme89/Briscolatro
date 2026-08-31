@@ -16,7 +16,7 @@ import { getUnoDefinitionId } from '../itemInstances';
  * every buying policy: what is being compared is what a policy *bought*, not
  * how cleverly it played what it bought.
  */
-export interface SolaSituation {
+interface SolaSituation {
   consumables: UnoCard[];
   hand: PlayingCard[];
   drawPile: PlayingCard[];
@@ -186,10 +186,4 @@ export const STANDARD_SOLA: SolaPolicy = {
 
     return null;
   },
-};
-
-/** Never spends a thing: the control group for measuring what the slot is worth. */
-export const NEVER_SOLA: SolaPolicy = {
-  id: 'never',
-  choose: () => null,
 };

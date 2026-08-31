@@ -136,7 +136,7 @@ export function getTrickHudPresentation(tricksPlayedInRound: number): TrickHudPr
   return { current, total: 20, isFinalThree: current >= 18 };
 }
 
-export type VictoryRoute = 'chips' | 'briscola' | 'both' | 'none';
+type VictoryRoute = 'chips' | 'briscola' | 'both' | 'none';
 
 export interface VictoryCheck {
   won: boolean;

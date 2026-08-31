@@ -24,9 +24,6 @@ export function getCardArtUrl(suit: Suit, rank: CardRank): string | undefined {
   return ART_BY_KEY[`${suit}_${rank}`];
 }
 
-/** True when the finished deck covers every card, so callers can pick a fallback. */
-export const HAS_FULL_CARD_ART = Object.keys(ART_BY_KEY).length === 40;
-
 /**
  * The paper colour of the artwork. The cards are ~0.61 wide-to-tall while the
  * slots on the table are ~0.70, so the art is letterboxed rather than cropped -

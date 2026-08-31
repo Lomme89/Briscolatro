@@ -8,7 +8,6 @@ export interface JokerScoringContext {
   briscolaSuit: Suit;
   money: number;
   playerHand: PlayingCard[];
-  tricksWonThisRound: number;
   consecutiveWinStreak: number;
   totalTricksPlayedThisRound: number;
   remainingTricksCount: number;
@@ -82,7 +81,6 @@ export const JOKER_EFFECTS = {
       briscolaSuit,
       money,
       playerHand,
-      tricksWonThisRound,
       consecutiveWinStreak,
       totalTricksPlayedThisRound,
       remainingTricksCount,

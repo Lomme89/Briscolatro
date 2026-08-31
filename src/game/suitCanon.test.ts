@@ -123,7 +123,6 @@ describe('Lo Spadaccino legge il seme canonico', () => {
     briscolaSuit: 'denari',
     money: 10,
     playerHand: [],
-    tricksWonThisRound: 0,
     consecutiveWinStreak: 0,
     totalTricksPlayedThisRound: 0,
     remainingTricksCount: 20,

@@ -27,60 +27,61 @@ import {
 import { createRunRng, pickRun, shuffleRun } from '../game/runRng';
 import { ShopSnapshotV1 } from '../game/runPersistence';
 
-interface ShopViewProps {
-  money: number;
-  jokers: Joker[];
-  consumables: UnoCard[];
-  vouchers: Voucher[];
-  maxJokers: number;
-  maxConsumables: number;
+interface ShopViewModel {
+  build: {
+    money: number;
+    jokers: Joker[];
+    consumables: UnoCard[];
+    vouchers: Voucher[];
+    maxJokers: number;
+    maxConsumables: number;
+  };
+  visit: {
+    slotRules: SlotRules;
+    runDeck: PlayingCard[];
+    ante: number;
+    round: number;
+    shopState: ShopSnapshotV1;
+  };
+}
+
+interface ShopViewActions {
   onBuyJoker: (joker: Joker, cost: number) => boolean;
   onBuyUnoCard: (unoCard: UnoCard, cost: number) => boolean;
   onBuyVoucher: (voucher: Voucher, cost: number) => boolean;
   onSellJoker: (index: number) => void;
   onSellUnoCard: (index: number) => void;
-  /** AMPLIA TAVOLO. Returns false when it could not be paid for. */
   onBuyJokerSlot: () => boolean;
-  /** ALLARGA TASCA. Returns false when it could not be paid for. */
   onBuyConsumableSlot: () => boolean;
-  /** The caps this Ante plays under: campaign 7/4, then the Endless tier's. */
-  slotRules: SlotRules;
-  /** Applies the upgrade to the card of the same suit and rank in the deck. */
   onUpgradeCard: (upgraded: PlayingCard) => void;
-  runDeck: PlayingCard[];
   onNextRound: () => void;
   onReroll: (cost: number) => boolean;
-  ante: number;
-  round: number;
-  /** The shelf's derivation, owned by the run so it can be saved and restored. */
-  shopState: ShopSnapshotV1;
   onShopStateChange: (patch: Partial<ShopSnapshotV1>) => void;
 }
 
-export const ShopView: React.FC<ShopViewProps> = ({
-  money,
-  jokers,
-  consumables,
-  vouchers,
-  maxJokers,
-  maxConsumables,
-  onBuyJoker,
-  onBuyUnoCard,
-  onBuyVoucher,
-  onSellJoker,
-  onSellUnoCard,
-  onBuyJokerSlot,
-  onBuyConsumableSlot,
-  slotRules,
-  onUpgradeCard,
-  runDeck,
-  onNextRound,
-  onReroll,
-  ante,
-  round,
-  shopState,
-  onShopStateChange,
-}) => {
+interface ShopViewProps {
+  model: ShopViewModel;
+  actions: ShopViewActions;
+}
+
+export const ShopView: React.FC<ShopViewProps> = ({ model, actions }) => {
+  const {
+    build: { money, jokers, consumables, vouchers, maxJokers, maxConsumables },
+    visit: { slotRules, runDeck, ante, round, shopState },
+  } = model;
+  const {
+    onBuyJoker,
+    onBuyUnoCard,
+    onBuyVoucher,
+    onSellJoker,
+    onSellUnoCard,
+    onBuyJokerSlot,
+    onBuyConsumableSlot,
+    onUpgradeCard,
+    onNextRound,
+    onReroll,
+    onShopStateChange,
+  } = actions;
   const hasSconto = vouchers.some(v => v.id === 'v_sconto' && v.bought);
   const hasTavolo = vouchers.some(v => v.id === 'v_tavolo' && v.bought);
 

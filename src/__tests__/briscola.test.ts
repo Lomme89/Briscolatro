@@ -2,27 +2,19 @@ import { describe, it, expect } from 'vitest';
 import {
   createCard,
   createStandardDeck,
-  withRank,
   resolveTrick,
-  RANK_INFO,
 } from '../game/briscola';
 import {
-  createRunDeck,
   prepareRoundDeck,
   performExchangeDiscard,
   drawNextTrickCards,
   isRoundFinished,
-  applyTrickResult,
-  calculateRoundOutcome,
-  RoundStateSnapshot,
 } from '../game/gameState';
 import { calculateTrickScore } from '../game/scoring';
 import { executeUnoCard, UnoActionContext } from '../game/unoEffects';
-import { BOSS_RULES } from '../game/bossRules';
-import { ALL_DECKS } from '../data/decks';
 import { ALL_JOKERS } from '../data/jokers';
 import { ALL_UNO_CARDS } from '../data/unoCards';
-import { PlayingCard, Suit } from '../types/game';
+import { Suit } from '../types/game';
 
 describe('Briscola Core Game Rules & Invariants', () => {
   it('creates a standard 40-card deck with exactly 120 total points', () => {
@@ -37,27 +29,6 @@ describe('Briscola Core Game Rules & Invariants', () => {
       const count = deck.filter((c) => c.rank === r).length;
       expect(count).toBe(4);
     }
-  });
-
-  it('atomically synchronizes points and power with withRank()', () => {
-    const card = createCard('denari', 2);
-    expect(card.points).toBe(0);
-    expect(card.power).toBe(1);
-
-    const upgradedToAce = withRank(card, 1);
-    expect(upgradedToAce.rank).toBe(1);
-    expect(upgradedToAce.points).toBe(11);
-    expect(upgradedToAce.power).toBe(10);
-
-    const upgradedToThree = withRank(card, 3);
-    expect(upgradedToThree.rank).toBe(3);
-    expect(upgradedToThree.points).toBe(10);
-    expect(upgradedToThree.power).toBe(9);
-
-    const upgradedToKing = withRank(card, 10);
-    expect(upgradedToKing.rank).toBe(10);
-    expect(upgradedToKing.points).toBe(4);
-    expect(upgradedToKing.power).toBe(8);
   });
 
   it('correctly resolves trick when player leads and opponent responds', () => {
@@ -169,7 +140,6 @@ describe('Joker & Scoring Engine', () => {
       {
         money: 10,
         playerHand: [],
-        tricksWonThisRound: 0,
         consecutiveWinStreak: 0,
         totalTricksPlayedThisRound: 0,
         remainingTricksCount: 15,
@@ -211,7 +181,6 @@ describe('Joker & Scoring Engine', () => {
       {
         money: 0,
         playerHand: [],
-        tricksWonThisRound: 0,
         consecutiveWinStreak: 0,
         totalTricksPlayedThisRound: 0,
         remainingTricksCount: 10,

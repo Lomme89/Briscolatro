@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import React, { useState, useRef, useReducer } from 'react';
 import confetti from 'canvas-confetti';
 import {
   DeckDefinition,
@@ -49,7 +48,6 @@ import {
 } from './game/slotExpansions';
 import {
   CAMPAIGN_FINAL_ANTE,
-  formatAnteLabel,
   getEndlessTier,
   getSlotRulesForAnte,
   isEndlessAnte,
@@ -61,11 +59,6 @@ import {
   getActiveBossRules,
 } from './game/endlessBosses';
 import {
-  clearRunSnapshot,
-  hasStoredRun,
-  loadRunSnapshot,
-  RestoredRun,
-  RunSnapshotPhase,
   saveRunSnapshot,
   serializeRun,
   ShopSnapshotV1,
@@ -74,25 +67,18 @@ import { getRunRngState, randomRun, seedRunRng, setRunRngState } from './game/ru
 import { sound } from './services/soundEngine';
 
 import { GameTable } from './components/GameTable';
-import { PixelCard } from './components/PixelCard';
-import { TableFeltPattern } from './components/TableFeltPattern';
-import { getTableThemeForAnte } from './data/tableThemes';
 import { getOpponentIntro } from './data/opponents';
 import { getAiProfile } from './game/aiProfiles';
 import {
-  DEFAULT_VICTORY_MODE,
-  parseVictoryMode,
   VICTORY_MODES,
-  buildDefeatReason,
-  VictoryCheck,
   VictoryMode,
 } from './game/victoryModes';
 import { readPlayerThreat } from './game/opponentThreat';
 import { ShopView } from './components/ShopView';
 import { BlindSelectView } from './components/BlindSelectView';
 import { ScoreTallyOverlay } from './components/ScoreTallyOverlay';
-import { RoundSummaryModal, RoundSummaryData } from './components/RoundSummaryModal';
-import { GameOverModal, GameOverSummaryData } from './components/GameOverModal';
+import { RoundSummaryModal } from './components/RoundSummaryModal';
+import { GameOverModal } from './components/GameOverModal';
 import { EndlessOfferModal } from './components/EndlessOfferModal';
 import { TutorialModal } from './components/TutorialModal';
 import { DeckSelectModal } from './components/DeckSelectModal';
@@ -102,250 +88,64 @@ import { SettingsModal } from './components/SettingsModal';
 import { UnoCastOverlay } from './components/UnoCastOverlay';
 import { CardChipsProvider } from './context/CardChipsContext';
 import { DevDebugDrawer } from './components/DevDebugDrawer';
-import { GameSettings } from './types/game';
+import { TitleScreen } from './components/TitleScreen';
+import { useActionScheduler } from './hooks/useActionScheduler';
+import { useGameSettings } from './hooks/useGameSettings';
+import { useLatest } from './hooks/useLatest';
+import { useMetaProgression } from './hooks/useMetaProgression';
+import { usePwaInstall } from './hooks/usePwaInstall';
+import { trickFlowReducer } from './game/trickFlow';
+import { useAutosaveBoundary } from './hooks/useAutosaveBoundary';
+import { GameOverSummaryData, RoundSummaryData } from './types/runSummaries';
+import {
+  buildCampaignVictorySummary,
+  buildDefeatSummary,
+  buildRoundSummary,
+} from './game/runSummaries';
+import {
+  RunConfirmation,
+  RunConfirmationModal,
+} from './components/RunConfirmationModal';
+import { useStoredRunSlot } from './hooks/useStoredRunSlot';
 
-/** What a fresh install starts with, and what "azzera progressi" goes back to. */
-const DEFAULT_UNLOCKED_DECKS = ['deck_napoletano', 'deck_bastoni'];
-
-export type TrickPhase =
-  | 'idle'
-  | 'waiting_player_follow'
-  | 'resolving'
-  | 'tally'
-  | 'drawing'
-  | 'round_end';
-
-export function App() {
-  // --- Persistent Settings ---
-  const [settings, setSettings] = useState<GameSettings>(() => {
-    try {
-      const saved = localStorage.getItem('briscolatro_settings');
-      return saved
-        ? JSON.parse(saved)
-        : {
-            soundEnabled: true,
-            musicEnabled: true,
-            sfxVolume: 80,
-            musicVolume: 50,
-            crtScanlines: false,
-            screenShake: true,
-            fastMode: false,
-            showCardChips: true,
-          };
-    } catch {
-      return {
-        soundEnabled: true,
-        musicEnabled: true,
-        sfxVolume: 80,
-        musicVolume: 50,
-        crtScanlines: false,
-        screenShake: true,
-        fastMode: false,
-        showCardChips: true,
-      };
-    }
-  });
-
-  const handleUpdateSettings = (newSettings: Partial<GameSettings>) => {
-    setSettings((prev) => {
-      const updated = { ...prev, ...newSettings };
-      try {
-        localStorage.setItem('briscolatro_settings', JSON.stringify(updated));
-      } catch {}
-      if (updated.sfxVolume !== undefined) {
-        sound.setSfxVolume(updated.soundEnabled ? updated.sfxVolume / 100 : 0);
-      }
-      if (updated.musicVolume !== undefined) {
-        sound.setMusicVolume(updated.musicEnabled ? updated.musicVolume / 100 : 0);
-      }
-      return updated;
-    });
-  };
-
-  // --- PWA Installation & Navigation ---
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [isStandalone, setIsStandalone] = useState<boolean>(false);
-
-  useEffect(() => {
-    const isStandaloneMode =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as any).standalone === true;
-    setIsStandalone(isStandaloneMode);
-
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
-  }, []);
+function App() {
+  const { settings, updateSettings: handleUpdateSettings } = useGameSettings();
+  const { isStandalone, promptInstall } = usePwaInstall();
+  const {
+    unlockedDeckIds,
+    setUnlockedDeckIds,
+    bossesDefeated,
+    setBossesDefeated,
+    solaCardsUsed,
+    setSolaCardsUsed,
+    victoryMode,
+    setVictoryMode,
+    highScores,
+    setHighScores,
+    modeWins,
+    setModeWins,
+    modeBestAnte,
+    setModeBestAnte,
+    modeBestEndlessAnte,
+    setModeBestEndlessAnte,
+    highScore,
+    setHighScore,
+    resetProgress,
+  } = useMetaProgression();
 
   const handleInstallApp = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        setIsStandalone(true);
-      }
-      setDeferredPrompt(null);
-    } else {
-      setShowSettings(true);
-    }
+    if (!(await promptInstall())) setShowSettings(true);
   };
 
-  // --- Meta Progression (Persisted) ---
-  const [unlockedDeckIds, setUnlockedDeckIds] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('briscolatro_unlocked_decks');
-      return saved ? JSON.parse(saved) : DEFAULT_UNLOCKED_DECKS;
-    } catch {
-      return DEFAULT_UNLOCKED_DECKS;
-    }
-  });
-
-  // Boss blinds beaten in this run, and Carte Sola spent across every run: the
-  // Mazzo Trevigiano and the Mazzo Sola are unlocked by these, not by the ante.
-  const [bossesDefeated, setBossesDefeated] = useState<number>(0);
-  const [solaCardsUsed, setSolaCardsUsed] = useState<number>(() => {
-    try {
-      return parseInt(localStorage.getItem('briscolatro_sola_used') || '0', 10) || 0;
-    } catch {
-      return 0;
-    }
-  });
-
-  /**
-   * Which rules this run is being played under.
-   *
-   * A save from before modes existed has no key, and lands in Briscolatro:
-   * that is the game it was playing. Nothing else about the save is touched.
-   */
-  const [victoryMode, setVictoryMode] = useState<VictoryMode>(() => {
-    try {
-      return parseVictoryMode(localStorage.getItem('briscolatro_victory_mode'));
-    } catch {
-      return DEFAULT_VICTORY_MODE;
-    }
-  });
-  /** Best total score per mode: four rules, four records, never compared. */
-  const [highScores, setHighScores] = useState<Record<VictoryMode, number>>(() => {
-    const read = (key: string) => {
-      try {
-        return parseInt(localStorage.getItem(key) || '0', 10) || 0;
-      } catch {
-        return 0;
-      }
-    };
-    return {
-      // The historical record moves here and nowhere else: the old game asked
-      // for the Chips target, which is exactly what Briscolatro asks for.
-      briscolatro: read(VICTORY_MODES.briscolatro.highScoreKey),
-      sbaraglio: read(VICTORY_MODES.sbaraglio.highScoreKey),
-      traditional: read(VICTORY_MODES.traditional.highScoreKey),
-      double_challenge: read(VICTORY_MODES.double_challenge.highScoreKey),
-    };
-  });
-  /** Runs cleared per mode, for the title screen. */
-  const [modeWins, setModeWins] = useState<Record<VictoryMode, number>>(() => {
-    try {
-      const raw = JSON.parse(localStorage.getItem('briscolatro_mode_wins') || '{}');
-      return {
-        briscolatro: raw.briscolatro ?? 0,
-        sbaraglio: raw.sbaraglio ?? 0,
-        traditional: raw.traditional ?? 0,
-        double_challenge: raw.double_challenge ?? 0,
-      };
-    } catch {
-      return { briscolatro: 0, sbaraglio: 0, traditional: 0, double_challenge: 0 };
-    }
-  });
-  /** Highest Ante reached per mode. */
-  const [modeBestAnte, setModeBestAnte] = useState<Record<VictoryMode, number>>(() => {
-    try {
-      const raw = JSON.parse(localStorage.getItem('briscolatro_mode_ante') || '{}');
-      return {
-        briscolatro: raw.briscolatro ?? 0,
-        sbaraglio: raw.sbaraglio ?? 0,
-        traditional: raw.traditional ?? 0,
-        double_challenge: raw.double_challenge ?? 0,
-      };
-    } catch {
-      return { briscolatro: 0, sbaraglio: 0, traditional: 0, double_challenge: 0 };
-    }
-  });
-  /**
-   * Highest Endless Ante per mode. Deliberately its own record: mixing it with
-   * the best campaign Ante would let an Endless run inflate a number that is
-   * supposed to say how far the tournament itself was played.
-   */
-  const [modeBestEndlessAnte, setModeBestEndlessAnte] = useState<Record<VictoryMode, number>>(() => {
-    try {
-      const raw = JSON.parse(localStorage.getItem('briscolatro_mode_endless') || '{}');
-      return {
-        briscolatro: raw.briscolatro ?? 0,
-        sbaraglio: raw.sbaraglio ?? 0,
-        traditional: raw.traditional ?? 0,
-        double_challenge: raw.double_challenge ?? 0,
-      };
-    } catch {
-      return { briscolatro: 0, sbaraglio: 0, traditional: 0, double_challenge: 0 };
-    }
-  });
-  /** The verdict on the round just played, for the summary and the HUD. */
-  const [lastVictory, setLastVictory] = useState<VictoryCheck | null>(null);
-
-  const [highScore, setHighScore] = useState<number>(() => {
-    try {
-      return parseInt(localStorage.getItem('briscolatro_highscore') || '0', 10);
-    } catch {
-      return 0;
-    }
-  });
-
-  /** Back to a fresh install: the record and the decks you earned. */
   const handleResetProgress = () => {
-    setHighScore(0);
-    setUnlockedDeckIds(DEFAULT_UNLOCKED_DECKS);
-    setSolaCardsUsed(0);
-    setHighScores({ briscolatro: 0, sbaraglio: 0, traditional: 0, double_challenge: 0 });
-    setModeWins({ briscolatro: 0, sbaraglio: 0, traditional: 0, double_challenge: 0 });
-    setModeBestAnte({ briscolatro: 0, sbaraglio: 0, traditional: 0, double_challenge: 0 });
-    setModeBestEndlessAnte({ briscolatro: 0, sbaraglio: 0, traditional: 0, double_challenge: 0 });
-    try {
-      localStorage.removeItem('briscolatro_unlocked_decks');
-      localStorage.removeItem('briscolatro_sola_used');
-      localStorage.removeItem('briscolatro_mode_wins');
-      localStorage.removeItem('briscolatro_mode_ante');
-      localStorage.removeItem('briscolatro_mode_endless');
-      for (const info of Object.values(VICTORY_MODES)) localStorage.removeItem(info.highScoreKey);
-    } catch {}
+    resetProgress();
     sound.playCardFlick();
   };
 
   // --- Save / Resume ---
-  /**
-   * The stored run, if there is one that still checks out.
-   *
-   * Read once, on the way in: a snapshot that fails validation is deleted
-   * rather than repaired, and the title screen says so instead of pretending
-   * the run is still there.
-   */
-  const [resumableRun, setResumableRun] = useState<RestoredRun | null>(null);
-  const [saveNotice, setSaveNotice] = useState<string | null>(null);
+  const { resumableRun, saveNotice, hideStoredRun, clearStoredRun } = useStoredRunSlot();
   /** Which confirmation the title screen is waiting on. */
-  const [pendingConfirm, setPendingConfirm] = useState<'new_run' | 'abandon' | null>(null);
-
-  useEffect(() => {
-    const hadSomething = hasStoredRun();
-    const restored = loadRunSnapshot();
-    setResumableRun(restored);
-    if (hadSomething && !restored) {
-      setSaveNotice('Salvataggio non valido. Avvia una nuova run.');
-    }
-  }, []);
+  const [pendingConfirm, setPendingConfirm] = useState<RunConfirmation | null>(null);
 
   // --- Run State ---
   const [phase, setPhase] = useState<GamePhase>('title');
@@ -356,13 +156,32 @@ export function App() {
   const [money, setMoney] = useState<number>(4);
   const [discardsLeft, setDiscardsLeft] = useState<number>(1);
   const [targetScore, setTargetScore] = useState<number>(300);
-  const [currentRoundScore, setCurrentRoundScore] = useState<number>(0);
-  const [totalScore, setTotalScore] = useState<number>(0);
-  const [totalTricksWon, setTotalTricksWon] = useState<number>(0);
-  const [totalTricksLost, setTotalTricksLost] = useState<number>(0);
-  const [totalBriscolaPointsPlayer, setTotalBriscolaPointsPlayer] = useState<number>(0);
-  const [totalBriscolaPointsOpponent, setTotalBriscolaPointsOpponent] = useState<number>(0);
-  const [totalMoneyEarned, setTotalMoneyEarned] = useState<number>(0);
+  const [scoreLedger, setScoreLedger] = useState({
+    currentRoundScore: 0,
+    totalScore: 0,
+    roundPointsTaken: 0,
+    opponentPointsTaken: 0,
+    roundTricksWon: 0,
+    roundTricksLost: 0,
+    totalTricksWon: 0,
+    totalTricksLost: 0,
+    totalBriscolaPointsPlayer: 0,
+    totalBriscolaPointsOpponent: 0,
+    totalMoneyEarned: 0,
+  });
+  const {
+    currentRoundScore,
+    totalScore,
+    roundPointsTaken,
+    opponentPointsTaken,
+    roundTricksWon,
+    roundTricksLost,
+    totalTricksWon,
+    totalTricksLost,
+    totalBriscolaPointsPlayer,
+    totalBriscolaPointsOpponent,
+    totalMoneyEarned,
+  } = scoreLedger;
 
   // --- Persistent Run Deck & Active Match Cards ---
   const [runDeck, setRunDeck] = useState<PlayingCard[]>([]);
@@ -378,10 +197,6 @@ export function App() {
   const [trickLeadIsPlayer, setTrickLeadIsPlayer] = useState<boolean>(true);
   // True while the opening hand is being dealt, so the table can stagger it.
   const [isDealing, setIsDealing] = useState<boolean>(false);
-  const [roundPointsTaken, setRoundPointsTaken] = useState<number>(0);
-  const [opponentPointsTaken, setOpponentPointsTaken] = useState<number>(0);
-  const [roundTricksWon, setRoundTricksWon] = useState<number>(0);
-  const [roundTricksLost, setRoundTricksLost] = useState<number>(0);
   const [activeBoss, setActiveBoss] = useState<BossBlind | null>(null);
   /**
    * Which half of the run this is.
@@ -428,20 +243,18 @@ export function App() {
   const [triggeringJokerId, setTriggeringJokerId] = useState<string | null>(null);
   // Transaction guards read and update these synchronously; React state alone
   // can be one render behind during a rapid double tap.
-  const moneyRef = useRef(money);
-  moneyRef.current = money;
-  const activeJokersRef = useRef(activeJokers);
-  activeJokersRef.current = activeJokers;
-  const consumablesRef = useRef(consumables);
-  consumablesRef.current = consumables;
-  const vouchersRef = useRef(vouchers);
-  vouchersRef.current = vouchers;
+  const moneyRef = useLatest(money);
+  const activeJokersRef = useLatest(activeJokers);
+  const consumablesRef = useLatest(consumables);
+  const vouchersRef = useLatest(vouchers);
 
   // --- Trick State Machine & Scoring ---
-  const [trickPhase, setTrickPhase] = useState<TrickPhase>('idle');
+  const [trickPhase, dispatchTrickFlow] = useReducer(trickFlowReducer, 'idle');
   const [disabledJokerIndex, setDisabledJokerIndex] = useState<number | null>(null);
-  const [activeUnoMultiplier, setActiveUnoMultiplier] = useState<number>(1.0);
-  const [isReverseActive, setIsReverseActive] = useState<boolean>(false);
+  // Transient rule switches are read only by delayed game callbacks. Keeping
+  // them in React state caused renders without changing anything on screen.
+  const activeUnoMultiplierRef = useRef<number>(1.0);
+  const isReverseActiveRef = useRef<boolean>(false);
   const [bossDebuffNeutralized, setBossDebuffNeutralized] = useState<boolean>(false);
   const [tricksPlayedInRound, setTricksPlayedInRound] = useState<number>(0);
   /**
@@ -503,69 +316,31 @@ export function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
 
-  // Timers cleanup ref
   /**
    * Every pause between tricks goes through here. A round is 20 tricks, so the
    * pacing is most of the time spent in a run: "Partita Rapida" nearly halves it.
    */
-  const settingsRef = useRef<GameSettings>(settings);
-  settingsRef.current = settings;
-  const beat = useCallback(
-    (ms: number) => (settingsRef.current.fastMode ? Math.round(ms * 0.45) : ms),
-    []
-  );
+  const { beat, scheduleAction } = useActionScheduler(settings.fastMode);
 
-  /**
-   * Autosave, at boundaries only.
-   *
-   * A save is asked for by bumping a tick; the write happens in an effect, so
-   * it reads state React has already committed. That is the whole point: every
-   * boundary sets a fistful of state at once, and a snapshot taken halfway
-   * through that batch would be a position the game cannot be in.
-   */
-  const [saveTick, setSaveTick] = useState(0);
-  const savePhaseRef = useRef<RunSnapshotPhase>('playing');
-  const requestSave = useCallback((phaseForSave: RunSnapshotPhase) => {
-    savePhaseRef.current = phaseForSave;
-    setSaveTick((tick) => tick + 1);
-  }, []);
-
-  const activeTimersRef = useRef<NodeJS.Timeout[]>([]);
-  const scheduleAction = useCallback((fn: () => void, delayMs: number) => {
-    const timer = setTimeout(fn, delayMs);
-    activeTimersRef.current.push(timer);
-    return timer;
-  }, []);
+  const requestSave = useAutosaveBoundary(writeRunSnapshot);
 
   // Synchronized state refs to eliminate asynchronous closure staleness
-  const playerHandRef = useRef<PlayingCard[]>(playerHand);
-  playerHandRef.current = playerHand;
-  const opponentHandRef = useRef<PlayingCard[]>(opponentHand);
-  opponentHandRef.current = opponentHand;
-  const drawPileRef = useRef<PlayingCard[]>(drawPile);
-  drawPileRef.current = drawPile;
-  const trumpCardRef = useRef<PlayingCard | null>(trumpCard);
-  trumpCardRef.current = trumpCard;
-  const briscolaSuitRef = useRef<Suit>(briscolaSuit);
-  briscolaSuitRef.current = briscolaSuit;
-  const activeBossRef = useRef<BossBlind | null>(activeBoss);
-  activeBossRef.current = activeBoss;
-  const isReverseActiveRef = useRef<boolean>(isReverseActive);
-  isReverseActiveRef.current = isReverseActive;
-  const bossDebuffNeutralizedRef = useRef<boolean>(bossDebuffNeutralized);
-  bossDebuffNeutralizedRef.current = bossDebuffNeutralized;
+  const playerHandRef = useLatest(playerHand);
+  const opponentHandRef = useLatest(opponentHand);
+  const drawPileRef = useLatest(drawPile);
+  const trumpCardRef = useLatest(trumpCard);
+  const briscolaSuitRef = useLatest(briscolaSuit);
+  const activeBossRef = useLatest(activeBoss);
+  const bossDebuffNeutralizedRef = useLatest(bossDebuffNeutralized);
   /**
    * The two slot caps, mirrored. A shop service is bought from a click handler
    * that closed over an older render: reading the cap out of state there is how
    * a double tap buys the same chair twice.
    */
-  const runPhaseRef = useRef<RunPhase>(runPhase);
-  runPhaseRef.current = runPhase;
+  const runPhaseRef = useLatest(runPhase);
   const anteRef = useRef<number>(1);
-  const maxJokersRef = useRef<number>(maxJokers);
-  maxJokersRef.current = maxJokers;
-  const maxConsumablesRef = useRef<number>(maxConsumables);
-  maxConsumablesRef.current = maxConsumables;
+  const maxJokersRef = useLatest(maxJokers);
+  const maxConsumablesRef = useLatest(maxConsumables);
   /** One expansion per press, whatever the browser does with the second one. */
   const slotPurchaseLockRef = useRef<boolean>(false);
   /**
@@ -599,12 +374,6 @@ export function App() {
     return rules.length > 0 ? rules : undefined;
   };
 
-  useEffect(() => {
-    return () => {
-      activeTimersRef.current.forEach(clearTimeout);
-    };
-  }, []);
-
   const triggerScreenShake = () => {
     if (
       !settings.screenShake ||
@@ -621,11 +390,14 @@ export function App() {
     deckDef: DeckDefinition = selectedDeck,
     currentRunDeck: PlayingCard[] = runDeck
   ) => {
-    setCurrentRoundScore(0);
-    setRoundPointsTaken(0);
-    setOpponentPointsTaken(0);
-    setRoundTricksWon(0);
-    setRoundTricksLost(0);
+    setScoreLedger((ledger) => ({
+      ...ledger,
+      currentRoundScore: 0,
+      roundPointsTaken: 0,
+      opponentPointsTaken: 0,
+      roundTricksWon: 0,
+      roundTricksLost: 0,
+    }));
     setRoundSummary(null);
     setPlayerTrickCard(null);
     setOpponentTrickCard(null);
@@ -639,8 +411,7 @@ export function App() {
     );
     setConsecutiveWinStreak(0);
     setCapturedDenariRanksThisRound(new Set());
-    setActiveUnoMultiplier(1.0);
-    setIsReverseActive(false);
+    activeUnoMultiplierRef.current = 1.0;
     isReverseActiveRef.current = false;
     setBossDebuffNeutralized(false);
     bossShieldTricksRef.current = 0;
@@ -709,7 +480,7 @@ export function App() {
     setDisabledJokerIndex(BOSS_RULES.getSilencedJokerIndex(bossToSet, 0, activeJokers.length));
     setIsPlayerTurn(true);
     setTrickLeadIsPlayer(true);
-    setTrickPhase('idle');
+    dispatchTrickFlow({ type: 'RESET' });
 
     // Deal the opening hand card by card instead of having six appear at once.
     setIsDealing(true);
@@ -729,29 +500,32 @@ export function App() {
     // A new run gets a new stream, and it has to be running before the deck is
     // built: the forty card ids and the first shuffle come out of it.
     seedRunRng();
-    clearRunSnapshot();
-    setResumableRun(null);
-    setSaveNotice(null);
+    clearStoredRun();
     setPendingConfirm(null);
     setShopState(null);
     setVictoryMode(mode);
     try {
       localStorage.setItem('briscolatro_victory_mode', mode);
     } catch {}
-    setLastVictory(null);
     setSelectedDeck(deck);
     setAnte(1);
     setBossesDefeated(0);
     setRound(1);
     setMoney(deck.startingMoney);
     setDiscardsLeft(deck.startingDiscards);
-    setCurrentRoundScore(0);
-    setTotalScore(0);
-    setTotalTricksWon(0);
-    setTotalTricksLost(0);
-    setTotalBriscolaPointsPlayer(0);
-    setTotalBriscolaPointsOpponent(0);
-    setTotalMoneyEarned(deck.startingMoney);
+    setScoreLedger({
+      currentRoundScore: 0,
+      totalScore: 0,
+      roundPointsTaken: 0,
+      opponentPointsTaken: 0,
+      roundTricksWon: 0,
+      roundTricksLost: 0,
+      totalTricksWon: 0,
+      totalTricksLost: 0,
+      totalBriscolaPointsPlayer: 0,
+      totalBriscolaPointsOpponent: 0,
+      totalMoneyEarned: deck.startingMoney,
+    });
     setRoundSummary(null);
     setGameOverSummary(null);
 
@@ -843,7 +617,7 @@ export function App() {
     if (!chosenCard) {
       // No cards left to lead with: hand the table back to the player.
       setIsPlayerTurn(true);
-      setTrickPhase('idle');
+      dispatchTrickFlow({ type: 'CANCEL_CLASH' });
       return;
     }
 
@@ -855,7 +629,7 @@ export function App() {
     sound.playCardSlam();
 
     setIsPlayerTurn(true);
-    setTrickPhase('waiting_player_follow');
+    dispatchTrickFlow({ type: 'OPPONENT_LED' });
   };
 
   // --- Opponent Follow AI ---
@@ -883,7 +657,7 @@ export function App() {
       setPlayerHand(restoredHand);
       setPlayerTrickCard(null);
       setIsPlayerTurn(true);
-      setTrickPhase('idle');
+      dispatchTrickFlow({ type: 'CANCEL_CLASH' });
       return;
     }
 
@@ -906,7 +680,7 @@ export function App() {
     leadIsPlayer: boolean
   ) => {
     tallyGuardRef.current = false;
-    setTrickPhase('resolving');
+    dispatchTrickFlow({ type: 'BEGIN_CLASH' });
 
     // Both cards are face-up now, so both go into the public record. Memory is
     // built only from here.
@@ -953,7 +727,6 @@ export function App() {
         {
           money,
           playerHand: playerHandRef.current,
-          tricksWonThisRound: roundTricksWon,
           consecutiveWinStreak,
           totalTricksPlayedThisRound: tricksPlayedInRound,
           remainingTricksCount: remainingTricks,
@@ -963,7 +736,7 @@ export function App() {
           roundPointsTaken,
           opponentPointsTaken,
         },
-        activeUnoMultiplier,
+        activeUnoMultiplierRef.current,
         disabledJokerIndex,
         leadIsPlayer
       );
@@ -1061,7 +834,7 @@ export function App() {
       });
     }
 
-    setTrickPhase('tally');
+    dispatchTrickFlow({ type: 'SHOW_TALLY' });
   };
 
   // --- Tally Complete State Transition ---
@@ -1074,29 +847,12 @@ export function App() {
 
     // Construct fresh snapshot
     const currentSnapshot: RoundStateSnapshot = {
-      currentRoundScore,
-      totalScore,
-      roundPointsTaken,
-      opponentPointsTaken,
-      roundTricksWon,
-      roundTricksLost,
-      totalTricksWon,
-      totalTricksLost,
-      totalBriscolaPointsPlayer,
-      totalBriscolaPointsOpponent,
+      ...scoreLedger,
       money,
-      totalMoneyEarned,
       targetScore,
       ante,
       round,
-      playerHand,
-      opponentHand,
-      drawPile,
-      trumpCard,
-      briscolaSuit,
-      activeBoss,
       vouchers,
-      activeJokers,
       bossesDefeated,
       solaCardsUsed,
       victoryMode,
@@ -1111,18 +867,20 @@ export function App() {
       bonusDollars
     );
 
-    setCurrentRoundScore(nextSnapshot.currentRoundScore);
-    setTotalScore(nextSnapshot.totalScore);
-    setRoundPointsTaken(nextSnapshot.roundPointsTaken);
-    setOpponentPointsTaken(nextSnapshot.opponentPointsTaken);
-    setRoundTricksWon(nextSnapshot.roundTricksWon);
-    setRoundTricksLost(nextSnapshot.roundTricksLost);
-    setTotalTricksWon(nextSnapshot.totalTricksWon);
-    setTotalTricksLost(nextSnapshot.totalTricksLost);
-    setTotalBriscolaPointsPlayer(nextSnapshot.totalBriscolaPointsPlayer);
-    setTotalBriscolaPointsOpponent(nextSnapshot.totalBriscolaPointsOpponent);
+    setScoreLedger({
+      currentRoundScore: nextSnapshot.currentRoundScore,
+      totalScore: nextSnapshot.totalScore,
+      roundPointsTaken: nextSnapshot.roundPointsTaken,
+      opponentPointsTaken: nextSnapshot.opponentPointsTaken,
+      roundTricksWon: nextSnapshot.roundTricksWon,
+      roundTricksLost: nextSnapshot.roundTricksLost,
+      totalTricksWon: nextSnapshot.totalTricksWon,
+      totalTricksLost: nextSnapshot.totalTricksLost,
+      totalBriscolaPointsPlayer: nextSnapshot.totalBriscolaPointsPlayer,
+      totalBriscolaPointsOpponent: nextSnapshot.totalBriscolaPointsOpponent,
+      totalMoneyEarned: nextSnapshot.totalMoneyEarned,
+    });
     setMoney(nextSnapshot.money);
-    setTotalMoneyEarned(nextSnapshot.totalMoneyEarned);
 
     // Update Denari captured set
     if (playerWon) {
@@ -1181,8 +939,7 @@ export function App() {
     setPlayerTrickCard(null);
     setOpponentTrickCard(null);
     setTallyData(null);
-    setActiveUnoMultiplier(1.0);
-    setIsReverseActive(false);
+    activeUnoMultiplierRef.current = 1.0;
     isReverseActiveRef.current = false;
 
     // The Scudo burns a trick, and when it runs out the boss speaks again.
@@ -1212,12 +969,10 @@ export function App() {
     const roundEnded = isRoundFinished(newPlayerHand, newOpponentHand, newDrawPile, newTrumpCard);
 
     if (roundEnded) {
-      setTrickPhase('round_end');
+      dispatchTrickFlow({ type: 'FINISH_ROUND' });
 
       // Evaluate outcome
       const outcome = calculateRoundOutcome(nextSnapshot, highScore, unlockedDeckIds);
-
-      setLastVictory(outcome.victory);
 
       // Four rules mean four records: a Briscola run and a Briscolatro run are
       // not the same achievement and must never overwrite each other.
@@ -1267,33 +1022,24 @@ export function App() {
         confetti({ particleCount: 70, spread: 80 });
 
         setMoney((m) => m + outcome.totalReward);
-        setTotalMoneyEarned((m) => m + outcome.totalReward);
+        setScoreLedger((ledger) => ({
+          ...ledger,
+          totalMoneyEarned: ledger.totalMoneyEarned + outcome.totalReward,
+        }));
 
         const endRoundJokerBonus = JOKER_EFFECTS.getRoundEndBonusDollars(activeJokers, nextSnapshot.money);
         if (endRoundJokerBonus > 0) {
           setMoney((m) => m + endRoundJokerBonus);
         }
 
-        setRoundSummary({
-          ante,
-          round,
-          targetScore,
-          achievedScore: nextSnapshot.currentRoundScore,
-          playerTrickPoints: nextSnapshot.roundPointsTaken,
-          opponentTrickPoints: nextSnapshot.opponentPointsTaken,
-          playerTricksWon: nextSnapshot.roundTricksWon,
-          opponentTricksWon: nextSnapshot.roundTricksLost,
-          totalTricks: nextSnapshot.roundTricksWon + nextSnapshot.roundTricksLost,
-          won: true,
-          victory: outcome.victory,
-          bossName: activeBoss?.name,
-          bossAvatar: activeBoss?.avatar,
-          cashEarned: outcome.baseReward,
-          interestEarned: outcome.interest,
-          briscolaBonus: outcome.briscolaBonus,
-          capturedCarichi: [],
-          activeJokersCount: activeJokers.length,
-        });
+        setRoundSummary(
+          buildRoundSummary({
+            snapshot: nextSnapshot,
+            outcome,
+            boss: activeBoss,
+            activeJokersCount: activeJokers.length,
+          })
+        );
 
         if (outcome.isAnte8Victory) {
           // The whole run, not just a blind: this is what the fanfare is for.
@@ -1311,51 +1057,31 @@ export function App() {
           sound.playVictoryFanfare();
           // The snapshot is NOT cleared yet: the run may well continue. It is
           // cleared when the player closes it out, or when Endless kills them.
-          setEndlessOffer({
-            won: true,
-            ante,
-            round,
-            totalScore: nextSnapshot.totalScore,
-            targetScore,
-            totalTricksWon: nextSnapshot.totalTricksWon,
-            totalTricksLost: nextSnapshot.totalTricksLost,
-            totalBriscolaPointsPlayer: nextSnapshot.totalBriscolaPointsPlayer,
-            totalBriscolaPointsOpponent: nextSnapshot.totalBriscolaPointsOpponent,
-            finalMoney: nextSnapshot.money + outcome.totalReward,
-            totalMoneyEarned: nextSnapshot.totalMoneyEarned + outcome.totalReward,
-            jokersUsed: [...activeJokers],
-            deckName: selectedDeck.name,
-            newUnlockedDecks: outcome.newUnlockedDecks,
-            isNewHighScore: outcome.newHighScore,
-            campaignVictory: true,
-          });
+          setEndlessOffer(
+            buildCampaignVictorySummary({
+              snapshot: nextSnapshot,
+              outcome,
+              jokers: activeJokers,
+              deckName: selectedDeck.name,
+            })
+          );
+          // The offer is a settled position too: a reload here comes back to
+          // the question, not to the Boss that was already beaten.
+          requestSave('blind_select');
         }
       } else {
         sound.playRoundLose();
         // The run is lost: the snapshot goes with it.
-        clearRunSnapshot();
-        setResumableRun(null);
+        clearStoredRun();
 
-        setRoundSummary({
-          ante,
-          round,
-          targetScore,
-          achievedScore: nextSnapshot.currentRoundScore,
-          playerTrickPoints: nextSnapshot.roundPointsTaken,
-          opponentTrickPoints: nextSnapshot.opponentPointsTaken,
-          playerTricksWon: nextSnapshot.roundTricksWon,
-          opponentTricksWon: nextSnapshot.roundTricksLost,
-          totalTricks: nextSnapshot.roundTricksWon + nextSnapshot.roundTricksLost,
-          won: false,
-          victory: outcome.victory,
-          bossName: activeBoss?.name,
-          bossAvatar: activeBoss?.avatar,
-          cashEarned: 0,
-          interestEarned: 0,
-          briscolaBonus: 0,
-          capturedCarichi: [],
-          activeJokersCount: activeJokers.length,
-        });
+        setRoundSummary(
+          buildRoundSummary({
+            snapshot: nextSnapshot,
+            outcome,
+            boss: activeBoss,
+            activeJokersCount: activeJokers.length,
+          })
+        );
 
         const endlessTier = getEndlessTier(ante);
         const isNewEndlessRecord =
@@ -1368,39 +1094,24 @@ export function App() {
           } catch {}
         }
 
-        setGameOverSummary({
-          won: false,
-          ante,
-          round,
-          campaignVictory,
-          endlessAnte: runPhaseRef.current === 'endless' ? ante : undefined,
-          endlessTierName: endlessTier?.name,
-          isNewEndlessRecord,
-          totalScore: nextSnapshot.totalScore,
-          targetScore,
-          totalTricksWon: nextSnapshot.totalTricksWon,
-          totalTricksLost: nextSnapshot.totalTricksLost,
-          totalBriscolaPointsPlayer: nextSnapshot.totalBriscolaPointsPlayer,
-          totalBriscolaPointsOpponent: nextSnapshot.totalBriscolaPointsOpponent,
-          finalMoney: nextSnapshot.money,
-          totalMoneyEarned: nextSnapshot.totalMoneyEarned,
-          jokersUsed: [...activeJokers],
-          deckName: selectedDeck.name,
-          newUnlockedDecks: [],
-          isNewHighScore: outcome.newHighScore,
-          defeatReason: buildDefeatReason(
-            outcome.victory,
-            nextSnapshot.currentRoundScore,
-            targetScore,
-            nextSnapshot.roundPointsTaken
-          ),
-        });
+        setGameOverSummary(
+          buildDefeatSummary({
+            snapshot: nextSnapshot,
+            outcome,
+            jokers: activeJokers,
+            deckName: selectedDeck.name,
+            campaignVictory,
+            endlessAnte: runPhaseRef.current === 'endless' ? ante : undefined,
+            endlessTierName: endlessTier?.name,
+            isNewEndlessRecord,
+          })
+        );
       }
     } else {
       // Round continues!
       playGuardRef.current = false;
       setIsPlayerTurn(playerWon);
-      setTrickPhase('idle');
+      dispatchTrickFlow({ type: 'CONTINUE_ROUND' });
 
       // Boundary 2: the trick is awarded, the scores moved, the growth banked,
       // the cards drawn and the next opener decided. The AI lead below is
@@ -1449,14 +1160,14 @@ export function App() {
       // Player led first
       setTrickLeadIsPlayer(true);
       setIsPlayerTurn(false);
-      setTrickPhase('resolving');
+      dispatchTrickFlow({ type: 'BEGIN_CLASH' });
 
       scheduleAction(() => {
         triggerOpponentFollow(card, opponentHandRef.current);
       }, beat(600));
     } else {
       // Player responded to opponent's lead
-      setTrickPhase('resolving');
+      dispatchTrickFlow({ type: 'BEGIN_CLASH' });
 
       scheduleAction(() => {
         resolveCurrentClash(card, opponentTrickCard, false);
@@ -1533,7 +1244,7 @@ export function App() {
       maxJokers,
       currentRoundScore,
       bossDebuffActive: activeBossRef.current !== null,
-      activeUnoMultiplier,
+      activeUnoMultiplier: activeUnoMultiplierRef.current,
       isReverseActive: isReverseActiveRef.current,
     };
 
@@ -1566,9 +1277,8 @@ export function App() {
     setDiscardsLeft(res.newDiscardsLeft);
     activeJokersRef.current = res.newActiveJokers;
     setActiveJokers(res.newActiveJokers);
-    setCurrentRoundScore(res.newRoundScore);
-    setActiveUnoMultiplier(res.newActiveUnoMultiplier);
-    setIsReverseActive(res.newIsReverseActive);
+    setScoreLedger((ledger) => ({ ...ledger, currentRoundScore: res.newRoundScore }));
+    activeUnoMultiplierRef.current = res.newActiveUnoMultiplier;
     setOpponentSpeech(res.feedbackMessage);
 
     // Scudo Protettivo: the boss rule goes quiet for a set number of tricks.
@@ -1608,8 +1318,7 @@ export function App() {
   const handleCloseCampaign = () => {
     if (!endlessOffer) return;
     sound.playCardFlick();
-    clearRunSnapshot();
-    setResumableRun(null);
+    clearStoredRun();
     setGameOverSummary(endlessOffer);
     setEndlessOffer(null);
     setPhase('game_over');
@@ -1859,17 +1568,21 @@ export function App() {
     setBossesDefeated(snap.bossesDefeated);
     setMoney(snap.money);
     moneyRef.current = snap.money;
-    setTotalScore(snap.totalScore);
-    setTotalTricksWon(snap.totalTricksWon);
-    setTotalTricksLost(snap.totalTricksLost);
-    setTotalBriscolaPointsPlayer(snap.totalBriscolaPointsPlayer);
-    setTotalBriscolaPointsOpponent(snap.totalBriscolaPointsOpponent);
-    setTotalMoneyEarned(snap.totalMoneyEarned);
+    setScoreLedger((ledger) => ({
+      ...ledger,
+      totalScore: snap.totalScore,
+      totalTricksWon: snap.totalTricksWon,
+      totalTricksLost: snap.totalTricksLost,
+      totalBriscolaPointsPlayer: snap.totalBriscolaPointsPlayer,
+      totalBriscolaPointsOpponent: snap.totalBriscolaPointsOpponent,
+      totalMoneyEarned: snap.totalMoneyEarned,
+    }));
     const restoredPhase = snap.runPhase ?? 'campaign';
     setRunPhase(restoredPhase);
     runPhaseRef.current = restoredPhase;
-    setCampaignVictory(restoredPhase === 'endless');
-    setEndlessOffer(null);
+    const pendingVictory = snap.pendingVictory ?? null;
+    setCampaignVictory(restoredPhase === 'endless' || pendingVictory !== null);
+    setEndlessOffer(pendingVictory);
     anteRef.current = snap.ante;
     setMaxJokers(snap.maxJokers);
     maxJokersRef.current = snap.maxJokers;
@@ -1886,27 +1599,34 @@ export function App() {
     setShopState(
       snap.shop ?? { seed: Math.floor(randomRun() * 0x7fffffff), rerolls: 0, boughtKeys: [] }
     );
+    // The visit resumes where it was: what has already been spent, and which
+    // Jolly the Conto Sospeso has already paid out for it.
+    shopSpentRef.current = snap.shop?.spent ?? 0;
+    contoSospesoPaidRef.current = new Set(snap.shop?.contoSospesoPaidIds ?? []);
 
     // Everything purely visual starts from zero: a restore is a stable
     // position, not a replayed animation frame.
     setRoundSummary(null);
     setGameOverSummary(null);
-    setLastVictory(null);
     setCastingUno(null);
     setTallyData(null);
     setPlayerTrickCard(null);
     setOpponentTrickCard(null);
     setTriggeringJokerId(null);
     setIsDealing(false);
-    setActiveUnoMultiplier(1.0);
-    setIsReverseActive(false);
+    activeUnoMultiplierRef.current = 1.0;
     isReverseActiveRef.current = false;
     forcedTrickWinRef.current = false;
     playGuardRef.current = false;
     tallyGuardRef.current = false;
-    setResumableRun(null);
-    setSaveNotice(null);
+    hideStoredRun();
     setPendingConfirm(null);
+
+    // Standing on the Ante 8 offer: back to the question, nothing else.
+    if (pendingVictory) {
+      setPhase('game_over');
+      return;
+    }
 
     const encounter = snap.encounter;
     if (snap.phase !== 'playing' || !encounter) {
@@ -1948,11 +1668,14 @@ export function App() {
     setBossDebuffNeutralized(encounter.bossDebuffNeutralized);
     setBossShieldTricks(encounter.bossShieldTricks);
     setTargetScore(encounter.targetScore);
-    setCurrentRoundScore(encounter.currentRoundScore);
-    setRoundPointsTaken(encounter.roundPointsTaken);
-    setOpponentPointsTaken(encounter.opponentPointsTaken);
-    setRoundTricksWon(encounter.roundTricksWon);
-    setRoundTricksLost(encounter.roundTricksLost);
+    setScoreLedger((ledger) => ({
+      ...ledger,
+      currentRoundScore: encounter.currentRoundScore,
+      roundPointsTaken: encounter.roundPointsTaken,
+      opponentPointsTaken: encounter.opponentPointsTaken,
+      roundTricksWon: encounter.roundTricksWon,
+      roundTricksLost: encounter.roundTricksLost,
+    }));
     setTricksPlayedInRound(encounter.tricksPlayedInRound);
     setCapturedDenariRanksThisRound(restored.capturedDenariRanks);
     setConsecutiveWinStreak(encounter.consecutiveWinStreak);
@@ -1975,7 +1698,7 @@ export function App() {
 
     setIsPlayerTurn(encounter.isPlayerTurn);
     setTrickLeadIsPlayer(encounter.isPlayerTurn);
-    setTrickPhase('idle');
+    dispatchTrickFlow({ type: 'RESET' });
     setOpponentSpeech(
       restored.boss ? restored.boss.bossQuote : 'Riprendiamo da dove avevamo lasciato.'
     );
@@ -1992,9 +1715,7 @@ export function App() {
 
   /** Throws the stored run away. Permanent progress is untouched. */
   const handleAbandonRun = () => {
-    clearRunSnapshot();
-    setResumableRun(null);
-    setSaveNotice(null);
+    clearStoredRun();
     setPendingConfirm(null);
     sound.playCardFlick();
   };
@@ -2007,17 +1728,7 @@ export function App() {
     setPhase('playing');
   };
 
-  /**
-   * The write itself.
-   *
-   * Deliberately keyed on the tick alone: it must run once per boundary, with
-   * whatever React committed for that render, and never on the hundred other
-   * state changes a trick goes through.
-   */
-  useEffect(() => {
-    if (saveTick === 0) return;
-    const phaseForSave = savePhaseRef.current;
-
+  function writeRunSnapshot(phaseForSave: Parameters<typeof serializeRun>[0]['phase']) {
     saveRunSnapshot(
       serializeRun({
         phase: phaseForSave,
@@ -2041,7 +1752,15 @@ export function App() {
         consumables,
         vouchers,
         rng: getRunRngState(),
-        shop: phaseForSave === 'shop' ? shopState : null,
+        shop:
+          phaseForSave === 'shop' && shopState
+            ? {
+                ...shopState,
+                spent: shopSpentRef.current,
+                contoSospesoPaidIds: [...contoSospesoPaidRef.current],
+              }
+            : null,
+        pendingVictory: endlessOffer,
         encounter:
           phaseForSave === 'playing'
             ? {
@@ -2071,8 +1790,7 @@ export function App() {
             : null,
       })
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [saveTick]);
+  }
 
   return (
     <CardChipsProvider enabled={settings.showCardChips !== false}>
@@ -2096,168 +1814,38 @@ export function App() {
 
         {/* TITLE SCREEN VIEW */}
         {phase === 'title' && (
-          <div className="flex-1 flex flex-col items-center justify-center p-5 sm:p-6 text-center z-10 relative">
-            {/* The felt of the first venue, so the game opens on a table. */}
-            <div className="absolute inset-0 -z-10 overflow-hidden">
-              <div className={`absolute inset-0 bg-gradient-to-b ${getTableThemeForAnte(1).feltGradient}`}>
-                <TableFeltPattern theme={getTableThemeForAnte(1)} />
-              </div>
-              <div
-                className="absolute inset-0"
-                style={{
-                  background:
-                    'radial-gradient(circle at 50% 40%, rgba(16,185,129,0.10) 0%, rgba(0,0,0,0.82) 100%)',
-                }}
-              />
-            </div>
-
-            {/* A real hand, waiting to be played. */}
-            <div className="flex items-end justify-center -mb-5 sm:-mb-6 h-[86px] sm:h-[108px]">
-              {titleHand.map((card, i) => (
-                <motion.div
-                  key={card.id}
-                  initial={{ y: 60, opacity: 0, rotate: 0 }}
-                  animate={{
-                    y: [0, -6, 0],
-                    opacity: 1,
-                    rotate: (i - 1) * 11,
-                  }}
-                  transition={{
-                    y: { repeat: Infinity, duration: 3.4 + i * 0.5, ease: 'easeInOut', delay: 0.5 + i * 0.12 },
-                    opacity: { duration: 0.4, delay: 0.15 + i * 0.12 },
-                    rotate: { type: 'spring', damping: 14, delay: 0.15 + i * 0.12 },
-                  }}
-                  className={`${i === 1 ? 'z-20 -mx-2' : 'z-10'} drop-shadow-[0_6px_10px_rgba(0,0,0,0.6)]`}
-                >
-                  <PixelCard card={card} size="sm" showPoints={false} showChips={false} />
-                </motion.div>
-              ))}
-            </div>
-
-            <motion.div
-              initial={{ scale: 0.85, y: -20, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              transition={{ duration: 0.5 }}
-              className="flex flex-col items-center max-w-lg w-full bg-slate-950/90 backdrop-blur-sm border-3 border-amber-500 rounded-3xl p-6 sm:p-8 pixel-box shadow-2xl relative z-30"
-            >
-              {/* Italian Card Suits Row */}
-              <div className="flex gap-4 mb-3">
-                <span className="text-3xl animate-bounce">🪙</span>
-                <span className="text-3xl animate-bounce [animation-delay:0.1s]">🏆</span>
-                <span className="text-3xl animate-bounce [animation-delay:0.2s]">⚔️</span>
-                <span className="text-3xl animate-bounce [animation-delay:0.3s]">🪵</span>
-              </div>
-
-              {/* Game Logo */}
-              <h1 className="font-pixel text-2xl sm:text-3xl text-amber-400 font-bold tracking-wider uppercase drop-shadow">
-                BRISCOLATRO
-              </h1>
-              <p className="font-retro text-xs text-amber-200 mt-1 uppercase tracking-widest">
-                IL ROGUELIKE DELLA BRISCOLA ITALIANA
-              </p>
-
-              {/* High score pill */}
-              <div className="mt-4 bg-slate-950/80 border border-amber-500/60 px-4 py-1.5 rounded-full pixel-box text-xs font-pixel text-amber-300">
-                MIGLIOR RECORD: {highScore.toLocaleString()} PUNTI
-              </div>
-
-              {/* A save that did not check out says so, once. */}
-              {saveNotice && (
-                <div className="mt-4 w-full bg-rose-950/70 border border-rose-500/60 px-4 py-2 rounded-xl pixel-box text-[10px] font-retro text-rose-200 text-center">
-                  {saveNotice}
-                </div>
-              )}
-
-              {/* Action Buttons Menu */}
-              <div className="w-full space-y-3 mt-6">
-                {resumableRun && (
-                  <button
-                    onClick={() => {
-                      sound.playCardFlick();
-                      handleResumeRun();
-                    }}
-                    className="w-full bg-gradient-to-r from-emerald-500 to-lime-400 hover:from-emerald-400 hover:to-lime-300 text-slate-950 font-pixel text-sm font-bold py-3.5 rounded-xl pixel-box shadow-xl cursor-pointer transition-transform hover:scale-102 flex items-center justify-center gap-2"
-                  >
-                    <span>
-                      CONTINUA RUN · ANTE {resumableRun.snapshot.ante}
-                    </span>
-                    <span>➔</span>
-                  </button>
-                )}
-
-                <button
-                  onClick={() => {
-                    sound.playCardFlick();
-                    // A run in progress is not thrown away by a stray tap.
-                    if (resumableRun) setPendingConfirm('new_run');
-                    else setShowDeckSelect(true);
-                  }}
-                  className={
-                    resumableRun
-                      ? 'w-full bg-slate-800 hover:bg-slate-700 text-amber-300 font-pixel text-xs py-3 rounded-xl pixel-box cursor-pointer flex items-center justify-center gap-2'
-                      : 'w-full bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-pixel text-sm font-bold py-3.5 rounded-xl pixel-box shadow-xl cursor-pointer transition-transform hover:scale-102 flex items-center justify-center gap-2'
-                  }
-                >
-                  <span>{resumableRun ? 'NUOVA PARTITA' : 'GIOCA NUOVA PARTITA'}</span>
-                  <span>➔</span>
-                </button>
-
-                {resumableRun && (
-                  <button
-                    onClick={() => {
-                      sound.playCardFlick();
-                      setPendingConfirm('abandon');
-                    }}
-                    className="w-full bg-slate-900/80 hover:bg-rose-950 border border-rose-500/40 text-rose-300 font-pixel text-[10px] py-2.5 rounded-xl pixel-box cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    <span>🗑️ ABBANDONA RUN</span>
-                  </button>
-                )}
-
-                <button
-                  onClick={() => {
-                    sound.playCardFlick();
-                    setShowTutorial(true);
-                  }}
-                  className="w-full bg-slate-800 hover:bg-slate-700 text-amber-300 font-pixel text-xs py-3 rounded-xl pixel-box cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <span>📖 GUIDA & REGOLE BRISCOLA</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    sound.playCardFlick();
-                    setShowSettings(true);
-                  }}
-                  className="w-full bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-pixel text-xs py-2.5 rounded-xl pixel-box cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <span>⚙️ IMPOSTAZIONI & AUDIO</span>
-                </button>
-
-                {/* PWA Install Button (If not in standalone app mode) */}
-                {!isStandalone && (
-                  <button
-                    onClick={() => {
-                      sound.playCardFlick();
-                      handleInstallApp();
-                    }}
-                    className="w-full bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-950 border border-emerald-500/60 hover:border-emerald-400 text-emerald-300 font-pixel text-xs py-2.5 rounded-xl pixel-box cursor-pointer flex items-center justify-center gap-2 transition-all hover:scale-101 shadow-md"
-                  >
-                    <span>📲</span>
-                    <span>INSTALLA SU SCHERMATA HOME</span>
-                  </button>
-                )}
-              </div>
-
-              {/* Footer Traditional Tag */}
-              <div className="mt-6 pt-3 border-t border-slate-800 text-[10px] font-retro text-slate-400">
-                Ispirato a Balatro & alla tradizione delle carte napoletane
-                <div className="mt-1 text-[9px] text-slate-500">
-                  Con le Carte Sola, gioco di carte legalmente distinto.
-                </div>
-              </div>
-            </motion.div>
-          </div>
+          <TitleScreen
+            titleHand={titleHand}
+            highScore={highScore}
+            saveNotice={saveNotice}
+            resumableAnte={resumableRun?.snapshot.ante ?? null}
+            isStandalone={isStandalone}
+            onResume={() => {
+              sound.playCardFlick();
+              handleResumeRun();
+            }}
+            onNewRun={() => {
+              sound.playCardFlick();
+              if (resumableRun) setPendingConfirm('new_run');
+              else setShowDeckSelect(true);
+            }}
+            onAbandon={() => {
+              sound.playCardFlick();
+              setPendingConfirm('abandon');
+            }}
+            onOpenTutorial={() => {
+              sound.playCardFlick();
+              setShowTutorial(true);
+            }}
+            onOpenSettings={() => {
+              sound.playCardFlick();
+              setShowSettings(true);
+            }}
+            onInstall={() => {
+              sound.playCardFlick();
+              void handleInstallApp();
+            }}
+          />
         )}
 
         {/* OPPONENT REVEAL, BEFORE THE DEAL */}
@@ -2282,95 +1870,115 @@ export function App() {
         {/* ACTIVE MATCH VIEW */}
         {phase === 'playing' && (
           <GameTable
-            ante={ante}
-            round={round}
-            targetScore={targetScore}
-            currentRoundScore={currentRoundScore}
-            money={money}
-            discardsLeft={discardsLeft}
-            handsLeft={3}
-            briscolaSuit={briscolaSuit}
-            trumpCard={trumpCard}
-            deckCount={drawPile.length}
-            playerHand={playerHand}
-            opponentHand={opponentHand}
-            playerTrickCard={playerTrickCard}
-            opponentTrickCard={opponentTrickCard}
-            isPlayerTurn={isPlayerTurn && trickPhase !== 'resolving' && trickPhase !== 'tally' && !isDealing}
-            canPlay={
-              (trickPhase === 'idle' || trickPhase === 'waiting_player_follow') &&
-              isPlayerTurn &&
-              playerTrickCard === null &&
-              !isDealing
-            }
-            canDiscard={canDiscardCardNow({
-              discardsLeft,
-              trickPhase,
-              isPlayerTurn,
-              drawPileCount: drawPile.length,
-              playerCardAlreadyPlayed: playerTrickCard !== null,
-            })}
-            canUseSola={
-              (trickPhase === 'idle' || trickPhase === 'waiting_player_follow') &&
-              isPlayerTurn &&
-              !castingUno
-            }
-            isDealing={isDealing}
-            visionActive={
-              tricksPlayedInRound === 0 &&
-              activeJokers.some((joker) => joker.id === 'j_specchietto_baro')
-            }
-            trickLeadIsPlayer={trickLeadIsPlayer}
-            activeJokers={activeJokers}
-            consumables={consumables}
-            maxJokers={maxJokers}
-            maxConsumables={maxConsumables}
-            currentBoss={activeBoss}
-            forcedLeadSuit={forcedLeadSuit}
-            silencedJokerIndex={disabledJokerIndex}
-            victoryMode={victoryMode}
-            bossDebuffNeutralized={bossDebuffNeutralized}
-            bossShieldTricks={bossShieldTricks}
-            opponentSpeech={opponentSpeech}
-            onPlayCard={handlePlayCard}
-            onDiscardCard={handleDiscardCard}
-            onUseUnoCard={handleUseUnoCard}
-            onOpenDeckViewer={() => setShowDeckViewer(true)}
-            onOpenTutorial={() => setShowTutorial(true)}
-            onOpenSettings={() => setShowSettings(true)}
-            triggeringJokerId={triggeringJokerId}
-            roundPointsTaken={roundPointsTaken}
-            opponentPointsTaken={opponentPointsTaken}
-            tricksPlayedInRound={tricksPlayedInRound}
-            totalPointsDeck={120}
+            model={{
+              hud: {
+                ante,
+                round,
+                targetScore,
+                currentRoundScore,
+                money,
+                discardsLeft,
+                briscolaSuit,
+                deckCount: drawPile.length,
+                roundPointsTaken,
+                opponentPointsTaken,
+                tricksPlayedInRound,
+              },
+              cards: {
+                trumpCard,
+                playerHand,
+                opponentHand,
+                playerTrickCard,
+                opponentTrickCard,
+              },
+              interaction: {
+                isPlayerTurn:
+                  isPlayerTurn &&
+                  trickPhase !== 'resolving' &&
+                  trickPhase !== 'tally' &&
+                  !isDealing,
+                canPlay:
+                  (trickPhase === 'idle' || trickPhase === 'waiting_player_follow') &&
+                  isPlayerTurn &&
+                  playerTrickCard === null &&
+                  !isDealing,
+                canDiscard: canDiscardCardNow({
+                  discardsLeft,
+                  trickPhase,
+                  isPlayerTurn,
+                  drawPileCount: drawPile.length,
+                  playerCardAlreadyPlayed: playerTrickCard !== null,
+                }),
+                canUseSola:
+                  (trickPhase === 'idle' || trickPhase === 'waiting_player_follow') &&
+                  isPlayerTurn &&
+                  !castingUno,
+                trickLeadIsPlayer,
+                isDealing,
+                visionActive:
+                  tricksPlayedInRound === 0 &&
+                  activeJokers.some((joker) => joker.id === 'j_specchietto_baro'),
+              },
+              build: {
+                activeJokers,
+                consumables,
+                maxJokers,
+                triggeringJokerId,
+              },
+              encounter: {
+                currentBoss: activeBoss,
+                bossDebuffNeutralized,
+                bossShieldTricks,
+                forcedLeadSuit,
+                silencedJokerIndex: disabledJokerIndex,
+                victoryMode,
+                opponentSpeech,
+              },
+            }}
+            actions={{
+              onPlayCard: handlePlayCard,
+              onDiscardCard: handleDiscardCard,
+              onUseUnoCard: handleUseUnoCard,
+              onOpenDeckViewer: () => setShowDeckViewer(true),
+              onOpenTutorial: () => setShowTutorial(true),
+              onOpenSettings: () => setShowSettings(true),
+            }}
           />
         )}
 
         {/* SHOP VIEW BETWEEN ROUNDS */}
         {phase === 'shop' && shopState && (
           <ShopView
-            money={money}
-            jokers={activeJokers}
-            consumables={consumables}
-            vouchers={vouchers}
-            maxJokers={maxJokers}
-            maxConsumables={maxConsumables}
-            onBuyJoker={handleBuyJoker}
-            onBuyUnoCard={handleBuyUnoCard}
-            onBuyVoucher={handleBuyVoucher}
-            onSellJoker={handleSellJoker}
-            onSellUnoCard={handleSellUnoCard}
-            onBuyJokerSlot={handleBuyJokerSlot}
-            onBuyConsumableSlot={handleBuyConsumableSlot}
-            slotRules={getSlotRulesForAnte(ante)}
-            onUpgradeCard={handleUpgradeCard}
-            runDeck={runDeck}
-            onNextRound={handleNextRoundFromShop}
-            onReroll={spendMoney}
-            ante={ante}
-            round={round}
-            shopState={shopState}
-            onShopStateChange={handleShopStateChange}
+            model={{
+              build: {
+                money,
+                jokers: activeJokers,
+                consumables,
+                vouchers,
+                maxJokers,
+                maxConsumables,
+              },
+              visit: {
+                slotRules: getSlotRulesForAnte(ante),
+                runDeck,
+                ante,
+                round,
+                shopState,
+              },
+            }}
+            actions={{
+              onBuyJoker: handleBuyJoker,
+              onBuyUnoCard: handleBuyUnoCard,
+              onBuyVoucher: handleBuyVoucher,
+              onSellJoker: handleSellJoker,
+              onSellUnoCard: handleSellUnoCard,
+              onBuyJokerSlot: handleBuyJokerSlot,
+              onBuyConsumableSlot: handleBuyConsumableSlot,
+              onUpgradeCard: handleUpgradeCard,
+              onNextRound: handleNextRoundFromShop,
+              onReroll: spendMoney,
+              onShopStateChange: handleShopStateChange,
+            }}
           />
         )}
 
@@ -2471,40 +2079,14 @@ export function App() {
           onDone={() => setCastingUno(null)}
         />
 
-        {/* CONFIRMATIONS THAT COST A RUN */}
-        {pendingConfirm && (
-          <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 p-6">
-            <div className="w-full max-w-sm bg-slate-950 border-3 border-amber-500 rounded-2xl p-5 pixel-box text-center">
-              <p className="font-pixel text-xs text-amber-300">
-                {pendingConfirm === 'new_run' ? 'INIZIARE UNA NUOVA RUN?' : 'ABBANDONARE LA RUN?'}
-              </p>
-              <p className="mt-2 font-retro text-[11px] text-slate-300">
-                La run salvata verrà eliminata. Record e mazzi sbloccati restano.
-              </p>
-              <div className="mt-5 flex gap-3">
-                <button
-                  onClick={() => setPendingConfirm(null)}
-                  className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-pixel text-[10px] py-2.5 rounded-xl pixel-box cursor-pointer"
-                >
-                  ANNULLA
-                </button>
-                <button
-                  onClick={() => {
-                    if (pendingConfirm === 'new_run') {
-                      handleAbandonRun();
-                      setShowDeckSelect(true);
-                    } else {
-                      handleAbandonRun();
-                    }
-                  }}
-                  className="flex-1 bg-rose-600 hover:bg-rose-500 text-slate-950 font-pixel text-[10px] py-2.5 rounded-xl pixel-box cursor-pointer"
-                >
-                  CONFERMA
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <RunConfirmationModal
+          confirmation={pendingConfirm}
+          onCancel={() => setPendingConfirm(null)}
+          onConfirm={(confirmation) => {
+            handleAbandonRun();
+            if (confirmation === 'new_run') setShowDeckSelect(true);
+          }}
+        />
 
         <SettingsModal
           isOpen={showSettings}
@@ -2520,7 +2102,12 @@ export function App() {
         {/* DEV DEBUG UTILITY */}
         <DevDebugDrawer
           onAddMoney={(amount) => setMoney((m) => m + amount)}
-          onAddScore={(amount) => setCurrentRoundScore((s) => s + amount)}
+          onAddScore={(amount) =>
+            setScoreLedger((ledger) => ({
+              ...ledger,
+              currentRoundScore: ledger.currentRoundScore + amount,
+            }))
+          }
           onAddDiscards={(amount) => setDiscardsLeft((d) => d + amount)}
           onAddJoker={(joker) => {
             if (activeJokers.length < maxJokers) {
@@ -2547,7 +2134,10 @@ export function App() {
             }
           }}
           onWinRound={() => {
-            setCurrentRoundScore((s) => s + targetScore);
+            setScoreLedger((ledger) => ({
+              ...ledger,
+              currentRoundScore: ledger.currentRoundScore + targetScore,
+            }));
           }}
           victoryMode={victoryMode}
           onSetVictoryMode={(mode) => {
@@ -2559,9 +2149,12 @@ export function App() {
           onForceOutcome={(chips, briscola) => {
             // Drops the round straight into one of the four corners of the two
             // conditions, so every mode's verdict can be seen in a few clicks.
-            setCurrentRoundScore(chips ? targetScore : 0);
-            setRoundPointsTaken(briscola ? 61 : 40);
-            setOpponentPointsTaken(briscola ? 59 : 80);
+            setScoreLedger((ledger) => ({
+              ...ledger,
+              currentRoundScore: chips ? targetScore : 0,
+              roundPointsTaken: briscola ? 61 : 40,
+              opponentPointsTaken: briscola ? 59 : 80,
+            }));
           }}
           onGiveSpecial={(special) => {
             const target = playerHandRef.current[0];

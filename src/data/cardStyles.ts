@@ -28,7 +28,7 @@ export interface CardStyleDefinition {
   };
 }
 
-export const CARD_STYLES: CardStyleDefinition[] = [
+const CARD_STYLES: CardStyleDefinition[] = [
   {
     id: 'classic',
     name: 'Classic Retro',

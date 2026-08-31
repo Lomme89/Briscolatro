@@ -11,7 +11,6 @@ import { UnoCard } from '../types/game';
 const DEFAULT_UNLOCKED = ['deck_napoletano', 'deck_bastoni'];
 
 function snapshot(overrides: Partial<RoundStateSnapshot> = {}): RoundStateSnapshot {
-  const deal = prepareRoundDeck(createStandardDeck());
   return {
     currentRoundScore: 500,
     totalScore: 500,
@@ -28,14 +27,7 @@ function snapshot(overrides: Partial<RoundStateSnapshot> = {}): RoundStateSnapsh
     targetScore: 300,
     ante: 1,
     round: 1,
-    playerHand: deal.playerHand,
-    opponentHand: deal.opponentHand,
-    drawPile: deal.roundDrawPile,
-    trumpCard: deal.trumpCard,
-    briscolaSuit: deal.briscolaSuit,
-    activeBoss: null,
     vouchers: [],
-    activeJokers: [],
     bossesDefeated: 0,
     solaCardsUsed: 0,
     ...overrides,

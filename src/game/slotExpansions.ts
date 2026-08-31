@@ -45,7 +45,7 @@ const CONSUMABLE_SLOT_LADDER: Record<number, number> = {
 };
 
 /** Tavolo Allargato takes a quarter off every later chair. Rounded up. */
-export const TAVOLO_EXPANSION_DISCOUNT = 0.75;
+const TAVOLO_EXPANSION_DISCOUNT = 0.75;
 
 export interface SlotExpansionContext {
   /** Tavolo Allargato is owned: jolly expansions cost 25% less. */

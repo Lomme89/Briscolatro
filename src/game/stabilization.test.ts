@@ -28,7 +28,6 @@ function jokerContext(overrides: Partial<JokerScoringContext> = {}): JokerScorin
     briscolaSuit: 'denari',
     money: 10,
     playerHand: [],
-    tricksWonThisRound: 0,
     consecutiveWinStreak: 0,
     totalTricksPlayedThisRound: 0,
     remainingTricksCount: 20,
@@ -42,7 +41,6 @@ function scoreContext() {
   return {
     money: 10,
     playerHand: [] as PlayingCard[],
-    tricksWonThisRound: 0,
     consecutiveWinStreak: 0,
     totalTricksPlayedThisRound: 0,
     remainingTricksCount: 20,

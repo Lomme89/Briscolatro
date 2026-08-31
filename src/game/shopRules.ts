@@ -3,7 +3,7 @@ export function discountedShopCost(baseCost: number, hasHouseDiscount: boolean):
   return Math.max(1, baseCost - (hasHouseDiscount ? 2 : 0));
 }
 
-export function remainingBoosterChoices(selectCount: number, selectedCount: number): number {
+function remainingBoosterChoices(selectCount: number, selectedCount: number): number {
   return Math.max(0, selectCount - selectedCount);
 }
 

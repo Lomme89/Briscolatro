@@ -88,7 +88,7 @@ function compareTable(title: string, lines: Line[]): string[] {
  * the money it hoards is also its Mult. Two control lines: a board of the same
  * size that does not read money at all, and no board at all.
  */
-export function economyComboExperiment(options: BatchOptions): string[] {
+function economyComboExperiment(options: BatchOptions): string[] {
   const combo = ['j_jolly_sport', 'j_oste'];
   const control = ['j_carrettiere', 'j_spadaccino'];
 
@@ -133,7 +133,7 @@ export function economyComboExperiment(options: BatchOptions): string[] {
  * condition the player does not control. Worth knowing how often it is armed at
  * all before anyone argues about the +40.
  */
-export function accusaExperiment(options: BatchOptions): string[] {
+function accusaExperiment(options: BatchOptions): string[] {
   const withAccusa = runWith(options, ['j_accusa_reale']);
   const without = runWith(options, ['j_carrettiere']);
 
@@ -167,7 +167,7 @@ export function accusaExperiment(options: BatchOptions): string[] {
  * question is how quickly a deck saturates - and what fraction of the forty is
  * Foil by the end of an ante.
  */
-export function falsarioExperiment(options: BatchOptions): string[] {
+function falsarioExperiment(options: BatchOptions): string[] {
   const withFalsario = runWith(options, ['j_falsario']);
   const without = runWith(options, ['j_carrettiere']);
 
@@ -200,7 +200,7 @@ export function falsarioExperiment(options: BatchOptions): string[] {
  * the distribution of how many steel cards were actually in hand at the moment
  * a trick was scored - and what those tricks paid.
  */
-export function steelExperiment(options: BatchOptions): string[] {
+function steelExperiment(options: BatchOptions): string[] {
   const results = runWith(options, ['j_carrettiere']);
   const samples = results.flatMap((r) => r.steelHeldSamples);
 
@@ -241,7 +241,7 @@ export function steelExperiment(options: BatchOptions): string[] {
  * it is played into worth more. Comparing it against every other card played by
  * the same runs is crude but it is the comparison the question asks for.
  */
-export function wildExperiment(options: BatchOptions): string[] {
+function wildExperiment(options: BatchOptions): string[] {
   const results = runWith(options, ['j_carrettiere']);
   const wildTricks = results.reduce((a, r) => a + r.wildPlayedTricks, 0);
   const wildScore = results.reduce((a, r) => a + r.wildPlayedScore, 0);

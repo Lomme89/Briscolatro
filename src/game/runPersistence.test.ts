@@ -496,3 +496,64 @@ describe('a save taken after a trick', () => {
     expect(new Set(stillInPlay.map((c) => c.id)).size).toBe(38);
   });
 });
+
+describe('cio che il negozio e la vittoria si portano dietro', () => {
+  beforeEach(() => {
+    installLocalStorage();
+    clearRunSnapshot();
+  });
+
+  it('il Conto Sospeso gia pagato sopravvive al ricaricamento', () => {
+    const snapshot = serializeRun(
+      buildInput({
+        phase: 'shop',
+        encounter: null,
+        shop: {
+          seed: 99,
+          rerolls: 1,
+          boughtKeys: ['joker:il_conte'],
+          spent: 12,
+          contoSospesoPaidIds: ['joker_fixed_1'],
+        },
+      })
+    );
+    saveRunSnapshot(snapshot);
+
+    const restored = loadRunSnapshot();
+    expect(restored).not.toBeNull();
+    expect(restored!.snapshot.shop?.spent).toBe(12);
+    expect(restored!.snapshot.shop?.contoSospesoPaidIds).toEqual(['joker_fixed_1']);
+  });
+
+  it('un vecchio salvataggio senza i campi del negozio resta valido', () => {
+    const snapshot = serializeRun(
+      buildInput({ phase: 'shop', encounter: null, shop: { seed: 5, rerolls: 0, boughtKeys: [] } })
+    ) as RunSnapshotV1 & { shop: Record<string, unknown> | null };
+    delete snapshot.shop!.spent;
+    delete snapshot.shop!.contoSospesoPaidIds;
+    expect(validateRunSnapshot(snapshot).valid).toBe(true);
+  });
+
+  it('la run lasciata sull offerta Endless torna alla domanda, non al Boss', () => {
+    const snapshot = serializeRun(
+      buildInput({
+        phase: 'blind_select',
+        ante: 8,
+        encounter: null,
+        shop: null,
+        pendingVictory: { won: true, ante: 8, campaignVictory: true } as never,
+      })
+    );
+    saveRunSnapshot(snapshot);
+
+    const restored = loadRunSnapshot();
+    expect(restored!.snapshot.pendingVictory).toMatchObject({ won: true, ante: 8 });
+    expect(restored!.snapshot.encounter).toBeNull();
+  });
+
+  it('una vittoria salvata che non e un oggetto invalida lo snapshot', () => {
+    const snapshot = serializeRun(buildInput({ phase: 'blind_select', encounter: null })) as RunSnapshotV1;
+    (snapshot as unknown as Record<string, unknown>).pendingVictory = 'vinto';
+    expect(validateRunSnapshot(snapshot).valid).toBe(false);
+  });
+});

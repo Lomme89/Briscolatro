@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createCard, createStandardDeck, resolveTrick, RANK_INFO, withRank } from './briscola';
+import { createCard, createStandardDeck, resolveTrick } from './briscola';
 
 const c = (suit: Parameters<typeof createCard>[0], rank: Parameters<typeof createCard>[1]) =>
   createCard(suit, rank, 'standard', 'none', 'none', `${suit}_${rank}`);
@@ -38,12 +38,5 @@ describe('canonical Briscola rules', () => {
     expect(resolveTrick(c('coppe', 7), c('coppe', 2), 'denari', true, undefined, true).playerWon).toBe(false);
     // Trump still beats a non-trump even in reverse mode.
     expect(resolveTrick(c('coppe', 1), c('denari', 2), 'denari', true, undefined, true).playerWon).toBe(false);
-  });
-
-  it('withRank synchronizes rank, points and power atomically', () => {
-    const ace = withRank(c('spade', 5), 1);
-    expect(ace.rank).toBe(1);
-    expect(ace.points).toBe(RANK_INFO[1].points);
-    expect(ace.power).toBe(RANK_INFO[1].power);
   });
 });

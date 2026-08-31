@@ -176,7 +176,6 @@ describe('migrazione dei salvataggi', () => {
 
 describe("l'esito del round passa solo da qui", () => {
   function snapshot(over: Partial<RoundStateSnapshot> = {}): RoundStateSnapshot {
-    const deal = prepareRoundDeck(createStandardDeck());
     return {
       currentRoundScore: 0,
       totalScore: 0,
@@ -193,14 +192,7 @@ describe("l'esito del round passa solo da qui", () => {
       targetScore: 1000,
       ante: 1,
       round: 1,
-      playerHand: deal.playerHand,
-      opponentHand: deal.opponentHand,
-      drawPile: deal.roundDrawPile,
-      trumpCard: deal.trumpCard,
-      briscolaSuit: deal.briscolaSuit,
-      activeBoss: null,
       vouchers: [],
-      activeJokers: [],
       bossesDefeated: 0,
       solaCardsUsed: 0,
       ...over,

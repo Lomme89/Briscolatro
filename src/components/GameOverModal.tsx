@@ -2,36 +2,8 @@ import React from 'react';
 import { isBossEncounter } from '../game/gameState';
 import { motion } from 'motion/react';
 import { sound } from '../services/soundEngine';
-import { Joker, DeckDefinition } from '../types/game';
 import { CardFaceArt, getJokerArtUrl } from './CardFaceArt';
-
-export interface GameOverSummaryData {
-  won: boolean;
-  ante: number;
-  round: number;
-  totalScore: number;
-  targetScore: number;
-  totalTricksWon: number;
-  totalTricksLost: number;
-  totalBriscolaPointsPlayer: number;
-  totalBriscolaPointsOpponent: number;
-  finalMoney: number;
-  totalMoneyEarned: number;
-  jokersUsed: Joker[];
-  deckName: string;
-  newUnlockedDecks: string[];
-  isNewHighScore: boolean;
-  defeatReason?: string;
-  /**
-   * The tournament was won in this run. Set on an Endless defeat too: dying at
-   * Ante 23 does not un-win Ante 8, and the screen must not say it did.
-   */
-  campaignVictory?: boolean;
-  /** Highest Endless Ante reached, when the run went past the campaign. */
-  endlessAnte?: number;
-  endlessTierName?: string;
-  isNewEndlessRecord?: boolean;
-}
+import { GameOverSummaryData } from '../types/runSummaries';
 
 interface GameOverModalProps {
   isOpen: boolean;

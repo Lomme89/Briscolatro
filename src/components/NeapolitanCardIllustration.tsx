@@ -5,14 +5,12 @@ interface Props {
   rank: number;
   suit: Suit;
   style?: CardStyle;
-  size?: 'xs' | 'sm' | 'pick' | 'md' | 'lg';
 }
 
 export const NeapolitanCardIllustration: React.FC<Props> = ({
   rank,
   suit,
   style = 'classic',
-  size = 'md',
 }) => {
   const isNoir = style === 'neo_noir';
   const isCyber = style === 'neon_cyber';
@@ -24,7 +22,6 @@ export const NeapolitanCardIllustration: React.FC<Props> = ({
   const redMain = isNoir ? '#ef4444' : isCyber ? '#f43f5e' : '#dc2626';
   const redLight = isNoir ? '#fca5a5' : isCyber ? '#fda4af' : '#f87171';
   const greenMain = isNoir ? '#52525b' : isCyber ? '#10b981' : '#15803d';
-  const greenLight = isNoir ? '#a1a1aa' : isCyber ? '#6ee7b7' : '#4ade80';
   const steelMain = isNoir ? '#d4d4d8' : isCyber ? '#38bdf8' : '#60a5fa';
   const steelLight = isNoir ? '#ffffff' : isCyber ? '#e0f2fe' : '#dbeafe';
   const darkOutline = isNoir ? '#09090b' : isCyber ? '#020617' : '#1e293b';

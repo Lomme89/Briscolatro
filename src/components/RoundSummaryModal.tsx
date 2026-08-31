@@ -1,43 +1,15 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { isBossEncounter } from '../game/gameState';
 import { getEndlessTier } from '../game/endless';
 import {
   BRISCOLA_TARGET_POINTS,
   getVictoryHudPresentation,
   VICTORY_MODES,
-  VictoryCheck,
   victoryHeadline,
 } from '../game/victoryModes';
-import confetti from 'canvas-confetti';
 import { sound } from '../services/soundEngine';
-import { Joker, PlayingCard, UnoCard, Voucher } from '../types/game';
-import { PixelCard } from './PixelCard';
-import { PixelSuitIcon } from './PixelSuitIcon';
-
-export interface RoundSummaryData {
-  ante: number;
-  /** 1 = Tavolo, 2 = Boss: i due incontri di un Ante. */
-  round: number;
-  targetScore: number;
-  achievedScore: number;
-  playerTrickPoints: number; // e.g. 68/120 points from Briscola values
-  opponentTrickPoints: number; // e.g. 52/120
-  playerTricksWon: number;
-  opponentTricksWon: number;
-  totalTricks: number;
-  won: boolean;
-  bossName?: string;
-  bossAvatar?: string;
-  cashEarned: number;
-  interestEarned: number;
-  /** Cash bonus for taking more than 60 of the 120 Briscola points. */
-  briscolaBonus: number;
-  capturedCarichi: { rank: number; suit: string; points: number }[];
-  activeJokersCount: number;
-  /** The verdict from the one function that decides it. */
-  victory: VictoryCheck;
-}
+import { RoundSummaryData } from '../types/runSummaries';
 
 interface RoundSummaryModalProps {
   isOpen: boolean;

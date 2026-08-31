@@ -161,7 +161,6 @@ export function playRound(
         {
           money: bankroll,
           playerHand: hand,
-          tricksWonThisRound: tricksWon,
           consecutiveWinStreak: streak,
           totalTricksPlayedThisRound: played,
           remainingTricksCount: Math.floor(pile.length / 2) + hand.length,

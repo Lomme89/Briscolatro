@@ -3,14 +3,6 @@ import { Joker } from '../../types/game';
 import { seedRandom, simulateRound, jokersByIds, stats, upgradedRunDeck } from './sim';
 import { getBlindTargetScore } from '../gameState';
 
-/** Current live curve, for comparison. */
-const currentTarget = (ante: number, round: number) => {
-  let t = 300 * Math.pow(1.8, ante - 1);
-  if (round === 2) t *= 1.4;
-  if (round === 3) t *= 1.8;
-  return Math.round(t);
-};
-
 describe('balance', () => {
 it('ante 1 is beatable without any joker, later antes are not', () => {
   const restore = seedRandom(12345);

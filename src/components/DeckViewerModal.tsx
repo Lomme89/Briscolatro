@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { PlayingCard, Suit } from '../types/game';
 import { PixelCard } from './PixelCard';
 import { PixelSuitIcon } from './PixelSuitIcon';

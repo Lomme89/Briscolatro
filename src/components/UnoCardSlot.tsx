@@ -10,8 +10,6 @@ interface UnoCardSlotProps {
   onUse?: () => void;
   onSell?: () => void;
   isShopItem?: boolean;
-  onBuy?: () => void;
-  canAfford?: boolean;
   buyCost?: number;
   canUse?: boolean;
   isSelected?: boolean;
@@ -27,8 +25,6 @@ export const UnoCardSlot: React.FC<UnoCardSlotProps> = ({
   onUse,
   onSell,
   isShopItem = false,
-  onBuy,
-  canAfford = true,
   buyCost,
   canUse = true,
   isSelected = false,

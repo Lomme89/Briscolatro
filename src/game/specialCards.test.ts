@@ -30,7 +30,6 @@ function score(playerCard: PlayingCard, opponentCard: PlayingCard, money = 10, p
     {
       money,
       playerHand: [],
-      tricksWonThisRound: 0,
       consecutiveWinStreak: 0,
       totalTricksPlayedThisRound: 0,
       remainingTricksCount: 10,

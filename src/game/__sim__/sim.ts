@@ -78,7 +78,6 @@ export function simulateRound(
       const result = calculateTrickScore(playerCard, oppCard, clash, briscolaSuit, liveJokers, boss, {
         money: bankroll,
         playerHand,
-        tricksWonThisRound: tricksWon,
         consecutiveWinStreak: streak,
         totalTricksPlayedThisRound: played,
         remainingTricksCount: Math.floor(pile.length / 2) + playerHand.length,

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Joker, UnoCard, BossBlind, PlayingCard, Suit, CardSpecial } from '../types/game';
+import { Joker, UnoCard, BossBlind, Suit, CardSpecial } from '../types/game';
 import { SPECIAL_INFO } from '../game/specialCards';
 import { ALL_JOKERS } from '../data/jokers';
 import { ALL_UNO_CARDS } from '../data/unoCards';

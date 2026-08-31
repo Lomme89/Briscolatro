@@ -36,7 +36,7 @@ export interface PlayerPolicy {
 }
 
 /** What one candidate card would actually do, played out one ply. */
-export interface CandidateOutcome {
+interface CandidateOutcome {
   card: PlayingCard;
   /** Briscolatro score this trick would pay. Zero on a lost trick. */
   score: number;
@@ -61,7 +61,7 @@ const HOUSE = { ...AI_PROFILES.gennaro_habitue, noise: 0 };
  * from the house AI - a one-ply rollout, which is roughly what a person does
  * when they picture the likely answer before committing.
  */
-export function evaluateCandidate(state: PolicyState, card: PlayingCard): CandidateOutcome {
+function evaluateCandidate(state: PolicyState, card: PlayingCard): CandidateOutcome {
   const rest = state.hand.filter((c) => c.id !== card.id);
 
   const oppCard =
@@ -100,7 +100,6 @@ export function evaluateCandidate(state: PolicyState, card: PlayingCard): Candid
     {
       money: state.money,
       playerHand: rest,
-      tricksWonThisRound: state.tricksWon,
       consecutiveWinStreak: state.streak,
       totalTricksPlayedThisRound: state.tricksPlayed,
       remainingTricksCount: state.remainingTricks,
@@ -114,7 +113,7 @@ export function evaluateCandidate(state: PolicyState, card: PlayingCard): Candid
   return { card, score: result.finalScore, pointSwing: clash.rawPoints, won: true };
 }
 
-export function evaluateAll(state: PolicyState): CandidateOutcome[] {
+function evaluateAll(state: PolicyState): CandidateOutcome[] {
   return state.hand.map((card) => evaluateCandidate(state, card));
 }
 
@@ -166,7 +165,7 @@ export const GREEDY: PlayerPolicy = {
 };
 
 /** How much better the greedy play must be before the hybrid abandons Briscola. */
-export const HYBRID_GREED_THRESHOLD = 2;
+const HYBRID_GREED_THRESHOLD = 2;
 
 /**
  * C. Chi tiene il conto di entrambe le cose.

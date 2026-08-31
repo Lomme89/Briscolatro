@@ -48,7 +48,7 @@ import { discountedShopCost } from '../shopRules';
  * Slow on purpose. `bun run sim` is where the long ones live.
  */
 
-export interface ShopOffer {
+interface ShopOffer {
   jokers: Joker[];
   unoCards: UnoCard[];
   packs: typeof ALL_BOOSTER_PACKS;
@@ -56,7 +56,7 @@ export interface ShopOffer {
   rerollCost: number;
 }
 
-export interface RunState {
+interface RunState {
   money: number;
   jokers: Joker[];
   consumables: UnoCard[];
@@ -73,7 +73,7 @@ export interface RunState {
 }
 
 /** What a buyer policy is allowed to do with a shop. */
-export interface ShopActions {
+interface ShopActions {
   buyJoker(joker: Joker, cost: number): boolean;
   buyUno(card: UnoCard, cost: number): boolean;
   buyVoucher(voucher: Voucher): boolean;
@@ -104,11 +104,6 @@ export interface RunPolicy {
   sola?: SolaPolicy;
 }
 
-/** Prices follow the shop exactly, discount voucher included. */
-function priceOf(base: number, discount: number): number {
-  return Math.max(1, base - discount);
-}
-
 /**
  * How good a joker looks without running the scoring engine on it.
  *
@@ -127,7 +122,7 @@ export function jokerAppeal(joker: Joker): number {
   return rarityWeight[joker.rarity] * 2 + printed;
 }
 
-export interface RoundRecord {
+interface RoundRecord {
   ante: number;
   round: number;
   score: number;
@@ -148,7 +143,7 @@ export interface RoundRecord {
 }
 
 /** Why the run ended, as the victory rules saw it. */
-export type LossCause = 'chips' | 'briscola' | 'both' | 'none';
+type LossCause = 'chips' | 'briscola' | 'both' | 'none';
 
 export interface RunResult {
   policyId: string;
@@ -209,7 +204,7 @@ export interface RunResult {
 export interface SimulateRunOptions {
   deck?: DeckDefinition;
   victoryMode?: VictoryMode;
-  /** Carte Sola behaviour. Pass NEVER_SOLA to measure the slot's worth. */
+  /** Carte Sola behaviour. Omit it to measure a run that never spends one. */
   sola?: SolaPolicy;
   /** Forced starting board, for the targeted experiments. */
   startingJokerIds?: string[];
@@ -665,5 +660,3 @@ function openBooster(
     picks--;
   }
 }
-
-export { priceOf };

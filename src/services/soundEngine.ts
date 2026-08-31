@@ -187,8 +187,6 @@ const OPPONENT_JINGLES: Record<string, Jingle> = {
 
 class SoundEngine {
   private ctx: AudioContext | null = null;
-  private musicOsc1: OscillatorNode | null = null;
-  private musicOsc2: OscillatorNode | null = null;
   private musicGain: GainNode | null = null;
   private musicTimer: number | null = null;
   private isMusicPlaying = false;
