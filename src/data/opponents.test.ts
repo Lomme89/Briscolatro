@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { getOpponentIntro, getRegularForAnte } from './opponents';
 import { ALL_BOSS_BLINDS } from './bosses';
 import { endlessBossForAnte } from '../game/endlessBosses';
-import { ENDLESS_BANTER, ENDLESS_TITLES } from './endlessBanter';
+import { ENDLESS_BANTER, ENDLESS_INTROS, ENDLESS_TITLES } from './endlessBanter';
 import { ENDLESS_TIERS, getEndlessTier } from '../game/endless';
 
 describe('opponents', () => {
@@ -17,7 +17,8 @@ describe('opponents', () => {
       expect(intro.isBoss).toBe(true);
       expect(intro.characterId).toBe(rolled.id);
       expect(intro.name).toBe(rolled.name);
-      expect(intro.quote).toBe(rolled.bossQuote);
+      // The line is that Boss's own, one rung further out for the tier.
+      expect(intro.quote).toBe(ENDLESS_INTROS[getEndlessTier(ante)!.id][rolled.id]);
     }
   });
 
@@ -84,13 +85,27 @@ describe('opponents', () => {
     }
   });
 
-  it('la battuta di apertura passa al tier solo da ULTRA-ISTINTO in su', () => {
-    expect(getOpponentIntro(9, 1).quote).toBe(getRegularForAnte(9).intro);
-    expect(getOpponentIntro(17, 1).quote).toBe(getRegularForAnte(17).intro);
-
-    for (const ante of [25, 33, 41]) {
+  it('la frase di apertura e sempre del personaggio, un gradino piu in la', () => {
+    for (const ante of [9, 17, 25, 33, 41]) {
       const tier = getEndlessTier(ante)!;
-      expect(ENDLESS_BANTER[tier.id]).toContain(getOpponentIntro(ante, 1).quote);
+      const who = getRegularForAnte(ante).characterId;
+      expect(getOpponentIntro(ante, 1).quote).toBe(ENDLESS_INTROS[tier.id][who]);
+    }
+
+    // And it moves every tier rather than repeating itself down the run.
+    const quotes = [9, 17, 25, 33, 41].map((ante) => getOpponentIntro(ante, 1).quote);
+    expect(new Set(quotes).size).toBe(quotes.length);
+  });
+
+  it('ogni personaggio ha una frase di apertura per ogni tier', () => {
+    const everyone = [
+      ...new Set([1, 2, 3, 4, 5, 6, 7, 8].map((ante) => getRegularForAnte(ante).characterId)),
+      ...ALL_BOSS_BLINDS.map((boss) => boss.id),
+    ];
+    for (const tier of ENDLESS_TIERS) {
+      for (const who of everyone) {
+        expect(ENDLESS_INTROS[tier.id][who], `${tier.id}/${who}`).toBeTruthy();
+      }
     }
   });
 

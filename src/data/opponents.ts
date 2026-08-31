@@ -3,7 +3,7 @@ import { ALL_BOSS_BLINDS } from './bosses';
 import { getTableThemeForAnte } from './tableThemes';
 import { isBossEncounter } from '../game/gameState';
 import { ENDLESS_TIERS, getEndlessTier } from '../game/endless';
-import { ENDLESS_BANTER, ENDLESS_TITLES } from './endlessBanter';
+import { ENDLESS_BANTER, ENDLESS_INTROS, ENDLESS_TITLES } from './endlessBanter';
 
 export interface OpponentIntro {
   /** Matches a PixelAvatar character. */
@@ -170,7 +170,11 @@ function endlessVoice(
   const bleed = strange.slice(0, Math.min(strange.length, tierIndex + 1));
 
   return {
-    quote: tierIndex >= 2 ? strange[tierIndex % strange.length] : ownQuote,
+    // The opening line is the character's own all the way down, five rungs
+    // further along their arc each tier. It used to hand the greeting over to a
+    // generic tier line past ULTRA-ISTINTO, which made everyone sound the same
+    // exactly where they should have sounded least alike.
+    quote: ENDLESS_INTROS[tier.id][characterId] ?? ownQuote,
     banter: [...ownBanter, ...bleed],
     // A character with no entry keeps the name it came with rather than
     // inheriting somebody else's arc.
