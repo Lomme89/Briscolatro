@@ -122,7 +122,10 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
 
   return (
     <div
-      className="flex-1 flex flex-col min-h-[100dvh] w-full relative overflow-x-clip"
+      // `flex-1` inside the shell's column already fills the screen. Flooring
+      // this at 100dvh on top of that only stacks a second full viewport onto
+      // whatever the shell contributes.
+      className="flex-1 flex flex-col w-full relative overflow-x-clip"
       onClick={skipIntro}
     >
       {/* The venue itself: the felt of this Ante, so arriving somewhere new looks like it. */}

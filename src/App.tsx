@@ -1806,7 +1806,11 @@ function App() {
       <div
         // overflow-x-hidden would force overflow-y to `auto`, turning this into a
         // scroll box that clips the table instead of letting the page grow.
-        className={`min-h-screen w-full bar-table text-amber-50 flex flex-col justify-between overflow-x-clip relative ${
+        // dvh, not vh: on a phone `100vh` is the viewport as it would be with
+        // the browser chrome hidden, so a shell floored at 100vh is taller than
+        // what is actually visible and the page scrolls by exactly the height of
+        // the address bar. Every inner screen already measures itself in dvh.
+        className={`min-h-[100dvh] w-full bar-table text-amber-50 flex flex-col justify-between overflow-x-clip relative ${
           settings.crtScanlines ? 'crt-overlay' : ''
         } ${shakeTier > 0 ? `table-shake-${shakeTier}` : ''}`}
       >
