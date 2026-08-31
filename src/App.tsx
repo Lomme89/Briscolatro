@@ -1797,20 +1797,17 @@ function App() {
       <div
         // overflow-x-hidden would force overflow-y to `auto`, turning this into a
         // scroll box that clips the table instead of letting the page grow.
-        className={`min-h-screen w-full bg-[#0b0f19] text-amber-50 flex flex-col justify-between overflow-x-clip relative ${
+        className={`min-h-screen w-full bar-table text-amber-50 flex flex-col justify-between overflow-x-clip relative ${
           settings.crtScanlines ? 'crt-overlay' : ''
         } ${settings.screenShake && isShaking ? 'animate-bounce' : ''}`}
       >
-        {/* Background Retro Canvas Atmosphere */}
+        {/* The lamp over the table. A boss makes the bulb stutter. */}
         <div
-          className={`fixed inset-0 pointer-events-none overflow-hidden ${
-            phase === 'title' ? 'opacity-0' : 'opacity-20'
-          }`}
-        >
-          <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-amber-500/20 blur-3xl plasma-bg" />
-          <div className="absolute top-1/2 -right-40 w-96 h-96 rounded-full bg-purple-600/20 blur-3xl plasma-bg" />
-          <div className="absolute -bottom-40 left-1/3 w-96 h-96 rounded-full bg-blue-600/20 blur-3xl plasma-bg" />
-        </div>
+          className={`fixed inset-0 pointer-events-none bar-lamp transition-opacity duration-700 ${
+            phase === 'title' ? 'opacity-0' : 'opacity-100'
+          } ${activeBoss ? 'bar-lamp--flicker' : ''}`}
+        />
+        <div className="fixed inset-0 pointer-events-none bar-vignette" />
 
         {/* TITLE SCREEN VIEW */}
         {phase === 'title' && (

@@ -142,6 +142,64 @@
   animation: plasma-shift 25s ease-in-out infinite;
 }
 
+/* --- The bar table ---------------------------------------------------------
+   The felt is a table in a room, not a rectangle on a void. Everything here is
+   gradients: a PWA pays for every texture it ships, and wood is regular enough
+   that stripes of it read as grain. */
+
+.bar-table {
+  background-color: #2b1a0f;
+  background-image:
+    /* Wine rings and a cigarette burn: the table has been used. */
+    radial-gradient(circle at 14% 78%, rgba(88, 20, 24, 0.22) 0 26px, transparent 27px),
+    radial-gradient(circle at 15% 79%, transparent 0 20px, rgba(60, 12, 16, 0.18) 21px 24px, transparent 25px),
+    radial-gradient(circle at 87% 22%, rgba(70, 24, 26, 0.16) 0 18px, transparent 19px),
+    radial-gradient(circle at 79% 88%, rgba(0, 0, 0, 0.45) 0 5px, rgba(0, 0, 0, 0.15) 6px 11px, transparent 12px),
+    /* Grain: two near-vertical striations at slightly different angles never
+       line up, which is what stops it reading as a barcode. */
+    repeating-linear-gradient(92deg, rgba(0, 0, 0, 0.20) 0 2px, rgba(255, 240, 210, 0.022) 2px 3px, transparent 3px 9px),
+    repeating-linear-gradient(87deg, rgba(0, 0, 0, 0.13) 0 1px, transparent 1px 15px),
+    /* Plank seams. */
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.55) 0 3px, rgba(255, 220, 180, 0.03) 3px 5px, transparent 5px 230px),
+    linear-gradient(180deg, #3d2615 0%, #2a180d 46%, #1b0f07 100%);
+}
+
+/* The lamp hanging over the table, off-screen. It is the only light source, so
+   the corners of the room fall away on their own. */
+.bar-lamp {
+  background:
+    radial-gradient(ellipse 72% 46% at 50% 36%, rgba(255, 198, 116, 0.26) 0%, rgba(255, 168, 78, 0.11) 40%, transparent 74%),
+    radial-gradient(circle at 50% -6%, rgba(255, 228, 176, 0.16) 0%, transparent 58%);
+}
+
+.bar-vignette {
+  box-shadow:
+    inset 0 0 160px 50px rgba(0, 0, 0, 0.7),
+    inset 0 0 60px 10px rgba(0, 0, 0, 0.5);
+}
+
+/* A boss walks in and the bulb complains about it. */
+@keyframes lamp-flicker {
+  0%, 100% { opacity: 1; }
+  6% { opacity: 0.35; }
+  9% { opacity: 0.9; }
+  13% { opacity: 0.2; }
+  17% { opacity: 1; }
+  62% { opacity: 1; }
+  66% { opacity: 0.45; }
+  69% { opacity: 1; }
+}
+
+.bar-lamp--flicker {
+  animation: lamp-flicker 3.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar-lamp--flicker {
+    animation: none;
+  }
+}
+
 /* Custom Scrollbar for Retro feel */
 ::-webkit-scrollbar {
   width: 8px;
