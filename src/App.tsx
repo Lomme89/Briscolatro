@@ -635,7 +635,7 @@ function App() {
     setOpponentHand(nextHand);
     setOpponentTrickCard(chosenCard);
     setTrickLeadIsPlayer(false);
-    sound.playCardSlam();
+    sound.playCardSlam(chosenCard.points, chosenCard.suit === briscolaSuitRef.current);
 
     setIsPlayerTurn(true);
     dispatchTrickFlow({ type: 'OPPONENT_LED' });
@@ -674,7 +674,7 @@ function App() {
     opponentHandRef.current = nextHand;
     setOpponentHand(nextHand);
     setOpponentTrickCard(chosenCard);
-    sound.playCardSlam();
+    sound.playCardSlam(chosenCard.points, chosenCard.suit === briscolaSuitRef.current);
 
     // Proceed to trick resolution
     scheduleAction(() => {
@@ -1157,7 +1157,7 @@ function App() {
     }
 
     playGuardRef.current = true;
-    sound.playCardSlam();
+    sound.playCardSlam(card.points, card.suit === briscolaSuitRef.current);
 
     const nextPlayerHand = playerHandRef.current.filter((c) => c.id !== card.id);
     playerHandRef.current = nextPlayerHand;

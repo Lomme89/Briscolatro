@@ -185,6 +185,36 @@ const OPPONENT_JINGLES: Record<string, Jingle> = {
   },
 };
 
+/**
+ * How heavy a card sounds, as numbers rather than as audio.
+ *
+ * Kept out of the engine so the curve can be checked without an AudioContext:
+ * everything here is arithmetic, and it is the only part that can be wrong in
+ * a way you would notice.
+ */
+export function cardSlamVoice(points: number, isBriscola = false) {
+  // 0 for a liscia, 1 for an Asso. Trump lands a shade heavier than its points
+  // alone: taking the trick with it is the point of playing it.
+  const weight = Math.min(1, Math.max(0, points / 11) + (isBriscola ? 0.18 : 0));
+  const lerp = (light: number, heavy: number) => light + (heavy - light) * weight;
+  return {
+    weight,
+    release: lerp(0.09, 0.34),
+    // Light cards keep the triangle's paper edge; heavy ones need the sawtooth
+    // to have anything for the sub to sit under.
+    type: (weight < 0.3 ? 'triangle' : 'sawtooth') as OscillatorType,
+    startFreq: lerp(320, 190),
+    endFreq: lerp(95, 38),
+    gain: lerp(0.26, 0.55),
+    // The sub is what "heavy" actually is. Below a Cavallo there is nothing to
+    // feel, and adding it anyway would make every card sound like a carico.
+    hasSub: weight >= 0.25,
+    subStartFreq: lerp(120, 96),
+    subEndFreq: lerp(42, 28),
+    subGain: lerp(0.1, 0.42),
+  };
+}
+
 class SoundEngine {
   private ctx: AudioContext | null = null;
   private musicGain: GainNode | null = null;
@@ -227,9 +257,53 @@ class SoundEngine {
     }
   }
 
-  // Card Slam / Table Drop sound
-  public playCardSlam() {
-    this.playTrumpSlam();
+  /**
+   * A card hitting the table, weighed by what it is worth.
+   *
+   * Briscola points run 0 to 11, and that spread is the whole gesture: a liscia
+   * is a sheet of card sliding down, an Asso is a thud you feel. Synthesising it
+   * from the points beats recording the samples - the weight is a curve, not
+   * six separate files, and a PWA ships none of it.
+   */
+  public playCardSlam(points?: number, isBriscola = false) {
+    if (points === undefined) {
+      this.playTrumpSlam();
+      return;
+    }
+    if (this.isMuted || this.sfxVolume <= 0) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const v = cardSlamVoice(points, isBriscola);
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = v.type;
+    osc.frequency.setValueAtTime(v.startFreq, now);
+    osc.frequency.exponentialRampToValueAtTime(v.endFreq, now + v.release);
+
+    gain.gain.setValueAtTime(v.gain * this.sfxVolume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + v.release);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + v.release);
+
+    if (v.hasSub) {
+      const subOsc = this.ctx.createOscillator();
+      const subGain = this.ctx.createGain();
+      subOsc.type = 'sine';
+      subOsc.frequency.setValueAtTime(v.subStartFreq, now);
+      subOsc.frequency.exponentialRampToValueAtTime(v.subEndFreq, now + v.release);
+      subGain.gain.setValueAtTime(v.subGain * this.sfxVolume, now);
+      subGain.gain.exponentialRampToValueAtTime(0.001, now + v.release);
+      subOsc.connect(subGain);
+      subGain.connect(this.ctx.destination);
+      subOsc.start(now);
+      subOsc.stop(now + v.release);
+    }
   }
 
 
