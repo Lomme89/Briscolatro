@@ -4,6 +4,7 @@ import { JOKER_EFFECTS, JokerScoringContext, JokerStatGrowth } from './jokerEffe
 import { resolveSpecialForTrick, SpecialTrickOutcome } from './specialCards';
 import { CARD_POWER_VALUES as V } from '../data/cardPowers';
 import { randomRun } from './runRng';
+import { ScoreStep, pushStep } from './scoreTrace';
 
 /** Side effects a trick's seals produced, applied by the caller. */
 interface SealEvents {
@@ -16,6 +17,11 @@ interface SealEvents {
 export interface TrickScoreCalculation {
   /** Why base Mult is what it is, for the tally overlay. */
   baseMultReasons: string[];
+  /**
+   * The ordered story of the total, for a tally that fires one source at a
+   * time. Purely descriptive: the aggregates below remain the truth.
+   */
+  steps: ScoreStep[];
   sealEvents: SealEvents;
   baseChips: number;
   bonusChips: number;
@@ -53,6 +59,26 @@ export function calculateTrickScore(
   let xMult = activeUnoMultiplier;
   let bonusDollars = 0;
 
+  // Every bonus goes through these so the trace cannot drift from the total.
+  const steps: ScoreStep[] = [];
+  const addChips = (amount: number, label: string) => {
+    bonusChips += amount;
+    pushStep(steps, { kind: 'chips', amount, label });
+  };
+  const addMult = (amount: number, label: string) => {
+    bonusMult += amount;
+    pushStep(steps, { kind: 'mult', amount, label });
+  };
+  const mulXMult = (factor: number, label: string) => {
+    xMult *= factor;
+    pushStep(steps, { kind: 'xmult', amount: factor, label });
+  };
+  const addDollars = (amount: number, label: string) => {
+    bonusDollars += amount;
+    pushStep(steps, { kind: 'dollars', amount, label });
+  };
+  pushStep(steps, { kind: 'xmult', amount: activeUnoMultiplier, label: 'UNO' });
+
   // Boss debuff: Gigi il Tagliatore removes base chips for lisce (0 pt)
   if (currentBoss?.debuffType === 'no_lisce_chips' && playerCard.points === 0) {
     baseChips = 5;
@@ -88,53 +114,53 @@ export function calculateTrickScore(
   for (let pass = 0; pass < retriggers; pass++) {
     // Editions
     if (playerCard.edition === 'foil') {
-      bonusChips += V.foilPlayedChips;
+      addChips(V.foilPlayedChips, 'Foil');
     } else if (playerCard.edition === 'holo') {
-      bonusMult += V.holoPlayedMult;
+      addMult(V.holoPlayedMult, 'Holo');
     } else if (playerCard.edition === 'polychrome') {
-      xMult *= V.polychromePlayedXMult;
+      mulXMult(V.polychromePlayedXMult, 'Policromo');
     } else if (playerCard.edition === 'gold') {
-      bonusDollars += V.goldPlayedDollars;
+      addDollars(V.goldPlayedDollars, 'Oro');
     }
 
     // Enhancements
     switch (playerCard.enhancement) {
       case 'bonus':
-        bonusChips += V.bonusChips;
+        addChips(V.bonusChips, 'Bonus');
         break;
       case 'mult':
-        bonusMult += V.multBonus;
+        addMult(V.multBonus, 'Mult');
         break;
       case 'stone':
-        bonusChips += V.stoneChips;
+        addChips(V.stoneChips, 'Pietra');
         break;
       default:
         break;
     }
 
     // The retrigger repeats the card's point chips too.
-    if (pass > 0) bonusChips += playerCard.points * 3;
-    bonusChips += playerCard.customBonusChips || 0;
-    bonusMult += playerCard.customBonusMult || 0;
+    if (pass > 0) addChips(playerCard.points * 3, 'Sigillo Rosso');
+    addChips(playerCard.customBonusChips || 0, 'Potenziamento');
+    addMult(playerCard.customBonusMult || 0, 'Potenziamento');
   }
 
   if (playerCard.seal === 'purple') sealEvents.extraDiscards += 1;
 
   // Steel pays for being HELD, not played.
   for (const held of jokerContext.playerHand) {
-    if (held.enhancement === 'steel') xMult *= V.steelXMult;
+    if (held.enhancement === 'steel') mulXMult(V.steelXMult, 'Acciaio');
   }
 
   // --- The captured card ---------------------------------------------------
   if (clashResult.playerWon) {
-    if (opponentCard.edition === 'foil') bonusChips += V.foilCapturedChips;
-    if (opponentCard.edition === 'holo') bonusMult += V.holoCapturedMult;
-    if (opponentCard.edition === 'polychrome') xMult *= V.polychromeCapturedXMult;
-    if (opponentCard.edition === 'gold') bonusDollars += V.goldCapturedDollars;
+    if (opponentCard.edition === 'foil') addChips(V.foilCapturedChips, 'Foil catturato');
+    if (opponentCard.edition === 'holo') addMult(V.holoCapturedMult, 'Holo catturato');
+    if (opponentCard.edition === 'polychrome') mulXMult(V.polychromeCapturedXMult, 'Policromo catturato');
+    if (opponentCard.edition === 'gold') addDollars(V.goldCapturedDollars, 'Oro catturato');
 
     // Seals pay out on capture, on either card in the trick.
     for (const card of [playerCard, opponentCard]) {
-      if (card.seal === 'gold') bonusDollars += V.goldSealDollars;
+      if (card.seal === 'gold') addDollars(V.goldSealDollars, 'Sigillo Oro');
       if (card.seal === 'blue' && randomRun() < V.blueSealChance) sealEvents.spawnUnoCard = true;
     }
   }
@@ -149,10 +175,11 @@ export function calculateTrickScore(
     playerWon: clashResult.playerWon,
     money: jokerContext.money,
   });
-  bonusChips += special.chipsToAdd;
-  bonusMult += special.multToAdd;
-  xMult *= special.xMultToMultiply;
-  bonusDollars += special.dollarsToAdd;
+  const azzardoLabel = special.reasons[0] || 'Azzardo';
+  addChips(special.chipsToAdd, azzardoLabel);
+  addMult(special.multToAdd, azzardoLabel);
+  mulXMult(special.xMultToMultiply, azzardoLabel);
+  addDollars(special.dollarsToAdd, azzardoLabel);
 
   // Apply Joker effects
   const fullJokerContext: JokerScoringContext = {
@@ -173,6 +200,7 @@ export function calculateTrickScore(
   bonusMult += jokerMod.multToAdd;
   xMult *= jokerMod.xMultToMultiply;
   bonusDollars += jokerMod.dollarsToAdd;
+  steps.push(...jokerMod.steps);
 
   const totalChips = Math.max(1, baseChips + bonusChips);
   // Keep fractional xMult growth real until the final score. Rounding Mult here
@@ -189,6 +217,7 @@ export function calculateTrickScore(
   return {
     sealEvents,
     baseMultReasons,
+    steps,
     baseChips,
     bonusChips,
     totalChips,

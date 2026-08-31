@@ -1,4 +1,5 @@
 import { Joker, PlayingCard, Suit } from '../types/game';
+import { ScoreStep, pushStep } from './scoreTrace';
 import { isBriscolaInHand, TrickClashResult } from './briscola';
 
 export interface JokerScoringContext {
@@ -50,6 +51,8 @@ export interface JokerScoringModifier {
   xMultToMultiply: number;
   dollarsToAdd: number;
   triggeredJokerIds: string[];
+  /** One entry per Jolly that actually moved a number, in trigger order. */
+  steps: ScoreStep[];
   /**
    * The Falsario asks for one non-Foil card of the run deck to become Foil.
    * It never names a suit or a rank: the forty identities stay untouched.
@@ -71,6 +74,7 @@ export const JOKER_EFFECTS = {
     let xMultToMultiply = 1.0;
     let dollarsToAdd = 0;
     const triggeredJokerIds: string[] = [];
+    const steps: ScoreStep[] = [];
     const statGrowth: JokerStatGrowth[] = [];
     let foilRandomCard = false;
 
@@ -101,6 +105,12 @@ export const JOKER_EFFECTS = {
 
       let didTrigger = false;
       const growthTarget = joker.instanceId || joker.id;
+      // Snapshot the accumulators so the sink below can tell what THIS joker
+      // did, without asking forty branches to each report themselves.
+      const beforeChips = chipsToAdd;
+      const beforeMult = multToAdd;
+      const beforeXMult = xMultToMultiply;
+      const beforeDollars = dollarsToAdd;
 
       // PASSIVE JOKERS (Apply regardless of who won)
       if (joker.id === 'j_jolly_sport') {
@@ -440,6 +450,12 @@ export const JOKER_EFFECTS = {
 
       if (didTrigger) {
         triggeredJokerIds.push(joker.id);
+        const source = { sourceJokerId: joker.id, sourceJokerInstanceId: joker.instanceId };
+        const label = joker.italianTitle || joker.name;
+        pushStep(steps, { kind: 'chips', amount: chipsToAdd - beforeChips, label, ...source });
+        pushStep(steps, { kind: 'mult', amount: multToAdd - beforeMult, label, ...source });
+        pushStep(steps, { kind: 'xmult', amount: beforeXMult === 0 ? 1 : xMultToMultiply / beforeXMult, label, ...source });
+        pushStep(steps, { kind: 'dollars', amount: dollarsToAdd - beforeDollars, label, ...source });
       }
     });
 
@@ -449,6 +465,7 @@ export const JOKER_EFFECTS = {
       xMultToMultiply,
       dollarsToAdd,
       triggeredJokerIds,
+      steps,
       foilRandomCard,
       statGrowth,
     };

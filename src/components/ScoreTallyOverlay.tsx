@@ -3,6 +3,7 @@ import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import confetti from 'canvas-confetti';
 import { sound } from '../services/soundEngine';
 import { once } from '../game/uiFlow';
+import { ScoreStep } from '../game/scoreTrace';
 
 interface ScoreTallyProps {
   chips: number;
@@ -12,6 +13,14 @@ interface ScoreTallyProps {
   playerWon: boolean;
   /** Why the base Mult is what it is, e.g. "1 Carico +1", "Briscola +1". */
   multReasons?: string[];
+  /**
+   * What built the score, in order. The tally fires one source at a time:
+   * reading the order is the point, a finished number ramping is not.
+   */
+  steps?: ScoreStep[];
+  /** Where the count starts, before any step. Defaults to the totals. */
+  baseChips?: number;
+  baseMult?: number;
   /** Halves the count-up: the tally is played 20 times a round. */
   fastMode?: boolean;
   onComplete: () => void;
@@ -28,6 +37,9 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
   trickPoints,
   playerWon,
   multReasons = [],
+  steps = [],
+  baseChips,
+  baseMult,
   fastMode = false,
   onComplete,
   targetScore,
@@ -35,13 +47,29 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
   playerBriscolaPoints,
   opponentBriscolaPoints,
 }) => {
-  const [displayChips, setDisplayChips] = useState(0);
-  const [displayMult, setDisplayMult] = useState(1);
-  const [displayTotal, setDisplayTotal] = useState(0);
-  const [phase, setPhase] = useState<'chips' | 'mult' | 'impact' | 'done'>('chips');
+  const startChips = baseChips ?? chips;
+  const startMult = baseMult ?? mult;
+
+  /** How many steps have fired. `steps.length` means the tally is spent. */
+  const [stepIndex, setStepIndex] = useState(0);
+  const [phase, setPhase] = useState<'steps' | 'impact' | 'done'>('steps');
+  const [skipped, setSkipped] = useState(false);
 
   const reduceMotion = useReducedMotion();
   const pace = (ms: number) => (reduceMotion ? Math.min(ms, 120) : fastMode ? Math.round(ms * 0.45) : ms);
+
+  // Running totals are derived, never stored: the fold cannot drift from the
+  // engine's own, and skipping is just "apply every step at once".
+  const applied = skipped ? steps : steps.slice(0, stepIndex);
+  const displayChips = skipped
+    ? chips
+    : startChips + applied.filter((s) => s.kind === 'chips').reduce((a, s) => a + s.amount, 0);
+  const displayMult = skipped
+    ? mult
+    : (startMult + applied.filter((s) => s.kind === 'mult').reduce((a, s) => a + s.amount, 0)) *
+      applied.filter((s) => s.kind === 'xmult').reduce((a, s) => a * s.amount, 1);
+  const displayTotal = phase === 'steps' ? 0 : finalScore;
+  const activeStep = !skipped && stepIndex > 0 ? steps[stepIndex - 1] : null;
 
   const onCompleteRef = React.useRef(onComplete);
   onCompleteRef.current = onComplete;
@@ -60,12 +88,10 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
 
   const skipAnimation = React.useCallback(() => {
     if (completedRef.current) return;
-    setDisplayChips(chips);
-    setDisplayMult(mult);
-    setDisplayTotal(finalScore);
+    setSkipped(true);
     setPhase('done');
     triggerCompletion();
-  }, [chips, mult, finalScore, triggerCompletion]);
+  }, [triggerCompletion]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -77,58 +103,35 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [skipAnimation]);
 
+  // A lost trick has nothing to count: it says so and gets out of the way.
   useEffect(() => {
-    if (!playerWon) {
-      sound.playTrickLose();
-      const timer = setTimeout(() => {
-        triggerCompletion();
-      }, pace(900));
+    if (playerWon) return;
+    sound.playTrickLose();
+    const timer = setTimeout(() => triggerCompletion(), pace(900));
+    return () => clearTimeout(timer);
+  }, [playerWon, triggerCompletion]);
+
+  // One source per beat. The pause between them IS the readability.
+  useEffect(() => {
+    if (!playerWon || phase !== 'steps' || skipped) return;
+
+    if (stepIndex >= steps.length) {
+      const timer = setTimeout(() => setPhase('impact'), pace(steps.length > 0 ? 260 : 120));
       return () => clearTimeout(timer);
     }
 
-    // Step 1: Count up Chips
-    let step = 0;
-    const chipsInterval = setInterval(() => {
-      step++;
-      const current = Math.min(chips, Math.round((step / 6) * chips));
-      setDisplayChips(current);
-      sound.playScoreTick(step);
-
-      if (current >= chips) {
-        clearInterval(chipsInterval);
-        setPhase('mult');
-      }
-    }, pace(45));
-
-    return () => clearInterval(chipsInterval);
-  }, [chips, playerWon, triggerCompletion]);
-
-  useEffect(() => {
-    if (phase !== 'mult') return;
-
-    let step = 0;
-    const multInterval = setInterval(() => {
-      step++;
-      const current = Math.min(mult, Math.round(1 + (step / 5) * (mult - 1)));
-      setDisplayMult(current);
-      sound.playScoreTick(step + 6);
-
-      if (current >= mult) {
-        clearInterval(multInterval);
-        setPhase('impact');
-      }
-    }, pace(55));
-
-    return () => clearInterval(multInterval);
-  }, [phase, mult]);
+    const timer = setTimeout(() => {
+      sound.playScoreTick(stepIndex + 1);
+      setStepIndex((i) => i + 1);
+    }, pace(stepIndex === 0 ? 320 : 230));
+    return () => clearTimeout(timer);
+  }, [playerWon, phase, stepIndex, steps.length, skipped]);
 
   useEffect(() => {
     if (phase !== 'impact') return;
 
     sound.playMultImpact();
-    setDisplayTotal(finalScore);
 
-    // If new score beats or makes big progress toward target, trigger confetti
     if (!reduceMotion && (currentTotalScore + finalScore >= targetScore || finalScore >= 500)) {
       confetti({
         particleCount: finalScore >= 1000 ? 70 : 40,
@@ -239,13 +242,42 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
             </div>
           )}
 
+          {/* Who just fired. The number moving without a name teaches nothing. */}
+          <div className="h-5 flex items-center justify-center">
+            <AnimatePresence mode="wait">
+              {activeStep && (
+                <motion.span
+                  key={`${stepIndex}-${activeStep.label}`}
+                  initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.14 }}
+                  className={`px-2 py-0.5 font-pixel text-[8px] rounded uppercase border ${
+                    activeStep.kind === 'chips'
+                      ? 'bg-blue-950/90 border-blue-400 text-blue-200'
+                      : activeStep.kind === 'dollars'
+                        ? 'bg-emerald-950/90 border-emerald-400 text-emerald-200'
+                        : 'bg-red-950/90 border-red-400 text-red-200'
+                  }`}
+                >
+                  {activeStep.label}{' '}
+                  {activeStep.kind === 'xmult'
+                    ? `×${activeStep.amount}`
+                    : activeStep.kind === 'dollars'
+                      ? `+$${activeStep.amount}`
+                      : `+${activeStep.amount}`}
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </div>
+
           {/* Chips x Mult formula container */}
           <div className="flex items-center justify-center gap-3 w-full my-2">
             {/* Chips Box (Blue) */}
             <motion.div
-              animate={{ 
-                scale: phase === 'chips' ? 1.08 : 1,
-                boxShadow: phase === 'chips' ? '0 0 15px rgba(59,130,246,0.5)' : 'none'
+              animate={{
+                scale: activeStep?.kind === 'chips' ? 1.08 : 1,
+                boxShadow: activeStep?.kind === 'chips' ? '0 0 15px rgba(59,130,246,0.5)' : 'none'
               }}
               className="flex-1 bg-blue-950 border-2 border-blue-400 p-2.5 rounded-lg text-center pixel-box"
             >
@@ -259,15 +291,16 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
 
             {/* Mult Box (Red) */}
             <motion.div
-              animate={{ 
-                scale: phase === 'mult' ? 1.08 : 1,
-                boxShadow: phase === 'mult' ? '0 0 15px rgba(239,68,68,0.5)' : 'none'
+              animate={{
+                scale: activeStep && activeStep.kind !== 'chips' ? 1.08 : 1,
+                boxShadow:
+                  activeStep && activeStep.kind !== 'chips' ? '0 0 15px rgba(239,68,68,0.5)' : 'none'
               }}
               className="flex-1 bg-red-950 border-2 border-red-400 p-2.5 rounded-lg text-center pixel-box"
             >
               <div className="text-[9px] font-pixel text-red-300 uppercase">MOLT.</div>
               <div className="text-xl font-pixel text-red-100 font-bold mt-1">
-                {displayMult}
+                {Number.isInteger(displayMult) ? displayMult : displayMult.toFixed(2)}
               </div>
             </motion.div>
           </div>

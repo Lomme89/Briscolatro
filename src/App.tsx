@@ -1991,6 +1991,9 @@ function App() {
             trickPoints={tallyData.trickPoints}
             playerWon={tallyData.playerWon}
             multReasons={tallyData.scoreResult?.baseMultReasons}
+            steps={tallyData.scoreResult?.steps}
+            baseChips={tallyData.scoreResult?.baseChips}
+            baseMult={tallyData.scoreResult?.baseMult}
             fastMode={settings.fastMode}
             onComplete={handleTallyComplete}
             targetScore={targetScore}
