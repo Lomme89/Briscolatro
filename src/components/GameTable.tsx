@@ -166,6 +166,14 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
   const handRowMinHeight = shortScreen
     ? 'min-h-[118px]'
     : 'min-h-[148px] sm:min-h-[175px] md:min-h-[195px]';
+  // Desktop has room the phone layout never had, and the two things that were
+  // still sized for a phone there are the stock and whoever is sitting across
+  // the table: both were reading as decoration next to a 140px trick card.
+  // Width alone is not enough: a wide but short window (a 1024x600 laptop, a
+  // half-height browser) would take the big sizes and push the hand off screen.
+  const wideTable = useMediaQuery('(min-width: 1024px) and (min-height: 800px)');
+  const deckCardSize = wideTable ? 'md' : roomyTable ? 'sm' : 'xs';
+  const avatarSize = wideTable ? 56 : 32;
   const trickCardSize = roomyTable ? 'lg' : 'md';
   const trickSlotClass = roomyTable
     ? 'w-[96px] sm:w-[114px] h-[138px] sm:h-[164px]'
@@ -737,20 +745,20 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
           <div className="flex items-center justify-between gap-2">
             {/* Opponent Info */}
             <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-slate-900 border-2 border-amber-500/70 pixel-box flex items-center justify-center p-0.5 shadow-lg shrink-0 overflow-hidden relative">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 lg:w-16 lg:h-16 rounded-lg bg-slate-900 border-2 border-amber-500/70 pixel-box flex items-center justify-center p-0.5 shadow-lg shrink-0 overflow-hidden relative">
                 <PixelAvatar
                   characterId={currentBoss ? currentBoss.id : regular.characterId}
                   emotion={opponentEmotion}
-                  size={32}
+                  size={avatarSize}
                   showGlow={!!currentBoss}
                 />
               </div>
               <div className="flex items-center gap-1.5 leading-none">
-                <span className="font-pixel text-[9px] sm:text-[11px] text-amber-300 font-bold">
+                <span className="font-pixel text-[9px] sm:text-[11px] lg:text-[15px] text-amber-300 font-bold">
                   {currentBoss ? currentBoss.name : regular.name}
                 </span>
                 {currentBoss && (
-                  <span className={`text-[6.5px] sm:text-[7.5px] bg-red-900 border border-red-500 text-red-200 px-1 py-0.5 rounded font-pixel uppercase font-bold ${reduceMotion ? '' : 'animate-pulse'}`}>
+                  <span className={`text-[6.5px] sm:text-[7.5px] lg:text-[9px] bg-red-900 border border-red-500 text-red-200 px-1 lg:px-1.5 py-0.5 rounded font-pixel uppercase font-bold ${reduceMotion ? '' : 'animate-pulse'}`}>
                     BOSS
                   </span>
                 )}
@@ -774,7 +782,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                   key={card.id || i}
                   card={card}
                   faceDown={!hasVision}
-                  size={roomyTable ? 'sm' : 'xs'}
+                  size={deckCardSize}
                   animateDeal={true}
                   dealDelay={isDealing ? 0.06 + i * 0.26 : i * 0.06}
                 />
@@ -861,21 +869,21 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
             onClick={onOpenDeckViewer}
             title="Ispettore Mazzo (Tocca per vedere)"
           >
-            <div className="relative flex items-center justify-center min-w-[70px] sm:min-w-[80px]">
+            <div className="relative flex items-center justify-center min-w-[70px] sm:min-w-[80px] lg:min-w-[150px]">
               {/* Deck top face-down card (in background) */}
               {deckCount > 0 ? (
                 <div className="relative z-10 mr-1">
                   <PixelCard
                     card={trumpCard ?? playerHand[0] ?? null}
                     faceDown={true}
-                    size="xs"
+                    size={deckCardSize}
                   />
-                  <div className="absolute -top-1.5 -left-1 bg-amber-500 text-slate-950 font-pixel text-[7px] sm:text-[8px] px-1 py-0.2 rounded shadow font-bold pixel-box whitespace-nowrap z-15">
+                  <div className="absolute -top-1.5 -left-1 bg-amber-500 text-slate-950 font-pixel text-[7px] sm:text-[8px] lg:text-[11px] px-1 lg:px-1.5 py-0.2 rounded shadow font-bold pixel-box whitespace-nowrap z-15">
                     {deckCount}
                   </div>
                 </div>
               ) : (
-                <div className="w-11 sm:w-13 h-16 sm:h-18 border border-dashed border-slate-700/60 rounded-lg flex items-center justify-center text-slate-500 font-pixel text-[6.5px] text-center p-0.5 z-10 mr-1">
+                <div className="w-11 sm:w-13 lg:w-26 h-16 sm:h-18 lg:h-38 border border-dashed border-slate-700/60 rounded-lg flex items-center justify-center text-slate-500 font-pixel text-[6.5px] lg:text-[9px] text-center p-0.5 z-10 mr-1">
                   FINE
                 </div>
               )}
@@ -908,14 +916,14 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                         }
                   }
                   style={{ transformPerspective: 900, transformStyle: 'preserve-3d' }}
-                  className="relative -ml-3 sm:-ml-4 z-20 rotate-6 group-hover:rotate-0 transition-transform duration-200 shadow-xl drop-shadow-[0_4px_8px_rgba(0,0,0,0.6)]"
+                  className="relative -ml-3 sm:-ml-4 lg:-ml-9 z-20 rotate-6 group-hover:rotate-0 transition-transform duration-200 shadow-xl drop-shadow-[0_4px_8px_rgba(0,0,0,0.6)]"
                 >
                   <div style={{ backfaceVisibility: 'hidden' }}>
                     <PixelCard
                       card={trumpCard}
                       isBriscola={true}
                       showBriscolaBadge={false}
-                      size="xs"
+                      size={deckCardSize}
                       showPoints={true}
                     />
                   </div>
@@ -923,16 +931,16 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                     className="absolute inset-0"
                     style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
                   >
-                    <PixelCard card={trumpCard} faceDown size="xs" />
+                    <PixelCard card={trumpCard} faceDown size={deckCardSize} />
                   </div>
                 </motion.div>
               )}
             </div>
 
             {/* Briscola Suit Pill Under Deck */}
-            <div className="mt-1.5 flex items-center gap-1 bg-slate-950/90 border border-orange-500/80 px-1.5 py-0.5 rounded-full pixel-box shadow">
-              <PixelSuitIcon suit={briscolaSuit} size={10} />
-              <span className="font-pixel text-[6.5px] sm:text-[7.5px] text-orange-400 font-bold uppercase">
+            <div className="mt-1.5 lg:mt-2.5 flex items-center gap-1 lg:gap-1.5 bg-slate-950/90 border border-orange-500/80 px-1.5 lg:px-3 py-0.5 lg:py-1 rounded-full pixel-box shadow">
+              <PixelSuitIcon suit={briscolaSuit} size={wideTable ? 16 : 10} />
+              <span className="font-pixel text-[6.5px] sm:text-[7.5px] lg:text-[10px] text-orange-400 font-bold uppercase">
                 {briscolaSuit}
               </span>
             </div>
