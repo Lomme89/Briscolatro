@@ -175,8 +175,10 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
   const deckCardSize = wideTable ? 'md' : roomyTable ? 'sm' : 'xs';
   const avatarSize = wideTable ? 56 : 32;
   const trickCardSize = roomyTable ? 'lg' : 'md';
+  // The empty slot has to be the size of the card that will fill it, all the
+  // way up, or the clash zone resizes the moment someone plays.
   const trickSlotClass = roomyTable
-    ? 'w-[96px] sm:w-[114px] h-[138px] sm:h-[164px]'
+    ? 'w-[96px] sm:w-[114px] md:w-[128px] lg:w-[140px] h-[138px] sm:h-[164px] md:h-[184px] lg:h-[200px]'
     : 'w-20 sm:w-24 md:w-26 h-28 sm:h-34 md:h-38';
 
   const [inspected, setInspected] = useState<
@@ -862,10 +864,16 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
         </div>
 
         {/* CENTER ARENA: DECK + TRICK CLASH (ENLARGED CARDS) */}
-        <div className="flex-1 min-h-0 my-1 py-1 flex items-center justify-center gap-1 sm:gap-4 z-10 relative px-1 min-w-0">
+        {/* A row of two centres the pair, not the clash: the stock sits only on
+            the left, so whatever it takes it takes off the middle. That was
+            invisible while the stock was 44px wide and obvious once it was not.
+            Three columns with the clash in the auto-sized middle one put it back
+            on the real centre of the felt, with the stock hanging off its own
+            side. */}
+        <div className="flex-1 min-h-0 my-1 py-1 flex items-center justify-center gap-1 sm:gap-4 z-10 relative px-1 min-w-0 lg:grid lg:grid-cols-[1fr_auto_1fr]">
           {/* Left: Deck & Briscola Face-Up Card */}
           <div 
-            className="flex flex-col items-center cursor-pointer group shrink-0"
+            className="flex flex-col items-center cursor-pointer group shrink-0 lg:justify-self-start"
             onClick={onOpenDeckViewer}
             title="Ispettore Mazzo (Tocca per vedere)"
           >
@@ -947,7 +955,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
           </div>
 
           {/* Center: Trick Cards Clash Zone (LARGE IMPACT CARDS) */}
-          <div className="flex-1 min-w-0 max-w-[300px] sm:max-w-md flex items-center justify-center gap-1.5 sm:gap-4 p-2 bg-black/45 border border-dashed border-emerald-800/60 rounded-xl pixel-box relative shadow-xl mx-auto">
+          <div className="flex-1 min-w-0 max-w-[300px] sm:max-w-md lg:flex-none lg:max-w-none flex items-center justify-center gap-1.5 sm:gap-4 lg:gap-8 p-2 lg:p-5 bg-black/45 border border-dashed border-emerald-800/60 rounded-xl pixel-box relative shadow-xl mx-auto">
             {/* Opponent Card in Trick */}
             <div className="flex flex-col items-center relative">
               <span className="text-[7px] sm:text-[8px] font-pixel text-slate-400 mb-0.5">AVVERSARIO</span>
