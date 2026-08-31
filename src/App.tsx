@@ -466,7 +466,9 @@ function App() {
         : ALL_BOSS_BLINDS.find((b) => b.ante === currentAnte) || ALL_BOSS_BLINDS[0];
       setActiveBoss(bossToSet);
       activeBossRef.current = bossToSet;
-      setOpponentSpeech(bossToSet.bossQuote);
+      // Through getOpponentIntro, not off the Boss directly: past Ante 8 the
+      // opening line is not the Boss's own any more.
+      setOpponentSpeech(getOpponentIntro(currentAnte, currentRoundNum, bossToSet).quote);
       sound.playBossSting();
     } else {
       setActiveBoss(null);

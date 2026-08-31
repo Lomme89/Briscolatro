@@ -2,6 +2,8 @@ import { BossBlind } from '../types/game';
 import { ALL_BOSS_BLINDS } from './bosses';
 import { getTableThemeForAnte } from './tableThemes';
 import { isBossEncounter } from '../game/gameState';
+import { ENDLESS_TIERS, getEndlessTier } from '../game/endless';
+import { ENDLESS_BANTER } from './endlessBanter';
 
 export interface OpponentIntro {
   /** Matches a PixelAvatar character. */
@@ -144,6 +146,33 @@ const REGULARS: Regular[] = [
   },
 ];
 
+/**
+ * The table's own lines, plus however much of the Endless has got into them.
+ *
+ * The strange lines do not replace the character's, they crowd them: one at
+ * ASCESO, five by FUORI SCALA, against a handful of the character's own. So the
+ * drift is gradual and whoever is sitting there stays recognisable most of the
+ * way down. The blind screen's opening line only goes over from ULTRA-ISTINTO
+ * up, because that is where a Boss quoting itself stops being the strange part.
+ */
+function endlessVoice(
+  ante: number,
+  ownQuote: string,
+  ownBanter: string[]
+): { quote: string; banter: string[] } {
+  const tier = getEndlessTier(ante);
+  if (!tier) return { quote: ownQuote, banter: ownBanter };
+
+  const tierIndex = ENDLESS_TIERS.findIndex((entry) => entry.id === tier.id);
+  const strange = ENDLESS_BANTER[tier.id];
+  const bleed = strange.slice(0, Math.min(strange.length, tierIndex + 1));
+
+  return {
+    quote: tierIndex >= 2 ? strange[tierIndex % strange.length] : ownQuote,
+    banter: [...ownBanter, ...bleed],
+  };
+}
+
 export function getRegularForAnte(ante: number): Regular {
   const index = Math.max(0, (Math.max(ante, 1) - 1) % REGULARS.length);
   return REGULARS[index];
@@ -169,29 +198,31 @@ export function getOpponentIntro(
       encounterBoss ??
       ALL_BOSS_BLINDS.find((candidate) => candidate.ante === ante) ??
       ALL_BOSS_BLINDS[0];
+    const voice = endlessVoice(ante, boss.bossQuote, [boss.bossQuote]);
     return {
       characterId: boss.id,
       name: boss.name,
       title: boss.characterTitle,
-      quote: boss.bossQuote,
+      quote: voice.quote,
       isBoss: true,
       boss,
       // Bosses already bend the rules of the round; a temperament on top would
       // make it impossible to tell which of the two is beating you.
       aiProfileId: 'neutral',
-      banter: [boss.bossQuote],
+      banter: voice.banter,
     };
   }
 
   const regular = getRegularForAnte(ante);
+  const voice = endlessVoice(ante, regular.intro, regular.banter);
   return {
     characterId: regular.characterId,
     aiProfileId: regular.aiProfileId,
     name: regular.name,
     title: `${regular.epithet} · ${getTableThemeForAnte(ante).name}`,
-    quote: regular.intro,
+    quote: voice.quote,
     isBoss: false,
     boss: null,
-    banter: regular.banter,
+    banter: voice.banter,
   };
 }

@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { getOpponentIntro, getRegularForAnte } from './opponents';
 import { ALL_BOSS_BLINDS } from './bosses';
 import { endlessBossForAnte } from '../game/endlessBosses';
+import { ENDLESS_BANTER } from './endlessBanter';
+import { ENDLESS_TIERS, getEndlessTier } from '../game/endless';
 
 describe('opponents', () => {
   it('negli Ante Endless mostra il Boss che si affrontera davvero', () => {
@@ -54,6 +56,47 @@ describe('opponents', () => {
       // third would land on the Boss, which is where the loop already stops.
       expect(getOpponentIntro(ante, 1).isBoss).toBe(false);
       expect(getOpponentIntro(ante, 2).isBoss).toBe(true);
+    }
+  });
+  it('nella campagna nessuno dice niente di strano', () => {
+    for (let ante = 1; ante <= 8; ante++) {
+      const intro = getOpponentIntro(ante, 1);
+      const strange = Object.values(ENDLESS_BANTER).flat();
+      expect(intro.banter.some((line) => strange.includes(line))).toBe(false);
+      expect(intro.quote).toBe(getRegularForAnte(ante).intro);
+    }
+  });
+
+  it('la deriva cresce di una battuta per tier', () => {
+    // One strange line at the first Endless tier, five at the last, always
+    // alongside the character's own: whoever is sitting there stays
+    // recognisable most of the way down.
+    const counts = [9, 17, 25, 33, 41].map((ante) => {
+      const intro = getOpponentIntro(ante, 1);
+      const tier = getEndlessTier(ante)!;
+      return intro.banter.filter((line) => ENDLESS_BANTER[tier.id].includes(line)).length;
+    });
+    expect(counts).toEqual([1, 2, 3, 4, 5]);
+
+    for (const ante of [9, 41]) {
+      const own = getRegularForAnte(ante).banter;
+      expect(getOpponentIntro(ante, 1).banter).toEqual(expect.arrayContaining(own));
+    }
+  });
+
+  it('la battuta di apertura passa al tier solo da ULTRA-ISTINTO in su', () => {
+    expect(getOpponentIntro(9, 1).quote).toBe(getRegularForAnte(9).intro);
+    expect(getOpponentIntro(17, 1).quote).toBe(getRegularForAnte(17).intro);
+
+    for (const ante of [25, 33, 41]) {
+      const tier = getEndlessTier(ante)!;
+      expect(ENDLESS_BANTER[tier.id]).toContain(getOpponentIntro(ante, 1).quote);
+    }
+  });
+
+  it('ogni tier Endless ha le sue battute', () => {
+    for (const tier of ENDLESS_TIERS) {
+      expect(ENDLESS_BANTER[tier.id].length).toBeGreaterThanOrEqual(5);
     }
   });
 });
