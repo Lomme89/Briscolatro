@@ -1839,11 +1839,13 @@ function App() {
           settings.crtScanlines ? 'crt-overlay' : ''
         } ${shakeTier > 0 ? `table-shake-${shakeTier}` : ''}`}
       >
-        {/* The lamp over the table. A boss makes the bulb stutter. */}
+        {/* The lamp over the table. A boss makes the bulb stutter.
+            The title screen is lit by it too: the menu is a slate propped on
+            this same table, not a separate screen with its own lighting. */}
         <div
-          className={`fixed inset-0 pointer-events-none bar-lamp transition-opacity duration-700 ${
-            phase === 'title' ? 'opacity-0' : 'opacity-100'
-          } ${activeBoss ? 'bar-lamp--flicker' : ''}`}
+          className={`fixed inset-0 pointer-events-none bar-lamp transition-opacity duration-700 opacity-100 ${
+            activeBoss ? 'bar-lamp--flicker' : ''
+          }`}
         />
         <div className="fixed inset-0 pointer-events-none bar-vignette" />
 

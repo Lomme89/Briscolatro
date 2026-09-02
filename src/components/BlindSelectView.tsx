@@ -1,3 +1,4 @@
+import { ArrowRight } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { PixelAvatar } from './PixelAvatar';
@@ -20,6 +21,7 @@ import { ALL_BOSS_BLINDS } from '../data/bosses';
 import { CAMPAIGN_FINAL_ANTE, getEndlessTier } from '../game/endless';
 import { BossBlind } from '../types/game';
 import { sound } from '../services/soundEngine';
+import { SlateBoard, ChalkRule, PaperScrap } from './diegetic/Slate';
 
 interface BlindSelectViewProps {
   ante: number;
@@ -147,35 +149,29 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
           transition={{ duration: 0.35 }}
           className="flex items-center justify-between gap-3 shrink-0"
         >
-          <div className="flex items-center gap-2.5 min-w-0">
-            <span className="text-2xl sm:text-3xl shrink-0">{theme.icon}</span>
-            <div className="min-w-0">
-              <div
-                className={`font-pixel text-[11px] sm:text-sm font-bold truncate ${theme.accentBadge.text}`}
-              >
-                {theme.name}
-              </div>
-              <div className="font-retro text-[10px] sm:text-xs text-slate-400 leading-tight">
-                {theme.subtitle}
-              </div>
+          {/* L'insegna del posto in cui sei appena entrato: legno e vernice,
+              come quella fuori dalla porta. Il nome e' dipinto, quello che
+              cambia stasera e' a gesso. */}
+          <div className="slate-frame rounded-[6px] px-3 py-1.5 sm:px-4 sm:py-2 min-w-0">
+            <div className="font-pixel painted-sign text-[11px] sm:text-[13px] tracking-[0.1em] truncate leading-tight">
+              {theme.name}
+            </div>
+            <div className="font-condensed text-[14px] sm:text-[16px] text-[#c9a878] leading-tight truncate">
+              {theme.subtitle}
             </div>
           </div>
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-baseline gap-3 shrink-0">
             {/*
               The Ante is never replaced by the tier: the player counts antes,
               and the tier only says how bad this stretch of them is.
             */}
             <span
-              className="bg-slate-950/80 border px-2 py-1 rounded font-pixel text-[9px] sm:text-[10px] font-bold"
-              style={
-                tier
-                  ? { borderColor: tier.accentColor, color: tier.accentColor }
-                  : { borderColor: 'rgba(245,158,11,0.6)', color: '#fcd34d' }
-              }
+              className="font-condensed text-[18px] sm:text-[21px] leading-none uppercase"
+              style={tier ? { color: tier.accentColor } : { color: '#e8c766' }}
             >
-              {tier ? `ANTE ${ante} · ${tier.name}` : `ANTE ${ante}/${CAMPAIGN_FINAL_ANTE}`}
+              {tier ? `Ante ${ante} · ${tier.name}` : `Ante ${ante}/${CAMPAIGN_FINAL_ANTE}`}
             </span>
-            <span className="bg-slate-950/80 border border-amber-500/60 px-2 py-1 rounded font-pixel text-[9px] sm:text-[10px] text-amber-300 font-bold">
+            <span className="font-condensed chalk-yellow text-[20px] sm:text-[23px] leading-none tabular-nums">
               ${money}
             </span>
           </div>
@@ -191,12 +187,16 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
               transition={{ type: 'spring', damping: 14, stiffness: 220 }}
               className="flex flex-col items-center"
             >
+              {/* Chi si siede al tavolo sta nella stessa cornice di legno delle
+                  foto appese al muro del locale. Il Boss la fa scaldare, ma
+                  resta la stessa cornice: cambia la luce, non il mobile. */}
               <div
-                className={`relative rounded-2xl p-2 sm:p-3 border-3 pixel-box shadow-2xl ${
+                className="slate-frame relative rounded-[8px] p-2 sm:p-3"
+                style={
                   opponent.isBoss
-                    ? 'bg-red-950/80 border-red-500'
-                    : 'bg-slate-900/85 border-amber-500/80'
-                }`}
+                    ? { boxShadow: '0 22px 40px -10px rgba(0,0,0,0.82), 0 0 26px rgba(158,58,46,0.35), inset 0 2px 0 rgba(255,226,178,0.3)' }
+                    : undefined
+                }
               >
                 <PixelAvatar
                   characterId={opponent.characterId}
@@ -208,22 +208,22 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
                   <motion.span
                     animate={reduceMotion ? undefined : { scale: [1, 1.12, 1] }}
                     transition={reduceMotion ? undefined : { repeat: Infinity, duration: 1.4 }}
-                    className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-red-600 border border-red-300 text-white font-pixel text-[8px] sm:text-[9px] px-2 py-0.5 rounded uppercase font-bold whitespace-nowrap"
+                    className="slate-frame absolute -top-3 left-1/2 -translate-x-1/2 painted-sign font-pixel text-[8px] sm:text-[9px] px-2 py-1 rounded-[3px] uppercase whitespace-nowrap"
                   >
-                    💀 Boss dell'Ante
+                    Boss dell'Ante
                   </motion.span>
                 )}
               </div>
 
               <div className="mt-3 text-center">
                 <div
-                  className={`font-pixel text-sm sm:text-lg font-bold ${
-                    opponent.isBoss ? 'text-red-300' : 'text-amber-300'
+                  className={`font-condensed text-[26px] sm:text-[32px] leading-none uppercase tracking-[0.02em] ${
+                    opponent.isBoss ? 'chalk-red' : 'chalk'
                   }`}
                 >
                   {opponent.name}
                 </div>
-                <div className="font-retro text-[11px] sm:text-xs text-slate-400 italic mt-0.5">
+                <div className="font-condensed chalk-dim text-[17px] sm:text-[20px] leading-tight mt-1">
                   {opponent.title}
                 </div>
               </div>
@@ -237,17 +237,22 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
                 <motion.div
                   initial={{ opacity: 0, y: 8, scale: 0.96 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  className={`w-full bg-slate-950/92 border rounded-xl px-3 py-2 shadow-xl ${
-                    opponent.isBoss ? 'border-red-500/70' : 'border-amber-500/50'
-                  }`}
+                  className="slate-board w-full rounded-[3px] px-3.5 py-2.5"
                 >
-                  <p className="font-retro text-[12px] sm:text-sm text-slate-100 italic leading-snug text-center">
+                  {/* Quello che dice l'avversario e' scritto a gesso come tutto
+                      il resto del locale: e' una battuta di stasera, domani la
+                      lavagna e' gia' passata dallo straccio. */}
+                  <p
+                    className={`font-condensed text-[19px] sm:text-[23px] leading-snug text-center ${
+                      opponent.isBoss ? 'chalk-red' : 'chalk'
+                    }`}
+                  >
                     &ldquo;{typedQuote}&rdquo;
                     {typedQuote.length < opponent.quote.length && (
                       <motion.span
                         animate={{ opacity: [1, 0] }}
                         transition={{ repeat: Infinity, duration: 0.7 }}
-                        className="text-amber-400 not-italic"
+                        className="chalk-yellow"
                       >
                         |
                       </motion.span>
@@ -259,140 +264,101 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
           </div>
         </div>
 
-        {/* The two encounters of the Ante: where you are and what is coming. */}
+        {/* IL PROGRAMMA DELLA SERATA
+            Le due mani dell'Ante, quello che serve per portarle a casa e
+            quanto pagano non sono tre pannelli: sono la lista che l'oste
+            scrive sulla lavagna prima di aprire. Una lavagna, incassata nel
+            layout, quindi dritta e senza bacinella. */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25, duration: 0.35 }}
-          className="grid grid-cols-2 gap-1.5 sm:gap-2 shrink-0"
+          className="shrink-0"
         >
-          {[1, 2].map((blindRound) => {
-            const info = ENCOUNTER_LABELS[blindRound];
-            const isCurrent = blindRound === round;
-            const isDone = blindRound < round;
-            return (
-              <div
-                key={blindRound}
-                className={`rounded-xl border-2 p-2 sm:p-2.5 pixel-box flex flex-col gap-1 transition-colors ${
-                  isCurrent
-                    ? isBossEncounter(blindRound)
-                      ? 'bg-red-950/80 border-red-500 shadow-lg shadow-red-900/40'
-                      : 'bg-amber-950/70 border-amber-400 shadow-lg shadow-amber-900/30'
-                    : isDone
-                      ? 'bg-slate-950/70 border-emerald-700/60 opacity-70'
-                      : 'bg-slate-950/70 border-slate-700/70 opacity-70'
-                }`}
-              >
-                <div className="flex items-center justify-between gap-1">
-                  <span
-                    className={`font-pixel text-[7.5px] sm:text-[9px] font-bold uppercase ${
-                      isBossEncounter(blindRound) ? 'text-red-300' : 'text-amber-300'
-                    }`}
-                  >
-                    {info.tag}
-                  </span>
-                  {isDone ? (
-                    <span className="text-emerald-400 text-[10px]">✓</span>
-                  ) : (
-                    <span className="font-pixel text-[7px] sm:text-[8px] text-slate-500">
-                      {info.multiplier}
-                    </span>
-                  )}
-                </div>
-                <div className="font-pixel text-[8px] sm:text-[10px] text-slate-200 leading-tight">
-                  {info.name}
-                </div>
-                {hud.showChipsObjective && <div className="flex items-baseline gap-1">
-                  <span className="text-[7px] sm:text-[8px] font-pixel text-slate-500">🎯</span>
-                  <span
-                    className={`font-pixel text-[9px] sm:text-xs font-bold tabular-nums ${
-                      isCurrent ? 'text-emerald-300' : 'text-slate-400'
-                    }`}
-                  >
-                    {targetFor(blindRound).toLocaleString('it-IT')} CHIPS
-                  </span>
-                </div>}
-                {hud.showBriscolaObjective && (
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-[7px] sm:text-[8px] font-pixel text-slate-500">
-                      {hud.connector ?? '🃏'}
-                    </span>
-                    <span
-                      className={`font-pixel text-[9px] sm:text-xs font-bold tabular-nums ${
-                        isCurrent ? 'text-emerald-300' : 'text-slate-400'
-                      }`}
-                    >
-                      {BRISCOLA_TARGET_POINTS} PT BRISCOLA
-                    </span>
-                  </div>
-                )}
-                <div className="font-pixel text-[7.5px] sm:text-[8.5px] text-amber-500/90">
-                  Premio ${getEncounterReward(ante, blindRound)}
-                </div>
-              </div>
-            );
-          })}
-        </motion.div>
-
-        {/* How this table is won, before anyone sits down. */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.35 }}
-          className="rounded-xl border-2 border-amber-500/70 bg-amber-950/40 px-3 py-2 flex items-center gap-2.5 shrink-0"
-        >
-          <span className="text-base sm:text-lg shrink-0">🏆</span>
-          <div className="min-w-0 flex-1">
-            <div className="font-pixel text-[8px] sm:text-[9.5px] text-amber-300 font-bold uppercase tracking-wide flex items-center gap-1.5 flex-wrap">
-              <span>{modeInfo.blindHint}</span>
-              <span className={`px-1 py-0.5 rounded border text-[6.5px] sm:text-[7.5px] ${modeInfo.badgeClass}`}>
-                {modeInfo.label}
+          <SlateBoard tilt={0} ledge={false}>
+            <div className="flex items-baseline justify-between gap-2 flex-wrap">
+              <span className="font-condensed chalk-dim text-[16px] sm:text-[18px] uppercase tracking-[0.12em]">
+                Stasera
+              </span>
+              <span className="font-condensed chalk-dim text-[15px] sm:text-[17px] uppercase">
+                {modeInfo.blindHint} · {modeInfo.label}
               </span>
             </div>
-            <div className="font-pixel text-[9px] sm:text-[11px] leading-tight mt-1 flex items-center flex-wrap gap-1">
-              {hud.showChipsObjective && (
-                <span className="text-amber-200">
-                  {targetFor(round).toLocaleString('it-IT')} CHIPS
-                </span>
-              )}
-              {hud.connector && (
-                <span className="text-slate-400">{hud.connector}</span>
-              )}
-              {hud.showBriscolaObjective && (
-                <span className="text-emerald-300">{BRISCOLA_TARGET_POINTS} PUNTI BRISCOLA</span>
-              )}
+            <ChalkRule className="mt-1.5 mb-2.5" />
+
+            <div className="flex flex-col gap-2">
+              {[1, 2].map((blindRound) => {
+                const info = ENCOUNTER_LABELS[blindRound];
+                const isCurrent = blindRound === round;
+                const isDone = blindRound < round;
+                const tone = isDone
+                  ? 'chalk-green'
+                  : isCurrent
+                    ? isBossEncounter(blindRound)
+                      ? 'chalk-red'
+                      : 'chalk'
+                    : 'chalk-dim';
+                return (
+                  <div
+                    key={blindRound}
+                    // La riga di stasera e' ripassata; quella gia' giocata e'
+                    // stata sbarrata; quella dopo e' ancora sbiadita.
+                    className={`flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 ${
+                      isCurrent ? '' : 'opacity-70'
+                    }`}
+                  >
+                    <span
+                      className={`font-condensed ${tone} uppercase leading-none ${
+                        isCurrent ? 'text-[25px] sm:text-[30px]' : 'text-[21px] sm:text-[25px]'
+                      } ${isDone ? 'line-through decoration-2' : ''}`}
+                    >
+                      {info.name}
+                    </span>
+                    {hud.showChipsObjective && (
+                      <span className={`font-condensed ${tone} text-[18px] sm:text-[21px] leading-none tabular-nums`}>
+                        {targetFor(blindRound).toLocaleString('it-IT')} chips
+                      </span>
+                    )}
+                    {hud.showBriscolaObjective && (
+                      <span className={`font-condensed ${tone} text-[18px] sm:text-[21px] leading-none tabular-nums`}>
+                        {BRISCOLA_TARGET_POINTS} pt briscola
+                      </span>
+                    )}
+                    <span className="font-condensed chalk-yellow text-[18px] sm:text-[21px] leading-none ml-auto shrink-0 tabular-nums">
+                      {isDone ? 'pagato' : `$${getEncounterReward(ante, blindRound)}`}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-          </div>
+          </SlateBoard>
         </motion.div>
 
-        {/* The boss malus is public knowledge from the start of the Ante. */}
+        {/* IL MALUS DEL BOSS
+            Non e' roba dell'oste: e' la regola della casa, battuta a macchina e
+            infilata nella cornice, e resta li' tutto l'Ante. */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
-          className={`rounded-xl border-2 px-3 py-2 flex items-start gap-2.5 shrink-0 ${
-            isBossEncounter(round)
-              ? 'bg-gradient-to-r from-red-950/95 via-red-900/85 to-red-950/95 border-red-500/80'
-              : 'bg-slate-950/70 border-slate-700/70'
-          }`}
+          className="shrink-0 flex justify-center"
         >
-          <span className="text-base sm:text-lg shrink-0 mt-0.5">💀</span>
-          <div className="min-w-0">
+          <PaperScrap tilt={isBossEncounter(round) ? -1.6 : 1.1} className="w-full max-w-md">
             <div
-              className={`font-pixel text-[8px] sm:text-[9.5px] font-bold uppercase tracking-wide ${
-                isBossEncounter(round) ? 'text-red-300' : 'text-slate-400'
+              className={`font-pixel text-[8px] sm:text-[9.5px] uppercase tracking-[0.12em] ${
+                isBossEncounter(round) ? 'ink-red' : 'ink-dim'
               }`}
             >
-              {isBossEncounter(round) ? 'Malus attivo' : `In fondo all'Ante · ${boss.name}`}
+              {isBossEncounter(round) ? 'Regola della casa · in vigore' : `In fondo all'Ante · ${boss.name}`}
             </div>
             <div
-              className={`font-retro text-[11px] sm:text-xs leading-tight mt-0.5 ${
-                isBossEncounter(round) ? 'text-red-100' : 'text-slate-300'
+              className={`font-condensed text-[17px] sm:text-[20px] leading-tight mt-1 ${
+                isBossEncounter(round) ? 'ink' : 'ink-dim'
               }`}
             >
               {boss.debuffDescription}
             </div>
-          </div>
+          </PaperScrap>
         </motion.div>
 
         {/* Sit down */}
@@ -407,14 +373,20 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
             sound.playCardSlam();
             onSitDown();
           }}
-          className={`w-full font-pixel text-xs sm:text-base font-bold py-3.5 sm:py-4 rounded-xl pixel-box shadow-xl cursor-pointer flex items-center justify-center gap-2 shrink-0 transition-transform hover:scale-[1.01] ${
-            isBossEncounter(round)
-              ? 'bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-500 text-white'
-              : 'bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 text-slate-950'
-          }`}
+          className="group w-full bg-transparent cursor-pointer flex items-center justify-center gap-3 shrink-0 py-2 focus:outline-none"
         >
-          <span>{isBossEncounter(round) ? 'AFFRONTA IL BOSS' : 'SIEDITI AL TAVOLO'}</span>
-          <span>➔</span>
+          <span
+            className={`font-condensed text-[32px] sm:text-[40px] leading-none uppercase tracking-[0.02em] opacity-[0.9] transition-[filter,opacity] duration-200 group-hover:opacity-100 group-hover:brightness-[1.15] ${
+              isBossEncounter(round) ? 'chalk-red' : 'chalk-yellow'
+            }`}
+          >
+            {isBossEncounter(round) ? 'Affronta il Boss' : 'Siediti al tavolo'}
+          </span>
+          <ArrowRight
+            size={26}
+            strokeWidth={1.8}
+            className={`${isBossEncounter(round) ? 'chalk-red' : 'chalk-yellow'} transition-transform duration-200 group-hover:translate-x-1.5`}
+          />
         </motion.button>
       </div>
     </div>

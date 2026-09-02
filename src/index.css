@@ -254,3 +254,220 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #f59e0b;
 }
+
+/* --- La lavagna dell'osteria ------------------------------------------------
+   Ogni bar italiano ha una lavagna: il nome del locale dipinto in alto una
+   volta per tutte, e sotto la lista del giorno, scritta a gesso e cancellata
+   ogni sera. Il menu del gioco non e' un pannello sopra il tavolo: e' quella
+   lavagna, appoggiata sullo stesso tavolo su cui poi si gioca.
+
+   Due materiali, tenuti onesti e separati: l'ardesia e' gesso e legno, il
+   gioco resta pixel art. Nessuna texture: una PWA paga ogni immagine che
+   spedisce, e l'ardesia e' abbastanza irregolare da essere fatta di gradienti. */
+
+:root {
+  --chalk: #ece5d6;
+  --chalk-dim: #b9b3a3;
+  --chalk-yellow: #e8c766;
+  --chalk-red: #d4756a;
+  --chalk-green: #9ec98a;
+  --slate: #20231f;
+  --frame-wood: #4a2f1a;
+}
+
+.slate-board {
+  background-color: var(--slate);
+  background-image:
+    /* Le passate dello straccio: archi larghi, mai concentrici, perche' il
+       braccio di chi pulisce non ripassa mai dallo stesso punto. */
+    radial-gradient(ellipse 60% 26% at 22% 30%, rgba(236, 229, 214, 0.085) 0%, transparent 70%),
+    radial-gradient(ellipse 52% 22% at 74% 44%, rgba(236, 229, 214, 0.065) 0%, transparent 72%),
+    radial-gradient(ellipse 70% 18% at 45% 72%, rgba(236, 229, 214, 0.055) 0%, transparent 75%),
+    radial-gradient(ellipse 30% 40% at 88% 14%, rgba(236, 229, 214, 0.05) 0%, transparent 70%),
+    /* Il grano minerale dell'ardesia. */
+    repeating-linear-gradient(114deg, rgba(255, 255, 255, 0.014) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(31deg, rgba(0, 0, 0, 0.10) 0 1px, transparent 1px 7px),
+    /* La lampadina sta sopra il tavolo, quindi la lavagna la prende in pieno
+       sull'orlo alto: caldo e slavato in cima, freddo e sporco in fondo. */
+    radial-gradient(ellipse 90% 55% at 50% -12%, rgba(255, 206, 140, 0.14) 0%, transparent 68%),
+    linear-gradient(178deg, #33362e 0%, #22251f 48%, #14160f 100%);
+}
+
+/* Il legno della cornice: stessa quercia del tavolo, ma tagliata piu' chiara,
+   perche' la lavagna e' l'oggetto che il locale tiene meglio. */
+.slate-frame {
+  background-color: #3d2615;
+  background-image:
+    repeating-linear-gradient(91deg, rgba(0, 0, 0, 0.24) 0 2px, rgba(255, 236, 200, 0.03) 2px 3px, transparent 3px 11px),
+    linear-gradient(180deg, #6b4526 0%, #452b18 38%, #24150a 100%);
+  box-shadow:
+    /* Appoggiata, non incollata: l'ombra ha un offset e una sfocatura vera. */
+    0 22px 40px -10px rgba(0, 0, 0, 0.82),
+    0 5px 12px rgba(0, 0, 0, 0.55),
+    inset 0 2px 0 rgba(255, 226, 178, 0.3),
+    inset 0 -3px 5px rgba(0, 0, 0, 0.6);
+}
+
+/* La bacinella del gesso: il bordo inferiore dove finiscono i gessetti e la
+   polvere di tutte le liste cancellate. */
+.slate-ledge {
+  background-image:
+    linear-gradient(180deg, #4d3018 0%, #35200f 55%, #1d1108 100%);
+  box-shadow:
+    inset 0 2px 3px rgba(0, 0, 0, 0.6),
+    inset 0 -1px 0 rgba(255, 226, 178, 0.08);
+}
+
+/* --- Il gesso -------------------------------------------------------------- */
+
+.chalk {
+  color: var(--chalk);
+  /* Il gesso non ha un bordo: lascia un alone di polvere intorno al tratto. */
+  text-shadow:
+    0 0 7px rgba(236, 229, 214, 0.28),
+    0 0 2px rgba(236, 229, 214, 0.45),
+    0 1px 0 rgba(0, 0, 0, 0.4);
+}
+
+.chalk-dim {
+  color: var(--chalk-dim);
+  text-shadow: 0 0 6px rgba(185, 179, 163, 0.2), 0 1px 0 rgba(0, 0, 0, 0.4);
+}
+
+.chalk-yellow {
+  color: var(--chalk-yellow);
+  text-shadow: 0 0 7px rgba(232, 199, 102, 0.3), 0 1px 0 rgba(0, 0, 0, 0.45);
+}
+
+.chalk-red {
+  color: var(--chalk-red);
+  text-shadow: 0 0 7px rgba(212, 117, 106, 0.3), 0 1px 0 rgba(0, 0, 0, 0.45);
+}
+
+.chalk-green {
+  color: var(--chalk-green);
+  text-shadow: 0 0 7px rgba(158, 201, 138, 0.3), 0 1px 0 rgba(0, 0, 0, 0.45);
+}
+
+/* Il nome del locale non e' scritto a gesso: e' dipinto sulla cornice una volta
+   sola, anni fa, e da allora sbiadisce. */
+.painted-sign {
+  color: #e3b877;
+  text-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.7),
+    0 0 12px rgba(227, 184, 119, 0.18);
+}
+
+/* Una riga tirata a mano non e' mai dritta: due tratti sfalsati la fanno
+   tremare quel tanto che basta. */
+.chalk-rule {
+  height: 3px;
+  background-image:
+    linear-gradient(92deg, transparent 0%, rgba(236, 229, 214, 0.62) 5%, rgba(236, 229, 214, 0.78) 46%, rgba(236, 229, 214, 0.5) 88%, transparent 100%),
+    linear-gradient(89.4deg, transparent 2%, rgba(236, 229, 214, 0.22) 12%, rgba(236, 229, 214, 0.3) 70%, transparent 97%);
+  background-size: 100% 1px, 100% 2px;
+  background-position: 0 0, 0 2px;
+  background-repeat: no-repeat;
+  filter: drop-shadow(0 0 4px rgba(236, 229, 214, 0.2));
+}
+
+/* Il tratto che si tira sotto la voce scelta, mentre la scegli. */
+.chalk-underline {
+  transform-origin: left center;
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* --- La lista che si scrive ------------------------------------------------
+   L'unico momento coreografato dello schermo: la lista non compare, viene
+   scritta. `steps()` perche' una mano che scrive avanza a scatti, non a
+   interpolazione. */
+
+@keyframes chalk-write {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 -6% 0 0); }
+}
+
+.chalk-write {
+  /* `backwards`, non `both`: la voce e' nascosta solo durante il proprio
+     ritardo, poi torna al suo stato normale, che e' visibile. Con `both` una
+     lista che per qualunque motivo non anima resta una lavagna vuota, e la
+     lavagna vuota e' il menu principale del gioco. */
+  animation: chalk-write 460ms steps(13, end) backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chalk-write {
+    animation: none;
+    clip-path: none;
+  }
+  .chalk-underline {
+    transition: none;
+  }
+}
+
+/* --- La carta --------------------------------------------------------------
+   Quello che non sta sulla lavagna sta su carta: il conto, gli scontrini, i
+   foglietti incastrati nella cornice. Carta da bar: ingiallita, piegata,
+   stampata male. */
+
+.bar-paper {
+  background-color: #e6dcc4;
+  background-image:
+    radial-gradient(ellipse 40% 30% at 12% 8%, rgba(150, 110, 60, 0.14) 0%, transparent 70%),
+    radial-gradient(ellipse 34% 26% at 92% 88%, rgba(150, 110, 60, 0.12) 0%, transparent 72%),
+    repeating-linear-gradient(90.6deg, rgba(120, 90, 50, 0.045) 0 1px, transparent 1px 5px),
+    linear-gradient(174deg, #f0e7d2 0%, #e3d8bd 60%, #d3c5a5 100%);
+  color: #3a2c18;
+  box-shadow:
+    0 10px 22px -6px rgba(0, 0, 0, 0.7),
+    0 2px 5px rgba(0, 0, 0, 0.45);
+}
+
+/* --- Il conto --------------------------------------------------------------
+   Il riepilogo di una manche e' una lista di voci con dei numeri accanto, cioe'
+   uno scontrino. Su carta le barre di avanzamento e i gradienti non esistono:
+   esistono i puntini di guida, i totali sotto una doppia riga, e un timbro che
+   dice se e' stato pagato. */
+
+.ink { color: #2f2418; }
+.ink-dim { color: #6b5a44; }
+.ink-red { color: #9e3a2e; }
+.ink-green { color: #2f5d4a; }
+
+/* Il bordo strappato in alto e in basso: lo scontrino e' stato staccato dal
+   rotolo, quindi non ha due lati dritti. */
+.paper-torn {
+  -webkit-mask-image:
+    linear-gradient(#000 0 100%),
+    repeating-linear-gradient(90deg, transparent 0 5px, #000 5px 6px);
+  mask-image:
+    linear-gradient(#000 0 100%),
+    repeating-linear-gradient(90deg, transparent 0 5px, #000 5px 6px);
+  -webkit-mask-composite: source-over;
+  mask-composite: add;
+}
+
+/* La riga di perforazione dello scontrino. */
+.receipt-perf {
+  height: 1px;
+  background-image: repeating-linear-gradient(90deg, rgba(58, 44, 24, 0.45) 0 4px, transparent 4px 8px);
+}
+
+/* I puntini di guida fra la voce e il suo numero, come su ogni conto scritto a
+   macchina: il numero sta a destra e l'occhio ci arriva da solo. */
+.receipt-leader {
+  flex: 1 1 auto;
+  min-width: 1.5rem;
+  align-self: flex-end;
+  margin-bottom: 0.28em;
+  border-bottom: 1px dotted rgba(58, 44, 24, 0.4);
+}
+
+/* Il timbro di gomma: inchiostro premuto male, sempre storto. */
+.rubber-stamp {
+  border: 3px solid currentColor;
+  border-radius: 3px;
+  opacity: 0.82;
+  letter-spacing: 0.1em;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+}

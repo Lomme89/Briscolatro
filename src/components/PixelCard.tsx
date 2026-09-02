@@ -340,7 +340,7 @@ export const PixelCard: React.FC<PixelCardProps> = ({
 
         {/* Bottom Bar: Points and Inverted Index */}
         <div className="flex items-end justify-between leading-none pointer-events-none">
-          {showPoints && chipsVisible ? (
+          {showPoints && chipsVisible && size !== 'xs' && size !== 'sm' ? (
             <div className="flex items-center">
               {usesFullArt ? (
                 <span
@@ -348,7 +348,10 @@ export const PixelCard: React.FC<PixelCardProps> = ({
                     info.points > 0 ? '' : 'opacity-60'
                   }`}
                   style={{
-                    color: info.points > 0 ? '#7c2d12' : '#64748b',
+                    // Su carta avorio lo slate-500 spariva: le carte da zero
+                    // punti sono la meta' del mazzo, e la loro riga si deve
+                    // leggere quanto le altre, solo piu' scarica.
+                    color: info.points > 0 ? '#7c2d12' : '#8a7455',
                     textShadow: '0 1px 2px rgba(245,244,232,0.95)',
                   }}
                 >
@@ -359,7 +362,15 @@ export const PixelCard: React.FC<PixelCardProps> = ({
                   {info.points} PT CARTA
                 </span>
               ) : (
-                <span className="font-pixel text-[6px] sm:text-[7px] text-slate-400 opacity-60">0 PT CARTA</span>
+                // Grigio chiaro su carta avorio: la scritta era li' solo per
+                // chi sapeva gia' che c'era. Stesso inchiostro dell'altra,
+                // solo piu' scarico.
+                <span
+                  className="font-pixel text-[6px] sm:text-[7px] font-bold"
+                  style={{ color: '#8a7455', textShadow: '0 1px 2px rgba(245,244,232,0.95)' }}
+                >
+                  0 PT CARTA
+                </span>
               )}
             </div>
           ) : <div />}

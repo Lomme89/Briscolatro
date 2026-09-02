@@ -1,8 +1,8 @@
 import { motion } from 'motion/react';
+import { Armchair, BookOpen, Download, Eraser, Lamp, WalletCards } from 'lucide-react';
 import { PlayingCard } from '../types/game';
-import { getTableThemeForAnte } from '../data/tableThemes';
 import { PixelCard } from './PixelCard';
-import { TableFeltPattern } from './TableFeltPattern';
+import { ChalkEntry, ChalkRule, PaperScrap, SlateBoard } from './diegetic/Slate';
 
 interface TitleScreenProps {
   titleHand: PlayingCard[];
@@ -18,7 +18,15 @@ interface TitleScreenProps {
   onInstall: () => void;
 }
 
-/** The title is a screen, not part of the run controller. */
+/**
+ * Il menu principale e' il menu del locale.
+ *
+ * Prima era un pannello scuro con dei bottoni sfumati, appoggiato sopra un
+ * tavolo che il gioco aveva gia' costruito: due mondi, uno sopra l'altro.
+ * Adesso il tavolo e' uno solo - lo stesso su cui si gioca, sotto la stessa
+ * lampadina - e sopra c'e' la lavagna dell'osteria: il nome dipinto in alto
+ * anni fa, la lista della serata scritta a gesso sotto.
+ */
 export function TitleScreen({
   titleHand,
   highScore,
@@ -32,141 +40,161 @@ export function TitleScreen({
   onOpenSettings,
   onInstall,
 }: TitleScreenProps) {
-  const tableTheme = getTableThemeForAnte(1);
   const hasResumableRun = resumableAnte !== null;
+  const stroke = { size: 22, strokeWidth: 1.6 } as const;
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-5 sm:p-6 text-center z-10 relative">
-      <div className="absolute inset-0 -z-10 overflow-hidden">
-        <div className={`absolute inset-0 bg-gradient-to-b ${tableTheme.feltGradient}`}>
-          <TableFeltPattern theme={tableTheme} />
-        </div>
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              'radial-gradient(circle at 50% 40%, rgba(16,185,129,0.10) 0%, rgba(0,0,0,0.82) 100%)',
-          }}
-        />
-      </div>
-
-      <div className="flex items-end justify-center -mb-5 sm:-mb-6 h-[86px] sm:h-[108px]">
-        {titleHand.map((card, index) => (
-          <motion.div
-            key={card.id}
-            initial={{ y: 60, opacity: 0, rotate: 0 }}
-            animate={{ y: [0, -6, 0], opacity: 1, rotate: (index - 1) * 11 }}
-            transition={{
-              y: {
-                repeat: Infinity,
-                duration: 3.4 + index * 0.5,
-                ease: 'easeInOut',
-                delay: 0.5 + index * 0.12,
-              },
-              opacity: { duration: 0.4, delay: 0.15 + index * 0.12 },
-              rotate: { type: 'spring', damping: 14, delay: 0.15 + index * 0.12 },
-            }}
-            className={`${index === 1 ? 'z-20 -mx-2' : 'z-10'} drop-shadow-[0_6px_10px_rgba(0,0,0,0.6)]`}
-          >
-            <PixelCard card={card} size="sm" showPoints={false} showChips={false} />
-          </motion.div>
-        ))}
-      </div>
-
+    <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 sm:py-10 z-10 relative">
       <motion.div
-        initial={{ scale: 0.85, y: -20, opacity: 0 }}
-        animate={{ scale: 1, y: 0, opacity: 1 }}
-        transition={{ duration: 0.5 }}
-        className="flex flex-col items-center max-w-lg w-full bg-slate-950/90 backdrop-blur-sm border-3 border-amber-500 rounded-3xl p-6 sm:p-8 pixel-box shadow-2xl relative z-30"
+        initial={{ y: 18 }}
+        animate={{ y: 0 }}
+        transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+        className="relative w-full max-w-[23rem] sm:max-w-[29rem]"
       >
-        <div className="flex gap-4 mb-3">
-          <span className="text-3xl animate-bounce">🪙</span>
-          <span className="text-3xl animate-bounce [animation-delay:0.1s]">🏆</span>
-          <span className="text-3xl animate-bounce [animation-delay:0.2s]">⚔️</span>
-          <span className="text-3xl animate-bounce [animation-delay:0.3s]">🪵</span>
+        <SlateBoard tilt={-1.2} className="relative z-10">
+          {/* Il nome del locale: dipinto sulla lavagna una volta sola, e da
+              allora sbiadisce. Non e' gesso, quindi non si cancella. */}
+          <div className="text-center">
+            <h1 className="font-pixel painted-sign text-[15px] sm:text-[19px] leading-tight tracking-[0.14em]">
+              BRISCOLATRO
+            </h1>
+            <p className="font-pixel painted-sign text-[6.5px] sm:text-[7.5px] tracking-[0.22em] mt-2 opacity-70">
+              OSTERIA · CARTE · SCOMMESSE
+            </p>
+          </div>
+
+          <ChalkRule className="my-4 sm:my-5" />
+
+          <div className="space-y-3.5 sm:space-y-4">
+            {hasResumableRun && (
+              <ChalkEntry
+                label="Riprendi la partita"
+                note={`Ante ${resumableAnte}`}
+                icon={<Armchair {...stroke} />}
+                tone="yellow"
+                size="lg"
+                delay={0.18}
+                onClick={onResume}
+              />
+            )}
+
+            <ChalkEntry
+              label="Carte nuove"
+              note={hasResumableRun ? 'Da capo' : 'Nuova partita'}
+              icon={<WalletCards {...stroke} />}
+              tone={hasResumableRun ? 'chalk' : 'yellow'}
+              size={hasResumableRun ? 'md' : 'lg'}
+              delay={hasResumableRun ? 0.3 : 0.18}
+              onClick={onNewRun}
+            />
+
+            <ChalkEntry
+              label="Le regole della casa"
+              note="Briscola"
+              icon={<BookOpen {...stroke} />}
+              size="sm"
+              delay={hasResumableRun ? 0.42 : 0.3}
+              onClick={onOpenTutorial}
+            />
+
+            <ChalkEntry
+              label="Luci e musica"
+              note="Impostazioni"
+              icon={<Lamp {...stroke} />}
+              size="sm"
+              delay={hasResumableRun ? 0.52 : 0.4}
+              onClick={onOpenSettings}
+            />
+
+            {hasResumableRun && (
+              <ChalkEntry
+                label="Passa lo straccio"
+                note="Abbandona la run"
+                icon={<Eraser {...stroke} />}
+                tone="red"
+                size="sm"
+                delay={0.62}
+                onClick={onAbandon}
+              />
+            )}
+
+            {!isStandalone && (
+              <ChalkEntry
+                label="Portatela a casa"
+                note="Installa"
+                icon={<Download {...stroke} />}
+                tone="dim"
+                size="sm"
+                delay={hasResumableRun ? 0.72 : 0.5}
+                onClick={onInstall}
+              />
+            )}
+          </div>
+
+          {/* Il record e' segnato nell'angolo, storto, dove lo segnerebbe chi
+              non aveva piu' spazio sulla lavagna. */}
+          <div className="mt-6 sm:mt-7 flex justify-end">
+            <div
+              className="px-3 py-1.5 border border-[rgba(236,229,214,0.32)] rounded-[2px]"
+              style={{ transform: 'rotate(-1.6deg)' }}
+            >
+              <span className="font-condensed chalk-dim text-[14px] sm:text-[17px] uppercase">
+                Record della casa{' '}
+              </span>
+              <span className="font-condensed chalk text-[18px] sm:text-[22px] tabular-nums">
+                {highScore.toLocaleString('it-IT')}
+              </span>
+            </div>
+          </div>
+        </SlateBoard>
+
+        {/* La mano di chi si e' alzato da tavolo: le carte restano dove le ha
+            lasciate, davanti alla lavagna, e l'ombra della lavagna ci cade
+            sopra. Non sono decorazione - sono le stesse carte del gioco. */}
+        <div className="relative -mt-6 sm:-mt-8 flex justify-end pr-4 sm:pr-8 pointer-events-none z-0">
+          {titleHand.map((card, index) => (
+            <motion.div
+              key={card.id}
+              initial={{ y: -14 }}
+              animate={{ y: 0 }}
+              transition={{ type: 'spring', damping: 15, delay: 0.35 + index * 0.09 }}
+              className={index === 1 ? '-mx-3.5 sm:-mx-4' : '-mx-2.5 sm:-mx-3'}
+            >
+              {/* Il ventaglio e' una rotazione statica, non un'animazione: chi
+                  ha ridotto il movimento vede comunque tre carte, non tre carte
+                  impilate una sull'altra. */}
+              <div
+                className="drop-shadow-[0_14px_16px_rgba(0,0,0,0.85)] brightness-[0.72] saturate-[0.85] contrast-[1.05]"
+                style={{ transform: `rotate(${-16 + index * 13}deg)` }}
+              >
+                <PixelCard card={card} size="md" showPoints={false} showChips={false} />
+              </div>
+            </motion.div>
+          ))}
         </div>
 
-        <h1 className="font-pixel text-2xl sm:text-3xl text-amber-400 font-bold tracking-wider uppercase drop-shadow">
-          BRISCOLATRO
-        </h1>
-        <p className="font-retro text-xs text-amber-200 mt-1 uppercase tracking-widest">
-          IL ROGUELIKE DELLA BRISCOLA ITALIANA
-        </p>
-
-        <div className="mt-4 bg-slate-950/80 border border-amber-500/60 px-4 py-1.5 rounded-full pixel-box text-xs font-pixel text-amber-300">
-          MIGLIOR RECORD: {highScore.toLocaleString()} PUNTI
-        </div>
-
+        {/* Cio' che non ha scritto l'oste sta su carta, incastrata nella
+            cornice. */}
         {saveNotice && (
-          <div className="mt-4 w-full bg-rose-950/70 border border-rose-500/60 px-4 py-2 rounded-xl pixel-box text-[10px] font-retro text-rose-200 text-center">
-            {saveNotice}
-          </div>
+          <PaperScrap
+            tilt={-2.2}
+            className="absolute -bottom-5 -left-2 sm:-left-6 z-20 max-w-[16rem] rounded-[1px]"
+          >
+            <p className="font-condensed text-[16px] leading-tight text-[#6d2b22] uppercase">
+              {saveNotice}
+            </p>
+          </PaperScrap>
         )}
-
-        <div className="w-full space-y-3 mt-6">
-          {hasResumableRun && (
-            <button
-              onClick={onResume}
-              className="w-full bg-gradient-to-r from-emerald-500 to-lime-400 hover:from-emerald-400 hover:to-lime-300 text-slate-950 font-pixel text-sm font-bold py-3.5 rounded-xl pixel-box shadow-xl cursor-pointer transition-transform hover:scale-102 flex items-center justify-center gap-2"
-            >
-              <span>CONTINUA RUN · ANTE {resumableAnte}</span>
-              <span>➔</span>
-            </button>
-          )}
-
-          <button
-            onClick={onNewRun}
-            className={
-              hasResumableRun
-                ? 'w-full bg-slate-800 hover:bg-slate-700 text-amber-300 font-pixel text-xs py-3 rounded-xl pixel-box cursor-pointer flex items-center justify-center gap-2'
-                : 'w-full bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-pixel text-sm font-bold py-3.5 rounded-xl pixel-box shadow-xl cursor-pointer transition-transform hover:scale-102 flex items-center justify-center gap-2'
-            }
-          >
-            <span>{hasResumableRun ? 'NUOVA PARTITA' : 'GIOCA NUOVA PARTITA'}</span>
-            <span>➔</span>
-          </button>
-
-          {hasResumableRun && (
-            <button
-              onClick={onAbandon}
-              className="w-full bg-slate-900/80 hover:bg-rose-950 border border-rose-500/40 text-rose-300 font-pixel text-[10px] py-2.5 rounded-xl pixel-box cursor-pointer flex items-center justify-center gap-2"
-            >
-              <span>🗑️ ABBANDONA RUN</span>
-            </button>
-          )}
-
-          <button
-            onClick={onOpenTutorial}
-            className="w-full bg-slate-800 hover:bg-slate-700 text-amber-300 font-pixel text-xs py-3 rounded-xl pixel-box cursor-pointer flex items-center justify-center gap-2"
-          >
-            <span>📖 GUIDA & REGOLE BRISCOLA</span>
-          </button>
-
-          <button
-            onClick={onOpenSettings}
-            className="w-full bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-pixel text-xs py-2.5 rounded-xl pixel-box cursor-pointer flex items-center justify-center gap-2"
-          >
-            <span>⚙️ IMPOSTAZIONI & AUDIO</span>
-          </button>
-
-          {!isStandalone && (
-            <button
-              onClick={onInstall}
-              className="w-full bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-950 border border-emerald-500/60 hover:border-emerald-400 text-emerald-300 font-pixel text-xs py-2.5 rounded-xl pixel-box cursor-pointer flex items-center justify-center gap-2 transition-all hover:scale-101 shadow-md"
-            >
-              <span>📲</span>
-              <span>INSTALLA SU SCHERMATA HOME</span>
-            </button>
-          )}
-        </div>
-
-        <div className="mt-6 pt-3 border-t border-slate-800 text-[10px] font-retro text-slate-400">
-          Ispirato a Balatro & alla tradizione delle carte napoletane
-          <div className="mt-1 text-[9px] text-slate-500">
-            Con le Carte Sola, gioco di carte legalmente distinto.
-          </div>
-        </div>
       </motion.div>
+
+      {/* Sul legno, non sulla lavagna: la targhetta di chi ha messo su il
+          locale. */}
+      <div className="mt-12 sm:mt-14 text-center font-condensed text-[15px] leading-snug text-[#a08b6d] max-w-xs">
+        Ispirato a Balatro &amp; alla tradizione delle carte napoletane
+        <div className="text-[13px] text-[#7d6a52] mt-0.5">
+          Con le Carte Sola, gioco di carte legalmente distinto.
+        </div>
+      </div>
     </div>
   );
 }

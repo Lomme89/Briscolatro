@@ -1,3 +1,4 @@
+import { ArrowRight, Coins } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Joker, UnoCard, BoosterPack, Voucher, PlayingCard } from '../types/game';
@@ -353,36 +354,47 @@ export const ShopView: React.FC<ShopViewProps> = ({ model, actions }) => {
 
   return (
     <div className="flex-1 flex flex-col p-2 sm:p-4 max-w-6xl mx-auto w-full relative pb-16 sm:pb-4 select-none">
-      {/* 1. TOP RESPONSIVE HEADER BAR */}
-      <div className="flex items-center justify-between bg-slate-900/95 border-2 border-amber-500/80 p-2 sm:p-3 rounded-xl pixel-box mb-2.5 shadow-lg gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-2xl sm:text-3xl shrink-0">🏪</span>
+      {/* 1. L'INSEGNA DEL BANCONE
+          Il negozio e' il bancone del Bar Sport, e sopra il bancone c'e' la
+          stessa lavagna del menu: nome dipinto, e a gesso quello che cambia
+          ogni sera - dove sei arrivato e quanto ti resta in tasca. */}
+      <div className="slate-frame rounded-[8px] p-1.5 sm:p-2 mb-2.5">
+        <div className="slate-board rounded-[3px] px-3 py-2 sm:px-4 sm:py-2.5 flex items-center justify-between gap-2 flex-wrap">
           <div className="min-w-0">
-            <h2 className="font-pixel text-[11px] sm:text-sm text-amber-400 font-bold uppercase truncate leading-tight">
+            <h2 className="font-pixel painted-sign text-[11px] sm:text-[13px] tracking-[0.12em] leading-tight truncate">
               BAR SPORT
             </h2>
-            <p className="font-retro text-[9px] sm:text-xs text-slate-300">
-              Ante {ante} • Round {round}
+            <p className="font-condensed chalk-dim text-[15px] sm:text-[17px] uppercase leading-none mt-1">
+              Ante {ante} · Round {round}
             </p>
           </div>
-        </div>
 
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <div className="bg-amber-950/90 border border-amber-400 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg pixel-box flex items-center gap-1.5">
-            <span className="text-base sm:text-lg">💰</span>
-            <span className="font-pixel text-sm sm:text-base text-amber-300 font-bold">${money}</span>
+          <div className="flex items-center gap-3 sm:gap-5 shrink-0 ml-auto">
+            <div className="flex items-center gap-1.5" title="Quello che ti resta in tasca">
+              <Coins size={18} strokeWidth={1.6} className="chalk-yellow" />
+              <span className="font-condensed chalk-yellow text-[22px] sm:text-[26px] leading-none tabular-nums">
+                ${money}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                sound.playCardFlick();
+                onNextRound();
+              }}
+              className="group flex items-center gap-2 bg-transparent cursor-pointer focus:outline-none"
+            >
+              <span className="font-condensed chalk text-[22px] sm:text-[26px] leading-none uppercase opacity-[0.9] group-hover:opacity-100 group-focus-visible:opacity-100">
+                Si gioca
+              </span>
+              <ArrowRight
+                size={20}
+                strokeWidth={1.8}
+                className="chalk transition-transform duration-200 group-hover:translate-x-1"
+              />
+            </button>
           </div>
-
-          <button
-            onClick={() => {
-              sound.playCardFlick();
-              onNextRound();
-            }}
-            className="bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-500 hover:to-green-400 text-slate-950 font-pixel text-[10px] sm:text-xs font-bold px-3 sm:px-4 py-2 rounded-lg pixel-box shadow-lg flex items-center gap-1.5 cursor-pointer transition-transform hover:scale-105 active:scale-95"
-          >
-            <span>GIOCA</span>
-            <span>➔</span>
-          </button>
         </div>
       </div>
 

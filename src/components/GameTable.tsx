@@ -24,6 +24,8 @@ import {
 import { getRegularForAnte } from '../data/opponents';
 import { TableFeltPattern } from './TableFeltPattern';
 import { CardFaceArt, getJokerArtUrl, getUnoArtUrl } from './CardFaceArt';
+import { ArrowUp, BookOpen, Layers, RotateCcw, Settings } from 'lucide-react';
+import { ChalkRule } from './diegetic/Slate';
 
 interface GameTableModel {
   hud: {
@@ -172,7 +174,10 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
   // Width alone is not enough: a wide but short window (a 1024x600 laptop, a
   // half-height browser) would take the big sizes and push the hand off screen.
   const wideTable = useMediaQuery('(min-width: 1024px) and (min-height: 800px)');
+  const stackedClash = useMediaQuery('(min-height: 720px) and (orientation: portrait)');
   const deckCardSize = wideTable ? 'md' : roomyTable ? 'sm' : 'xs';
+  // Coperte e mute: stanno una misura sotto al mazzo, che invece si conta.
+  const opponentCardSize = wideTable ? 'sm' : 'xs';
   const avatarSize = wideTable ? 56 : 32;
   const trickCardSize = roomyTable ? 'lg' : 'md';
   // The empty slot has to be the size of the card that will fill it, all the
@@ -437,156 +442,156 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
   );
 
   return (
-    <div className="flex-1 flex flex-col justify-between p-1.5 sm:p-3 max-w-6xl mx-auto w-full relative min-h-[100dvh] sm:min-h-0 select-none">
-      {/* 1. TOP MINIMALIST HEADER */}
-      <div className="bg-slate-900/95 border-2 border-slate-700/80 px-2 sm:px-3 py-1.5 rounded-xl pixel-box shadow-lg shrink-0 z-30 relative">
-        <div className="flex items-center justify-between gap-2">
-          {/* Left: Ante/Round & Target Score */}
-          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-            {/* The tier rides along with the Ante, compact: A19 R2 · SOVRACCARICO */}
-            <div
-              className="bg-slate-950 px-1.5 sm:px-2 py-0.5 rounded border flex flex-col items-center justify-center shrink-0"
-              style={{ borderColor: endlessTier ? endlessTier.accentColor : 'rgba(245,158,11,0.5)' }}
+    <div
+      // `max-w-6xl` lasciava il tavolo largo come un foglio di calcolo: su
+      // desktop il panno si allargava e le carte restavano dov'erano, quindi
+      // ogni cosa galleggiava lontana dall'altra. Un tavolo ha una misura.
+      className="flex-1 flex flex-col justify-between p-1.5 sm:p-3 max-w-3xl mx-auto w-full relative min-h-[100dvh] sm:min-h-0 select-none"
+      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.5rem)' }}
+    >
+      {/* 1. IL BANCO DEL LOCALE
+          Il conto della manche sta scritto sulla lavagnetta sopra il tavolo:
+          una lastra sola, non quattro pannelli. Prima riga per il contorno
+          (dove sei, che presa e' e i tasti), poi il numero che decide tutto -
+          grosso come merita - e sotto la Briscola vera. */}
+      <div className="slate-frame rounded-[10px] p-1.5 sm:p-2 shrink-0 z-30 relative">
+        <div className={`slate-board rounded-[3px] px-2.5 sm:px-4 ${shortScreen ? 'py-1.5' : 'py-2 sm:py-2.5'}`}>
+          {/* Riga di servizio: quello che si consulta, non quello che si guarda. */}
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <span
+              className="font-condensed text-[17px] sm:text-[20px] leading-none uppercase tracking-[0.06em] shrink-0"
+              style={{ color: endlessTier ? endlessTier.accentColor : 'var(--chalk-yellow)' }}
             >
-              <span
-                className="font-pixel text-[8px] sm:text-[9.5px] font-bold leading-none"
-                style={{ color: endlessTier ? endlessTier.accentColor : '#fbbf24' }}
-              >
-                A{ante} R{round}
-              </span>
-              {endlessTier && (
-                <span
-                  className="font-pixel text-[6.5px] sm:text-[7px] font-bold leading-none mt-0.5"
-                  style={{ color: endlessTier.accentColor }}
-                >
-                  {endlessTier.name}
-                </span>
-              )}
-            </div>
+              A{ante} R{round}
+              {endlessTier && <span className="ml-1.5 text-[14px] sm:text-[16px]">{endlessTier.name}</span>}
+            </span>
 
-            {/* Ante Venue Atmosphere Tag */}
-            <div
-              className={`hidden sm:flex items-center gap-1 px-2 py-0.5 rounded border text-[8px] sm:text-[9px] font-pixel shrink-0 ${tableTheme.accentBadge.bg} ${tableTheme.accentBadge.border} ${tableTheme.accentBadge.text}`}
-              title={tableTheme.subtitle}
-            >
-              <span>{tableTheme.icon}</span>
-              <span className="font-bold truncate max-w-[120px]">{tableTheme.name}</span>
-            </div>
+            <span className="font-condensed chalk-dim text-[15px] sm:text-[17px] leading-none uppercase truncate hidden sm:inline">
+              {tableTheme.name}
+            </span>
 
-            {/* Briscola Suit Pill */}
-            <div className="bg-slate-950 border border-orange-500/80 px-1.5 sm:px-2 py-0.5 rounded-full text-orange-400 font-pixel text-[8px] sm:text-[9px] font-bold flex items-center gap-1 shrink-0">
-              <PixelSuitIcon suit={briscolaSuit} size={12} />
-              <span className="hidden sm:inline uppercase">{briscolaSuit}</span>
-            </div>
-          </div>
-
-          {/* Right: Money, Discards & Controls */}
-          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-            <div className="bg-slate-950 border border-amber-500/60 px-1.5 sm:px-2 py-0.5 rounded text-amber-300 font-pixel text-[8px] sm:text-[9.5px] font-bold flex items-center gap-0.5">
-              <span>💰</span>
-              <span>${money}</span>
-            </div>
-
-            <div className="bg-slate-950 border border-cyan-500/60 px-1.5 sm:px-2 py-0.5 rounded text-cyan-300 font-pixel text-[8px] sm:text-[9.5px] font-bold flex items-center gap-0.5" title="Scarti rimasti">
-              <span>🔄</span>
-              <span>{discardsLeft}</span>
-            </div>
-
-            <div
-              className={`border px-1.5 sm:px-2 py-0.5 rounded font-pixel text-[8px] sm:text-[9.5px] font-bold tabular-nums whitespace-nowrap ${
-                trickHud.isFinalThree
-                  ? 'bg-rose-950 border-rose-400 text-rose-200 shadow-sm shadow-rose-500/30'
-                  : 'bg-slate-950 border-slate-600 text-slate-300'
+            <span
+              className={`font-condensed text-[15px] sm:text-[17px] leading-none uppercase tabular-nums ml-auto shrink-0 ${
+                trickHud.isFinalThree ? 'chalk-red' : 'chalk-dim'
               }`}
               title={trickHud.isFinalThree ? 'Ultime tre prese' : 'Presa corrente'}
             >
-              PRESA {trickHud.current} / {trickHud.total}
-            </div>
-
-            {/* Extra Menu buttons */}
-            <button
-              type="button"
-              onClick={onOpenDeckViewer}
-              className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-pixel text-[8px] sm:text-[9px] p-1 rounded pixel-box cursor-pointer"
-              title="Ispettore Mazzo"
-            >
-              🎴
-            </button>
-            <button
-              type="button"
-              onClick={onOpenTutorial}
-              className="bg-slate-800 hover:bg-slate-700 text-amber-300 font-pixel text-[8px] sm:text-[9px] p-1 rounded pixel-box cursor-pointer"
-              title="Guida"
-            >
-              ❓
-            </button>
-            <button
-              type="button"
-              onClick={onOpenSettings}
-              className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-pixel text-[8px] sm:text-[9px] p-1 rounded pixel-box cursor-pointer"
-              title="Impostazioni"
-            >
-              ⚙️
-            </button>
-          </div>
-        </div>
-
-        {/* Each mode gives visual priority to its actual win condition. */}
-        {hud.showChipsObjective && (
-        <div className="flex items-center gap-2 mt-1 min-w-0">
-          <div className="flex items-baseline gap-1 shrink-0">
-            <span className="font-pixel text-[7.5px] sm:text-[9px] text-blue-300 uppercase">Chips</span>
-            <motion.span
-              key={currentRoundScore}
-              initial={reduceMotion ? false : { scale: 1.3, color: '#fbbf24' }}
-              animate={{ scale: 1, color: reachedTarget ? '#34d399' : '#f8fafc' }}
-              transition={{ type: 'spring', damping: 12, stiffness: 320 }}
-              className="font-pixel text-xs sm:text-lg font-bold leading-none tabular-nums"
-            >
-              {currentRoundScore.toLocaleString('it-IT')}
-            </motion.span>
-          </div>
-          <div className="flex-1 min-w-[40px] bg-slate-950 h-2 sm:h-2.5 rounded-full border border-slate-700 overflow-hidden">
-            <motion.div
-              className={`h-full rounded-full ${
-                reachedTarget
-                  ? 'bg-gradient-to-r from-emerald-500 to-emerald-300'
-                  : 'bg-gradient-to-r from-amber-500 to-yellow-300'
-              }`}
-              animate={{ width: `${scoreProgress}%` }}
-              transition={{ type: 'spring', damping: 20, stiffness: 120 }}
-            />
-          </div>
-          <span
-            className={`font-pixel text-[8px] sm:text-[9.5px] tabular-nums shrink-0 ${
-              reachedTarget ? 'text-emerald-300' : 'text-slate-400'
-            }`}
-          >
-            {reachedTarget ? '✓ TARGET RAGGIUNTO' : `🎯 ${targetScore.toLocaleString('it-IT')}`}
-          </span>
-        </div>
-        )}
-
-        {reachedTarget && hud.showChipsObjective && (
-          <div className="font-retro text-[9px] text-emerald-200 mt-0.5 text-center">
-            Continua: Punti Briscola · economia · crescita build
-          </div>
-        )}
-
-        <div className={`mt-1 flex items-center justify-center gap-2 rounded-md border px-2 py-1 font-pixel tabular-nums ${
-          hud.primary === 'briscola'
-            ? 'bg-emerald-950/70 border-emerald-500/70 text-[10px] sm:text-xs'
-            : 'bg-slate-950/70 border-slate-700 text-[8px] sm:text-[9.5px]'
-        }`}>
-          <span className="text-slate-400">BRISCOLA</span>
-          <span className="text-blue-200">TU <strong>{roundPointsTaken}</strong></span>
-          <span className="text-slate-500">—</span>
-          <span className="text-red-200"><strong>{opponentPointsTaken}</strong> AVVERSARIO</span>
-          {hud.showBriscolaObjective && (
-            <span className={victory.briscolaPassed ? 'text-emerald-300' : 'text-emerald-400/80'}>
-              {hud.connector ? `${hud.connector} ` : ''}{victory.briscolaPassed ? '✓ ' : ''}/ {BRISCOLA_TARGET_POINTS}
+              Presa {trickHud.current}/{trickHud.total}
             </span>
+
+            <div className="flex items-center gap-0.5 shrink-0 -mr-1.5">
+              <button
+                type="button"
+                onClick={onOpenDeckViewer}
+                className="chalk-dim hover:text-[#ece5d6] p-2 cursor-pointer bg-transparent transition-colors"
+                title="Ispettore Mazzo"
+                aria-label="Ispettore Mazzo"
+              >
+                <Layers size={17} strokeWidth={1.7} />
+              </button>
+              <button
+                type="button"
+                onClick={onOpenTutorial}
+                className="chalk-dim hover:text-[#ece5d6] p-2 cursor-pointer bg-transparent transition-colors"
+                title="Guida"
+                aria-label="Guida"
+              >
+                <BookOpen size={17} strokeWidth={1.7} />
+              </button>
+              <button
+                type="button"
+                onClick={onOpenSettings}
+                className="chalk-dim hover:text-[#ece5d6] p-2 cursor-pointer bg-transparent transition-colors"
+                title="Impostazioni"
+                aria-label="Impostazioni"
+              >
+                <Settings size={17} strokeWidth={1.7} />
+              </button>
+            </div>
+          </div>
+
+          <ChalkRule className={`opacity-70 ${shortScreen ? 'my-1' : 'my-1.5'}`} />
+
+          {/* Il numero della manche: decide se vivi, quindi e' scritto come il
+              piatto del giorno e non come una didascalia. */}
+          <div className="flex items-end gap-2 sm:gap-3 min-w-0">
+            {hud.showChipsObjective && (
+              <div className="flex items-baseline gap-1.5 min-w-0 shrink">
+                <motion.span
+                  key={currentRoundScore}
+                  initial={reduceMotion ? false : { scale: 1.18 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', damping: 12, stiffness: 320 }}
+                  className={`font-condensed leading-[0.8] tabular-nums ${shortScreen ? 'text-[26px]' : 'text-[34px] sm:text-[44px]'} ${
+                    reachedTarget ? 'chalk-green' : 'chalk'
+                  }`}
+                >
+                  {currentRoundScore.toLocaleString('it-IT')}
+                </motion.span>
+                <span className="font-condensed chalk-dim text-[19px] sm:text-[23px] leading-none tabular-nums whitespace-nowrap">
+                  / {targetScore.toLocaleString('it-IT')}
+                </span>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2.5 sm:gap-4 ml-auto shrink-0 pb-0.5">
+              <span className="flex items-center gap-1 font-condensed chalk-yellow text-[20px] sm:text-[24px] leading-none">
+                <PixelSuitIcon suit={briscolaSuit} size={14} />
+                <span className="uppercase hidden sm:inline text-[17px]">{briscolaSuit}</span>
+              </span>
+              <span className="font-condensed chalk-yellow text-[20px] sm:text-[24px] leading-none tabular-nums">
+                ${money}
+              </span>
+              <span
+                className="flex items-center gap-1 font-condensed chalk-dim text-[20px] sm:text-[24px] leading-none tabular-nums"
+                title="Scarti rimasti"
+              >
+                <RotateCcw size={14} strokeWidth={1.8} />
+                {discardsLeft}
+              </span>
+            </div>
+          </div>
+
+          {/* Il tratto di gesso che si allunga: una riga sotto il numero, non un
+              tubo di vetro con dentro un gradiente. */}
+          {hud.showChipsObjective && (
+            <div className="mt-1.5 h-[3px] w-full bg-[rgba(236,229,214,0.12)] overflow-hidden">
+              <motion.div
+                className="h-full"
+                style={{
+                  background: reachedTarget
+                    ? 'linear-gradient(90deg, rgba(158,201,138,0.5), rgba(158,201,138,0.95))'
+                    : 'linear-gradient(90deg, rgba(232,199,102,0.45), rgba(236,229,214,0.9))',
+                }}
+                animate={{ width: `${scoreProgress}%` }}
+                transition={{ type: 'spring', damping: 20, stiffness: 120 }}
+              />
+            </div>
           )}
+
+          {/* La Briscola vera, che al tavolo si conta comunque. */}
+          <div className="mt-1.5 flex items-baseline gap-2 font-condensed tabular-nums flex-wrap">
+            <span className="chalk-dim text-[14px] sm:text-[16px] uppercase tracking-[0.1em]">Briscola</span>
+            <span className="chalk-dim text-[14px] sm:text-[16px] uppercase">tu</span>
+            <span className={`chalk leading-none ${hud.primary === 'briscola' ? 'text-[22px] sm:text-[26px]' : 'text-[18px] sm:text-[21px]'}`}>
+              {roundPointsTaken}
+            </span>
+            <span className="chalk-dim text-[16px] leading-none">&mdash;</span>
+            <span className="chalk-dim text-[14px] sm:text-[16px] uppercase">lui</span>
+            <span className={`chalk-red leading-none ${hud.primary === 'briscola' ? 'text-[22px] sm:text-[26px]' : 'text-[18px] sm:text-[21px]'}`}>
+              {opponentPointsTaken}
+            </span>
+            {hud.showBriscolaObjective && (
+              <span className={`text-[17px] sm:text-[19px] leading-none ${victory.briscolaPassed ? 'chalk-green' : 'chalk-dim'}`}>
+                {victory.briscolaPassed ? 'fatto · ' : ''}su {BRISCOLA_TARGET_POINTS}
+              </span>
+            )}
+            {reachedTarget && hud.showChipsObjective && (
+              <span className="chalk-green text-[15px] sm:text-[17px] leading-none ml-auto uppercase">
+                Target fatto · si continua per i punti
+              </span>
+            )}
+          </div>
         </div>
 
         {/* The build, always on screen. It used to live behind a toggle, which
@@ -714,7 +719,11 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
 
       {/* 2. THE FELT CARD TABLE (THEMED BY CURRENT ANTE PROGRESSION) */}
       <div
-        className={`my-1 flex-1 flex flex-col justify-between bg-gradient-to-b ${tableTheme.feltGradient} border-2 sm:border-3 ${tableTheme.feltBorder} ${tableTheme.feltOuterRing} rounded-2xl pixel-box p-2 sm:p-3 relative shadow-2xl min-h-0 transition-colors duration-500`}
+        // Tre fasce e non un elenco: chi hai davanti in cima, il tavolo che si
+        // prende tutto lo spazio che avanza, la tua mano in fondo. Con
+        // `justify-between` lo spazio libero si accumulava in due buchi morti
+        // in mezzo al panno; qui e' l'arena a tenerselo, che e' dove si guarda.
+        className={`my-1 flex-1 grid grid-rows-[auto_1fr_auto] bg-gradient-to-b ${tableTheme.feltGradient} border-2 sm:border-3 ${tableTheme.feltBorder} ${tableTheme.feltOuterRing} rounded-2xl pixel-box ${shortScreen ? 'p-1.5' : 'p-2 sm:p-3'} relative shadow-2xl min-h-0 transition-colors duration-500`}
       >
         {/* Only the decoration is clipped. The felt itself must grow with its
             content: clipping it cut the hand and the action buttons off the
@@ -843,7 +852,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                   key={card.id || i}
                   card={card}
                   faceDown={!hasVision}
-                  size={deckCardSize}
+                  size={opponentCardSize}
                   animateDeal={true}
                   dealDelay={isDealing ? 0.06 + i * 0.26 : i * 0.06}
                 />
@@ -914,10 +923,12 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
               initial={{ opacity: 0, y: -4, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.2 }}
-              className="mt-1 bg-slate-950/90 border border-amber-500/50 text-slate-100 font-retro text-[10px] sm:text-xs px-2.5 py-1 rounded-xl shadow-md flex items-center gap-1.5"
+              className="mt-1.5 self-start max-w-full bar-paper px-3 py-1.5"
+              style={{ transform: 'rotate(-0.5deg)' }}
             >
-              <span className="text-amber-400 font-pixel text-xs shrink-0">💬</span>
-              <span className="leading-snug italic font-medium">"{opponentSpeech}"</span>
+              <span className="font-condensed ink text-[18px] sm:text-[21px] leading-snug">
+                &ldquo;{opponentSpeech}&rdquo;
+              </span>
             </motion.div>
           )}
         </div>
@@ -929,10 +940,10 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
             Three columns with the clash in the auto-sized middle one put it back
             on the real centre of the felt, with the stock hanging off its own
             side. */}
-        <div className="flex-1 min-h-0 my-1 py-1 flex items-center justify-center gap-1 sm:gap-4 z-10 relative px-1 min-w-0 lg:grid lg:grid-cols-[1fr_auto_1fr]">
+        <div className="min-h-0 my-1 py-1 grid grid-cols-[1fr_auto_1fr] items-center gap-1 sm:gap-3 z-10 relative px-1 min-w-0">
           {/* Left: Deck & Briscola Face-Up Card */}
           <div 
-            className="flex flex-col items-center cursor-pointer group shrink-0 lg:justify-self-start"
+            className="col-start-1 flex flex-col items-center cursor-pointer group shrink-0 justify-self-start"
             onClick={onOpenDeckViewer}
             title="Ispettore Mazzo (Tocca per vedere)"
           >
@@ -991,7 +1002,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                       isBriscola={true}
                       showBriscolaBadge={false}
                       size={deckCardSize}
-                      showPoints={true}
+                      showPoints={false}
                     />
                   </div>
                   <div
@@ -1002,7 +1013,10 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                   </div>
                 </motion.div>
               )}
-            </div>
+              {/* Il posto vuoto di fronte al mazzo: senza, il centro del panno
+              cadeva sempre un mazzo piu' a destra di dove lo si guarda. */}
+          <div className="col-start-3" aria-hidden />
+        </div>
 
             {/* Briscola Suit Pill Under Deck */}
             <div className="mt-1.5 lg:mt-2.5 flex items-center gap-1 lg:gap-1.5 bg-slate-950/90 border border-orange-500/80 px-1.5 lg:px-3 py-0.5 lg:py-1 rounded-full pixel-box shadow">
@@ -1013,11 +1027,17 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
             </div>
           </div>
 
-          {/* Center: Trick Cards Clash Zone (LARGE IMPACT CARDS) */}
-          <div className="flex-1 min-w-0 max-w-[300px] sm:max-w-md lg:flex-none lg:max-w-none flex items-center justify-center gap-1.5 sm:gap-4 lg:gap-8 p-2 lg:p-5 bg-black/45 border border-dashed border-emerald-800/60 rounded-xl pixel-box relative shadow-xl mx-auto">
+          {/* IL CENTRO DEL TAVOLO
+              Una presa si gioca in verticale: lui cala, tu copri. Erano due
+              caselle affiancate dentro un riquadro tratteggiato, cioe' un box
+              disegnato attorno al niente; il panno e' gia' il contenitore. */}
+          <div
+            className={`col-start-2 flex items-center justify-center min-w-0 justify-self-center ${
+              stackedClash ? 'flex-col gap-2 sm:gap-3' : 'flex-row gap-3 sm:gap-5 lg:gap-8'
+            }`}
+          >
             {/* Opponent Card in Trick */}
             <div className="flex flex-col items-center relative">
-              <span className="text-[7px] sm:text-[8px] font-pixel text-slate-400 mb-0.5">AVVERSARIO</span>
               <AnimatePresence mode="wait">
                 {opponentTrickCard ? (
                   <div className="relative">
@@ -1068,27 +1088,15 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                     )}
                   </div>
                 ) : (
-                  <div className={`${trickSlotClass} border border-dashed ${tableTheme.cardSlotBorder} ${tableTheme.cardSlotBg} rounded-lg flex items-center justify-center text-slate-500 font-pixel text-[7.5px] text-center p-1`}>
-                    ...
+                  <div className={`${trickSlotClass} border border-dashed ${tableTheme.cardSlotBorder} ${tableTheme.cardSlotBg} rounded-lg flex items-center justify-center font-condensed chalk-dim text-[17px] sm:text-[19px] uppercase text-center p-1`}>
+                    {isPlayerTurn ? 'Aspetta' : 'Cala lui'}
                   </div>
                 )}
               </AnimatePresence>
             </div>
 
-            {/* VS Emblem & Energy Clash Indicator */}
-            <div className="flex flex-col items-center px-0.5 relative shrink-0">
-              <motion.div
-                animate={{ scale: !reduceMotion && opponentTrickCard && playerTrickCard ? [1, 1.25, 1] : 1 }}
-                transition={reduceMotion ? undefined : { repeat: Infinity, duration: 1.2 }}
-                className="text-xs sm:text-sm font-pixel font-black text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)]"
-              >
-                VS
-              </motion.div>
-            </div>
-
             {/* Player Card in Trick */}
             <div className="flex flex-col items-center relative">
-              <span className="text-[7px] sm:text-[8px] font-pixel text-amber-400 mb-0.5">LA TUA CARTA</span>
               <AnimatePresence mode="wait">
                 {playerTrickCard ? (
                   <div className="relative">
@@ -1144,8 +1152,10 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                     )}
                   </div>
                 ) : (
-                  <div className={`${trickSlotClass} border border-dashed ${tableTheme.cardSlotBorder} ${tableTheme.cardSlotBg} rounded-lg flex items-center justify-center text-slate-400 font-pixel text-[7.5px] text-center p-1`}>
-                    {isPlayerTurn ? 'SCEGLI' : '...'}
+                  <div className={`${trickSlotClass} border border-dashed ${tableTheme.cardSlotBorder} ${tableTheme.cardSlotBg} rounded-lg flex items-center justify-center font-condensed text-[17px] sm:text-[19px] uppercase text-center p-1 ${
+                    isPlayerTurn ? 'chalk-yellow' : 'chalk-dim'
+                  }`}>
+                    {isPlayerTurn ? 'Cala tu' : 'Aspetta'}
                   </div>
                 )}
               </AnimatePresence>
@@ -1158,22 +1168,24 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
         <div className={`z-10 flex flex-col items-center shrink-0 border-t ${tableTheme.dividerBorder} pt-1 pb-0.5`}>
           {/* One line, one job: what happens if you commit. When the opponent has
               already led the outcome is known, so it replaces the generic prompt. */}
-          <div className="mb-0.5 flex items-center justify-center gap-1.5 leading-none min-h-[16px]">
+          <div className="mb-2 flex items-center justify-center gap-1.5 leading-none min-h-[18px]">
             {followPreview ? (
               <motion.div
                 key={`${followPreview.wins}-${followPreview.points}-${followPreview.baseMult}`}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className={`px-2 py-0.5 rounded-md border-2 flex items-center gap-1.5 font-pixel text-[8px] sm:text-[9.5px] font-bold ${
-                  followPreview.wins
-                    ? 'bg-emerald-950/95 border-emerald-500 text-emerald-200'
-                    : 'bg-red-950/95 border-red-500/80 text-red-200'
+                className={`flex items-baseline gap-2 font-condensed uppercase text-[19px] sm:text-[22px] leading-none ${
+                  followPreview.wins ? 'chalk-green' : 'chalk-red'
                 }`}
               >
-                <span>{followPreview.wins ? '✔ PRENDI' : '✘ PERDI'}</span>
-                <span className="text-slate-300">{followPreview.points} PT BRISCOLA</span>
+                <span>{followPreview.wins ? 'La prendi' : 'La perdi'}</span>
+                <span className="chalk-dim text-[17px] sm:text-[19px] tabular-nums">
+                  {followPreview.points} pt briscola
+                </span>
                 {followPreview.wins && followPreview.baseMult > 1 && (
-                  <span className="text-red-300">MULT ×{followPreview.baseMult}</span>
+                  <span className="chalk-yellow text-[17px] sm:text-[19px] tabular-nums">
+                    mult ×{followPreview.baseMult}
+                  </span>
                 )}
               </motion.div>
             ) : (
@@ -1183,7 +1195,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                     isDealing ? 'bg-slate-400' : isPlayerTurn ? 'bg-emerald-400 animate-ping' : 'bg-amber-500'
                   }`}
                 />
-                <span className="font-pixel text-[7.5px] sm:text-[9px] text-amber-300 font-bold uppercase">
+                <span className="font-condensed chalk-dim text-[18px] sm:text-[21px] leading-none uppercase">
                   {isDealing
                     ? 'Si distribuiscono le carte...'
                     : isPlayerTurn
@@ -1308,33 +1320,36 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
           )}
 
           {/* Ergonomic Hand Action Buttons */}
-          <div className="flex items-center gap-2 w-full max-w-xs sm:max-w-sm justify-center mb-0.5">
+          <div className="flex items-center gap-2 w-full max-w-md sm:max-w-lg justify-center px-2 mb-0.5">
             <button
               type="button"
               onClick={handlePlaySelected}
               disabled={!selectedCard || !canPlay || !isCardPlayable(selectedCard)}
-              className={`flex-1 font-pixel text-[10px] sm:text-xs py-1.5 sm:py-2 rounded-xl pixel-box font-bold flex items-center justify-center gap-1 shadow-lg cursor-pointer transition-all active:scale-[0.98] min-h-[36px] sm:min-h-[40px] ${
+              // Da spento restava al 40% di opacita' su fondo scuro: il tasto
+              // principale del gioco spariva dal panno. Ora spento e' scritto
+              // in gesso consumato, che si legge e si capisce.
+              className={`flex-1 font-condensed text-[24px] sm:text-[28px] uppercase leading-none tracking-[0.04em] py-2.5 rounded-[6px] flex items-center justify-center gap-2 cursor-pointer transition-[filter,opacity] duration-150 active:translate-y-[1px] min-h-[48px] border-2 ${
                 selectedCard && canPlay && isCardPlayable(selectedCard)
-                  ? 'bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 text-slate-950 shadow-amber-500/20'
-                  : 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-40'
+                  ? 'chalk-yellow border-[rgba(232,199,102,0.75)] bg-[rgba(232,199,102,0.1)] hover:bg-[rgba(232,199,102,0.18)]'
+                  : 'chalk-dim border-[rgba(185,179,163,0.28)] opacity-70 cursor-not-allowed'
               }`}
             >
-              <span>GIOCA</span>
-              <span>⚔️</span>
+              <span>Gioca</span>
+              <ArrowUp size={19} strokeWidth={1.9} />
             </button>
 
             <button
               type="button"
               onClick={handleDiscardSelected}
               disabled={!selectedCard || !canDiscard}
-              className={`font-pixel text-[9px] sm:text-[10px] px-2.5 py-1.5 sm:py-2 rounded-xl pixel-box font-bold flex items-center justify-center gap-1 cursor-pointer min-h-[36px] sm:min-h-[40px] transition-all active:scale-[0.98] ${
+              className={`font-condensed text-[21px] sm:text-[24px] uppercase leading-none px-4 py-2.5 rounded-[6px] flex items-center justify-center gap-1.5 cursor-pointer min-h-[48px] border-2 transition-[filter,opacity] duration-150 active:translate-y-[1px] ${
                 selectedCard && canDiscard
-                  ? 'bg-red-800 hover:bg-red-700 text-white shadow-md'
-                  : 'bg-slate-800 text-slate-600 cursor-not-allowed opacity-40'
+                  ? 'chalk-red border-[rgba(212,117,106,0.7)] bg-[rgba(212,117,106,0.1)] hover:bg-[rgba(212,117,106,0.18)]'
+                  : 'chalk-dim border-[rgba(185,179,163,0.28)] opacity-70 cursor-not-allowed'
               }`}
             >
-              <span>SCARTA ({discardsLeft})</span>
-              <span>🔄</span>
+              <RotateCcw size={17} strokeWidth={1.9} />
+              <span>Scarta {discardsLeft}</span>
             </button>
           </div>
         </div>
