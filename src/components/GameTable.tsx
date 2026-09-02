@@ -102,6 +102,28 @@ function useMediaQuery(query: string): boolean {
   return matches;
 }
 
+/**
+ * L'altezza vera di un elemento, mentre cambia.
+ *
+ * Serve per il centro del panno: quanto spazio e' rimasto li' dentro dipende
+ * da cosa c'e' sopra - la regola della casa, la battuta, i jolly - e cambia
+ * durante la partita. Una media query sull'altezza dello schermo non lo sa.
+ */
+function useMeasuredHeight<T extends HTMLElement>(): [React.RefObject<T | null>, number] {
+  const ref = React.useRef<T>(null);
+  const [height, setHeight] = useState(0);
+  React.useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const observer = new ResizeObserver(([entry]) => {
+      setHeight(Math.round(entry.contentRect.height));
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+  return [ref, height];
+}
+
 /** Seconds into the deal at which the stock is turned over. */
 const TRUMP_FLIP_DELAY = 0.9;
 
@@ -164,27 +186,65 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
   // whole table without scrolling: the hand shrinks a size rather than pushing
   // the action buttons past the fold.
   const shortScreen = useMediaQuery('(max-height: 700px)');
-  const handCardSize = shortScreen ? 'md' : 'lg';
-  const handRowMinHeight = shortScreen
-    ? 'min-h-[118px]'
-    : 'min-h-[148px] sm:min-h-[175px] md:min-h-[195px]';
+
   // Desktop has room the phone layout never had, and the two things that were
   // still sized for a phone there are the stock and whoever is sitting across
   // the table: both were reading as decoration next to a 140px trick card.
   // Width alone is not enough: a wide but short window (a 1024x600 laptop, a
   // half-height browser) would take the big sizes and push the hand off screen.
   const wideTable = useMediaQuery('(min-width: 1024px) and (min-height: 800px)');
-  const stackedClash = useMediaQuery('(min-height: 720px) and (orientation: portrait)');
   const deckCardSize = wideTable ? 'md' : roomyTable ? 'sm' : 'xs';
   // Coperte e mute: stanno una misura sotto al mazzo, che invece si conta.
   const opponentCardSize = wideTable ? 'sm' : 'xs';
   const avatarSize = wideTable ? 56 : 32;
-  const trickCardSize = roomyTable ? 'lg' : 'md';
+  const [feltRef, feltHeight] = useMeasuredHeight<HTMLDivElement>();
+  const [topBandRef, topBandHeight] = useMeasuredHeight<HTMLDivElement>();
+  const wideScreen = useMediaQuery('(min-width: 1024px)');
+  const mediumScreen = useMediaQuery('(min-width: 768px)');
+  const smallUp = useMediaQuery('(min-width: 640px)');
+  const cardHeight = (size: 'sm' | 'md' | 'lg') => {
+    const step = wideScreen ? 3 : mediumScreen ? 2 : smallUp ? 1 : 0;
+    if (size === 'sm') return [80, 104, 104, 104][step];
+    if (size === 'md') return [112, 136, 152, 152][step];
+    return [138, 164, 184, 200][step];
+  };
+  // Quello che la mano si porta dietro oltre alle carte: la riga di stato e i
+  // due tasti.
+  const HAND_CHROME = 82;
+  const free = feltHeight > 0 ? feltHeight - topBandHeight - 26 : 0;
+  const measured = free > 0;
+
+  // La mano viene prima: e' quella che si tocca. Prende la misura piu' grande
+  // che lascia comunque in piedi una presa leggibile.
+  const handCardSize: 'sm' | 'md' | 'lg' = !measured
+    ? 'md'
+    : cardHeight('lg') + HAND_CHROME + cardHeight('md') <= free
+      ? 'lg'
+      : cardHeight('md') + HAND_CHROME + cardHeight('sm') <= free
+        ? 'md'
+        : 'sm';
+
+  const arenaBudget = measured ? free - cardHeight(handCardSize) - HAND_CHROME : 0;
+  const fits = (size: 'sm' | 'md' | 'lg', stacked: boolean) =>
+    arenaBudget >= cardHeight(size) * (stacked ? 2 : 1) + (stacked ? 10 : 0);
+  const stackedClash = fits('md', true);
+  const trickCardSize: 'sm' | 'md' | 'lg' = stackedClash
+    ? fits('lg', true)
+      ? 'lg'
+      : 'md'
+    : fits('lg', false)
+      ? 'lg'
+      : fits('md', false)
+        ? 'md'
+        : 'sm';
   // The empty slot has to be the size of the card that will fill it, all the
   // way up, or the clash zone resizes the moment someone plays.
-  const trickSlotClass = roomyTable
-    ? 'w-[96px] sm:w-[114px] md:w-[128px] lg:w-[140px] h-[138px] sm:h-[164px] md:h-[184px] lg:h-[200px]'
-    : 'w-20 sm:w-24 md:w-26 h-28 sm:h-34 md:h-38';
+  const trickSlotClass =
+    trickCardSize === 'lg'
+      ? 'w-[96px] sm:w-[114px] md:w-[128px] lg:w-[140px] h-[138px] sm:h-[164px] md:h-[184px] lg:h-[200px]'
+      : trickCardSize === 'md'
+        ? 'w-20 sm:w-24 md:w-26 h-28 sm:h-34 md:h-38'
+        : 'w-14 sm:w-18 h-20 sm:h-26';
 
   const [inspected, setInspected] = useState<
     { kind: 'joker'; index: number } | { kind: 'uno'; index: number } | null
@@ -446,7 +506,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
       // `max-w-6xl` lasciava il tavolo largo come un foglio di calcolo: su
       // desktop il panno si allargava e le carte restavano dov'erano, quindi
       // ogni cosa galleggiava lontana dall'altra. Un tavolo ha una misura.
-      className="flex-1 flex flex-col justify-between p-1.5 sm:p-3 max-w-3xl mx-auto w-full relative min-h-[100dvh] sm:min-h-0 select-none"
+      className="flex-1 flex flex-col justify-between p-1.5 sm:p-2 max-w-3xl mx-auto w-full relative h-[100dvh] max-h-[100dvh] min-h-0 select-none"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.5rem)' }}
     >
       {/* 1. IL BANCO DEL LOCALE
@@ -514,7 +574,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
 
           {/* Il numero della manche: decide se vivi, quindi e' scritto come il
               piatto del giorno e non come una didascalia. */}
-          <div className="flex items-end gap-2 sm:gap-3 min-w-0">
+          <div className="flex flex-wrap items-end gap-x-3 gap-y-1.5 sm:gap-x-5 min-w-0">
             {hud.showChipsObjective && (
               <div className="flex items-baseline gap-1.5 min-w-0 shrink">
                 <motion.span
@@ -534,7 +594,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
               </div>
             )}
 
-            <div className="flex items-center gap-2.5 sm:gap-4 ml-auto shrink-0 pb-0.5">
+            <div className="order-2 sm:order-3 flex items-center gap-2.5 sm:gap-4 ml-auto shrink-0 pb-0.5">
               <span className="flex items-center gap-1 font-condensed chalk-yellow text-[20px] sm:text-[24px] leading-none">
                 <PixelSuitIcon suit={briscolaSuit} size={14} />
                 <span className="uppercase hidden sm:inline text-[17px]">{briscolaSuit}</span>
@@ -549,6 +609,29 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                 <RotateCcw size={14} strokeWidth={1.8} />
                 {discardsLeft}
               </span>
+            </div>
+            {/* La Briscola vera, che al tavolo si conta comunque. */}
+            <div className="order-3 sm:order-2 basis-full sm:basis-auto flex items-baseline gap-2 font-condensed tabular-nums flex-wrap pb-0.5">
+              <span className="chalk-dim text-[14px] sm:text-[16px] uppercase tracking-[0.1em]">Briscola</span>
+              <span className="chalk-dim text-[14px] sm:text-[16px] uppercase">tu</span>
+              <span className={`chalk leading-none ${hud.primary === 'briscola' ? 'text-[22px] sm:text-[26px]' : 'text-[18px] sm:text-[21px]'}`}>
+                {roundPointsTaken}
+              </span>
+              <span className="chalk-dim text-[16px] leading-none">&mdash;</span>
+              <span className="chalk-dim text-[14px] sm:text-[16px] uppercase">lui</span>
+              <span className={`chalk-red leading-none ${hud.primary === 'briscola' ? 'text-[22px] sm:text-[26px]' : 'text-[18px] sm:text-[21px]'}`}>
+                {opponentPointsTaken}
+              </span>
+              {hud.showBriscolaObjective && (
+                <span className={`text-[17px] sm:text-[19px] leading-none ${victory.briscolaPassed ? 'chalk-green' : 'chalk-dim'}`}>
+                  {victory.briscolaPassed ? 'fatto · ' : ''}su {BRISCOLA_TARGET_POINTS}
+                </span>
+              )}
+              {reachedTarget && hud.showChipsObjective && (
+                <span className="chalk-green text-[15px] sm:text-[17px] leading-none ml-auto uppercase">
+                  Target fatto · si continua per i punti
+                </span>
+              )}
             </div>
           </div>
 
@@ -569,35 +652,12 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
             </div>
           )}
 
-          {/* La Briscola vera, che al tavolo si conta comunque. */}
-          <div className="mt-1.5 flex items-baseline gap-2 font-condensed tabular-nums flex-wrap">
-            <span className="chalk-dim text-[14px] sm:text-[16px] uppercase tracking-[0.1em]">Briscola</span>
-            <span className="chalk-dim text-[14px] sm:text-[16px] uppercase">tu</span>
-            <span className={`chalk leading-none ${hud.primary === 'briscola' ? 'text-[22px] sm:text-[26px]' : 'text-[18px] sm:text-[21px]'}`}>
-              {roundPointsTaken}
-            </span>
-            <span className="chalk-dim text-[16px] leading-none">&mdash;</span>
-            <span className="chalk-dim text-[14px] sm:text-[16px] uppercase">lui</span>
-            <span className={`chalk-red leading-none ${hud.primary === 'briscola' ? 'text-[22px] sm:text-[26px]' : 'text-[18px] sm:text-[21px]'}`}>
-              {opponentPointsTaken}
-            </span>
-            {hud.showBriscolaObjective && (
-              <span className={`text-[17px] sm:text-[19px] leading-none ${victory.briscolaPassed ? 'chalk-green' : 'chalk-dim'}`}>
-                {victory.briscolaPassed ? 'fatto · ' : ''}su {BRISCOLA_TARGET_POINTS}
-              </span>
-            )}
-            {reachedTarget && hud.showChipsObjective && (
-              <span className="chalk-green text-[15px] sm:text-[17px] leading-none ml-auto uppercase">
-                Target fatto · si continua per i punti
-              </span>
-            )}
-          </div>
         </div>
 
         {/* The build, always on screen. It used to live behind a toggle, which
             hid the one thing that decides whether the blind is beatable. */}
         {(activeJokers.length > 0 || consumables.length > 0) && (
-          <div className="flex items-center gap-2 mt-1.5 pt-1.5 border-t border-slate-800 overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-2 mt-1.5 pt-1 pb-0.5 border-t border-slate-800 overflow-x-auto overflow-y-hidden no-scrollbar">
             <div className="flex items-center gap-1 shrink-0">
               {activeJokers.map((joker, i) => (
                 <JokerSlot
@@ -723,7 +783,8 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
         // prende tutto lo spazio che avanza, la tua mano in fondo. Con
         // `justify-between` lo spazio libero si accumulava in due buchi morti
         // in mezzo al panno; qui e' l'arena a tenerselo, che e' dove si guarda.
-        className={`my-1 flex-1 grid grid-rows-[auto_1fr_auto] bg-gradient-to-b ${tableTheme.feltGradient} border-2 sm:border-3 ${tableTheme.feltBorder} ${tableTheme.feltOuterRing} rounded-2xl pixel-box ${shortScreen ? 'p-1.5' : 'p-2 sm:p-3'} relative shadow-2xl min-h-0 transition-colors duration-500`}
+        ref={feltRef}
+        className={`my-0.5 flex-1 grid grid-rows-[auto_minmax(0,1fr)_auto] bg-gradient-to-b ${tableTheme.feltGradient} border-2 sm:border-3 ${tableTheme.feltBorder} ${tableTheme.feltOuterRing} rounded-2xl pixel-box ${shortScreen ? 'p-1.5' : 'p-2 sm:p-3'} relative shadow-2xl min-h-0 transition-colors duration-500`}
       >
         {/* Only the decoration is clipped. The felt itself must grow with its
             content: clipping it cut the hand and the action buttons off the
@@ -775,7 +836,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
         </div>
 
         {/* OPPONENT SECTION (Top of felt table) */}
-        <div className={`flex flex-col z-10 shrink-0 border-b ${tableTheme.dividerBorder} pb-1.5`}>
+        <div ref={topBandRef} className={`flex flex-col z-10 shrink-0 border-b ${tableTheme.dividerBorder} pb-1.5`}>
           <div className="flex items-center justify-between gap-2">
             {/* Opponent Info */}
             <div className="flex items-center gap-1.5 sm:gap-2">
@@ -860,29 +921,27 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
             </div>
           </div>
 
+          <div className="flex flex-col sm:flex-row sm:items-start sm:gap-2">
           {/* Dedicated Clear Boss Debuff Box (Never cut off or truncated) */}
           {currentBoss && (
             <motion.div
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mt-1 bg-gradient-to-r from-red-950/95 via-red-900/90 to-red-950/95 border-2 border-red-500/80 px-2.5 py-1.5 rounded-xl shadow-lg flex items-start gap-2 text-red-100"
+              className="bar-paper mt-1.5 px-3 py-1.5 flex items-start gap-2 sm:flex-1 sm:min-w-0"
+              style={{ transform: 'rotate(-0.4deg)' }}
             >
-              <div className="bg-red-800 border border-red-400 text-white rounded p-1 text-[11px] shrink-0 mt-0.5">
-                💀
-              </div>
               <div className="flex-1 min-w-0 text-left">
-                <div className="font-pixel text-[8px] sm:text-[9.5px] text-red-300 font-bold uppercase tracking-wide flex items-center gap-1.5 flex-wrap">
-                  <span>MALUS DEL BOSS • {currentBoss.name}</span>
+                <div className="font-pixel text-[8px] sm:text-[9px] ink-red uppercase tracking-[0.12em] flex items-center gap-1.5 flex-wrap">
+                  <span>Regola della casa · {currentBoss.name}</span>
                   {bossDebuffNeutralized && (
-                    <span className="bg-emerald-600 border border-emerald-300 text-white px-1 py-0.5 rounded text-[6.5px] sm:text-[7.5px]">
-                      🛡️ SCUDO · {bossShieldTricks}{' '}
-                      {bossShieldTricks === 1 ? 'PRESA' : 'PRESE'}
+                    <span className="ink-green">
+                      scudo · {bossShieldTricks} {bossShieldTricks === 1 ? 'presa' : 'prese'}
                     </span>
                   )}
                 </div>
                 <div
-                  className={`font-retro text-[11px] sm:text-xs font-medium leading-tight mt-0.5 ${
-                    bossDebuffNeutralized ? 'text-red-300/60 line-through' : 'text-red-100'
+                  className={`font-condensed text-[16px] sm:text-[18px] leading-tight mt-0.5 line-clamp-2 ${
+                    bossDebuffNeutralized ? 'ink-dim line-through' : 'ink'
                   }`}
                 >
                   {currentBoss.debuffDescription}
@@ -891,9 +950,9 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                 {/* The rule as it stands this instant. The description says what
                     the boss does; this says what it is doing to you now. */}
                 {!bossDebuffNeutralized && forcedLeadSuit && isOpeningTrick && (
-                  <div className="mt-1 inline-flex items-center gap-1.5 bg-red-800/80 border border-red-400 rounded-lg px-1.5 py-0.5">
+                  <div className="mt-1 inline-flex items-center gap-1.5">
                     <PixelSuitIcon suit={forcedLeadSuit} size={11} />
-                    <span className="font-pixel text-[7px] sm:text-[8px] text-white uppercase">
+                    <span className="font-condensed ink-red text-[16px] sm:text-[18px] uppercase leading-none">
                       Pedaggio: apri di {getSuitDisplayName(forcedLeadSuit)}
                     </span>
                   </div>
@@ -901,12 +960,12 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                 {!bossDebuffNeutralized &&
                   silencedJokerIndex !== null &&
                   activeJokers[silencedJokerIndex] && (
-                    <div className="mt-1 inline-flex items-center gap-1.5 bg-red-800/80 border border-red-400 rounded-lg px-1.5 py-0.5">
-                      <span className="font-pixel text-[7px] sm:text-[8px] text-white uppercase">
-                        🔇 Zitto: {activeJokers[silencedJokerIndex].name}
+                    <div className="mt-1 inline-flex items-baseline gap-1.5">
+                      <span className="font-condensed ink-red text-[16px] sm:text-[18px] uppercase leading-none">
+                        Zitto: {activeJokers[silencedJokerIndex].name}
                       </span>
                       {activeJokers.length > 1 && (
-                        <span className="font-retro text-[9px] text-red-200">
+                        <span className="font-condensed ink-dim text-[15px] leading-none">
                           poi {activeJokers[(silencedJokerIndex + 1) % activeJokers.length].name}
                         </span>
                       )}
@@ -917,20 +976,24 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
           )}
 
           {/* Multi-line Comic Speech Bubble (Clear, Uncompressed & Legible) */}
-          {opponentSpeech && (
+          {opponentSpeech && !shortScreen && (
             <motion.div
               key={opponentSpeech}
               initial={{ opacity: 0, y: -4, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.2 }}
-              className="mt-1.5 self-start max-w-full bar-paper px-3 py-1.5"
+              className="mt-1.5 self-start max-w-full bar-paper px-3 py-1.5 sm:flex-1 sm:min-w-0"
               style={{ transform: 'rotate(-0.5deg)' }}
             >
-              <span className="font-condensed ink text-[18px] sm:text-[21px] leading-snug">
+              <span
+                className="font-condensed ink text-[17px] sm:text-[20px] leading-snug line-clamp-2"
+                title={opponentSpeech}
+              >
                 &ldquo;{opponentSpeech}&rdquo;
               </span>
             </motion.div>
           )}
+          </div>
         </div>
 
         {/* CENTER ARENA: DECK + TRICK CLASH (ENLARGED CARDS) */}
@@ -1032,7 +1095,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
               caselle affiancate dentro un riquadro tratteggiato, cioe' un box
               disegnato attorno al niente; il panno e' gia' il contenitore. */}
           <div
-            className={`col-start-2 flex items-center justify-center min-w-0 justify-self-center ${
+            className={`col-start-2 justify-self-center flex items-center justify-center min-w-0 ${
               stackedClash ? 'flex-col gap-2 sm:gap-3' : 'flex-row gap-3 sm:gap-5 lg:gap-8'
             }`}
           >
@@ -1165,10 +1228,10 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
         </div>
 
         {/* 3. PLAYER HAND & ACTION CONTROLS (THE MAIN FOCUS) */}
-        <div className={`z-10 flex flex-col items-center shrink-0 border-t ${tableTheme.dividerBorder} pt-1 pb-0.5`}>
+        <div className={`z-10 flex flex-col items-center shrink-0 border-t ${tableTheme.dividerBorder} pt-1`}>
           {/* One line, one job: what happens if you commit. When the opponent has
               already led the outcome is known, so it replaces the generic prompt. */}
-          <div className="mb-2 flex items-center justify-center gap-1.5 leading-none min-h-[18px]">
+          <div className="mb-1.5 flex items-center justify-center gap-1.5 leading-none min-h-[18px]">
             {followPreview ? (
               <motion.div
                 key={`${followPreview.wins}-${followPreview.points}-${followPreview.baseMult}`}
@@ -1207,7 +1270,10 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
           </div>
 
           {/* The Player Hand Cards with Fan Spread and Gentle Floating Idle */}
-          <div className={`relative flex items-center justify-center my-1.5 w-full max-w-md sm:max-w-lg px-2 ${handRowMinHeight}`}>
+          <div
+            className="relative flex items-center justify-center my-1.5 w-full max-w-md sm:max-w-lg px-2"
+            style={{ minHeight: cardHeight(handCardSize) }}
+          >
             {/* Cards overlap instead of spilling past the felt when an effect
                 leaves the player holding more than the usual three. */}
             <AnimatePresence mode="popLayout">

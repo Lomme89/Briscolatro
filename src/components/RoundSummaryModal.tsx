@@ -16,6 +16,7 @@ import {
   ReceiptLine,
   ReceiptPerf,
   ReceiptSheet,
+  ReceiptTotal,
   RubberStamp,
 } from './diegetic/Receipt';
 
@@ -45,7 +46,6 @@ export const RoundSummaryModal: React.FC<RoundSummaryModalProps> = ({
 
   const isBoss = isBossEncounter(data.round);
   const tier = getEndlessTier(data.ante);
-  const isBriscolaMajority = data.playerTrickPoints >= BRISCOLA_TARGET_POINTS;
   const scoreExceeded = data.victory.chipsPassed;
   const modeInfo = VICTORY_MODES[data.victory.mode];
   const hud = getVictoryHudPresentation(data.victory.mode);
@@ -86,22 +86,20 @@ export const RoundSummaryModal: React.FC<RoundSummaryModalProps> = ({
 
           <div className="space-y-1.5">
             {hud.showChipsObjective && (
-              <>
-                <ReceiptLine
+              <div className="mb-3">
+                <ReceiptTotal
                   label="Chips fatti"
+                  note={`su ${it(data.targetScore)} richiesti`}
                   value={it(data.achievedScore)}
                   tone={scoreExceeded ? 'green' : 'red'}
-                  strong
                 />
-                <ReceiptLine label="Chips richiesti" value={it(data.targetScore)} tone="dim" />
-              </>
+              </div>
             )}
 
             <ReceiptLine
               label="Punti briscola tuoi"
               note={`${data.playerTricksWon} prese`}
               value={`${data.playerTrickPoints}`}
-              tone={isBriscolaMajority ? 'green' : 'ink'}
             />
             <ReceiptLine
               label="Punti briscola suoi"
@@ -115,19 +113,22 @@ export const RoundSummaryModal: React.FC<RoundSummaryModalProps> = ({
 
           {/* Le due condizioni, sempre tutte e due: il confronto fra le due
               anime del gioco e' il motivo per cui esistono le modalita'. */}
+          <div className="font-pixel ink-dim text-[8px] uppercase tracking-[0.14em] mb-1.5">
+            Come si chiudeva
+          </div>
           <div className="space-y-1.5">
             <ReceiptLine
               label="Soglia chips"
               note={modeInfo.needsChips ? 'richiesta' : 'non richiesta'}
               value={`${it(data.achievedScore)} / ${it(data.targetScore)}`}
-              tone={scoreExceeded ? 'green' : modeInfo.needsChips ? 'red' : 'dim'}
+              tone={modeInfo.needsChips ? (scoreExceeded ? 'ink' : 'red') : 'dim'}
             />
             <ReceiptLine
               label="Soglia briscola"
               note={modeInfo.needsBriscola ? 'richiesta' : 'non richiesta'}
               value={`${data.playerTrickPoints} / ${BRISCOLA_TARGET_POINTS}`}
               tone={
-                data.victory.briscolaPassed ? 'green' : modeInfo.needsBriscola ? 'red' : 'dim'
+                modeInfo.needsBriscola ? (data.victory.briscolaPassed ? 'ink' : 'red') : 'dim'
               }
             />
           </div>
@@ -136,30 +137,25 @@ export const RoundSummaryModal: React.FC<RoundSummaryModalProps> = ({
             <>
               <ReceiptPerf className="my-3.5" />
               <div className="space-y-1.5">
-                <ReceiptLine label="Ricompensa ante" value={`+$${data.cashEarned}`} tone="green" />
+                <ReceiptLine label="Ricompensa ante" value={`+$${data.cashEarned}`} />
                 {data.interestEarned > 0 && (
-                  <ReceiptLine
-                    label="Interessi"
-                    value={`+$${data.interestEarned}`}
-                    tone="green"
-                  />
+                  <ReceiptLine label="Interessi" value={`+$${data.interestEarned}`} />
                 )}
                 {data.briscolaBonus > 0 && (
                   <ReceiptLine
                     label="Maggioranza briscola"
                     note="oltre 60"
                     value={`+$${data.briscolaBonus}`}
-                    tone="green"
                   />
                 )}
-                <div className="pt-2 mt-1 border-t-2 border-[rgba(58,44,24,0.5)]">
-                  <ReceiptLine label="Da incassare" value={`+$${totalCash}`} tone="ink" strong />
+                <div className="pt-2.5 mt-1.5 border-t-2 border-double border-[rgba(58,44,24,0.55)]">
+                  <ReceiptTotal label="Da incassare" value={`+$${totalCash}`} tone="green" />
                 </div>
               </div>
             </>
           )}
 
-          <p className="font-condensed ink-dim text-[17px] leading-snug text-center mt-4">
+          <p className="font-condensed ink text-[19px] sm:text-[22px] leading-snug text-center mt-4">
             {headline}
           </p>
 

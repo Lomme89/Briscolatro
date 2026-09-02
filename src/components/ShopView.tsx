@@ -377,21 +377,25 @@ export const ShopView: React.FC<ShopViewProps> = ({ model, actions }) => {
               </span>
             </div>
 
+            {/* Scritto a gesso e basta, "Si gioca" era una voce del menu, non
+                un tasto: la cosa piu' importante della bottega non si capiva
+                che si poteva premere. Adesso e' un cartello inquadrato, alto
+                quanto un dito, e dice dove porta. */}
             <button
               type="button"
               onClick={() => {
                 sound.playCardFlick();
                 onNextRound();
               }}
-              className="group flex items-center gap-2 bg-transparent cursor-pointer focus:outline-none"
+              className="group flex items-center gap-2 cursor-pointer min-h-[44px] px-3.5 py-2 rounded-[6px] border-2 border-[rgba(232,199,102,0.75)] bg-[rgba(232,199,102,0.12)] hover:bg-[rgba(232,199,102,0.22)] transition-colors duration-150 active:translate-y-[1px] focus-visible:outline-2 focus-visible:outline-offset-2"
             >
-              <span className="font-condensed chalk text-[22px] sm:text-[26px] leading-none uppercase opacity-[0.9] group-hover:opacity-100 group-focus-visible:opacity-100">
-                Si gioca
+              <span className="font-condensed chalk-yellow text-[22px] sm:text-[26px] leading-none uppercase whitespace-nowrap">
+                Torna al tavolo
               </span>
               <ArrowRight
                 size={20}
-                strokeWidth={1.8}
-                className="chalk transition-transform duration-200 group-hover:translate-x-1"
+                strokeWidth={1.9}
+                className="chalk-yellow transition-transform duration-200 group-hover:translate-x-1"
               />
             </button>
           </div>

@@ -51,10 +51,40 @@ export function TitleScreen({
         transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
         className="relative w-full max-w-[23rem] sm:max-w-[29rem]"
       >
+        {/* LE CARTE, IN VETRINA
+            Stavano dietro la lavagna, in basso, smorzate: il prodotto del
+            locale nascosto dietro il cartello che lo annuncia. Ora sono la
+            prima cosa che si vede - calate sul bordo alto della cornice, come
+            le lascia chi le mostra a chi entra - e sono le stesse carte con
+            cui poi si gioca, alla loro luce vera. */}
+        <div className="relative z-20 flex justify-center -mb-7 sm:-mb-9 pointer-events-none">
+          {titleHand.map((card, index) => (
+            <motion.div
+              key={card.id}
+              // Calate una alla volta, da sopra: e' il gesto di chi apre il
+              // tavolo, non tre carte che compaiono.
+              initial={{ y: -26, opacity: 0, rotate: 0 }}
+              animate={{ y: 0, opacity: 1, rotate: -13 + index * 13 }}
+              transition={{
+                type: 'spring',
+                damping: 16,
+                stiffness: 220,
+                delay: 0.12 + index * 0.11,
+              }}
+              className={index === 1 ? 'z-10 -mx-3 sm:-mx-3.5' : '-mx-2 sm:-mx-2.5'}
+              style={{ transformOrigin: 'bottom center' }}
+            >
+              <div className="drop-shadow-[0_16px_18px_rgba(0,0,0,0.8)]">
+                <PixelCard card={card} size="lg" showPoints={false} showChips={false} />
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
         <SlateBoard tilt={-1.2} className="relative z-10">
           {/* Il nome del locale: dipinto sulla lavagna una volta sola, e da
               allora sbiadisce. Non e' gesso, quindi non si cancella. */}
-          <div className="text-center">
+          <div className="text-center pt-5 sm:pt-6">
             <h1 className="font-pixel painted-sign text-[15px] sm:text-[19px] leading-tight tracking-[0.14em]">
               BRISCOLATRO
             </h1>
@@ -147,31 +177,6 @@ export function TitleScreen({
             </div>
           </div>
         </SlateBoard>
-
-        {/* La mano di chi si e' alzato da tavolo: le carte restano dove le ha
-            lasciate, davanti alla lavagna, e l'ombra della lavagna ci cade
-            sopra. Non sono decorazione - sono le stesse carte del gioco. */}
-        <div className="relative -mt-6 sm:-mt-8 flex justify-end pr-4 sm:pr-8 pointer-events-none z-0">
-          {titleHand.map((card, index) => (
-            <motion.div
-              key={card.id}
-              initial={{ y: -14 }}
-              animate={{ y: 0 }}
-              transition={{ type: 'spring', damping: 15, delay: 0.35 + index * 0.09 }}
-              className={index === 1 ? '-mx-3.5 sm:-mx-4' : '-mx-2.5 sm:-mx-3'}
-            >
-              {/* Il ventaglio e' una rotazione statica, non un'animazione: chi
-                  ha ridotto il movimento vede comunque tre carte, non tre carte
-                  impilate una sull'altra. */}
-              <div
-                className="drop-shadow-[0_14px_16px_rgba(0,0,0,0.85)] brightness-[0.72] saturate-[0.85] contrast-[1.05]"
-                style={{ transform: `rotate(${-16 + index * 13}deg)` }}
-              >
-                <PixelCard card={card} size="md" showPoints={false} showChips={false} />
-              </div>
-            </motion.div>
-          ))}
-        </div>
 
         {/* Cio' che non ha scritto l'oste sta su carta, incastrata nella
             cornice. */}

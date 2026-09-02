@@ -73,7 +73,7 @@ export function ReceiptLine({
   return (
     <div
       className={`flex flex-wrap items-baseline gap-x-1.5 font-condensed ${
-        strong ? 'text-[19px] sm:text-[23px]' : 'text-[16px] sm:text-[19px]'
+        strong ? 'text-[18px] sm:text-[21px]' : 'text-[15px] sm:text-[17px]'
       }`}
     >
       <span className={`${INK[tone]} uppercase min-w-0 ${strong ? 'font-bold' : ''}`}>{label}</span>
@@ -82,6 +82,45 @@ export function ReceiptLine({
       <span className={`${INK[tone]} tabular-nums ml-auto shrink-0 ${strong ? 'font-bold' : ''}`}>
         {value}
       </span>
+    </div>
+  );
+}
+
+/**
+ * La cifra che si legge da lontano.
+ *
+ * Su uno scontrino il totale non e' una voce come le altre: sta sotto una
+ * riga doppia, in grande, e chi lo guarda vede quella e basta. Le voci sopra
+ * servono a spiegarla, non a contendersela.
+ */
+export function ReceiptTotal({
+  label,
+  value,
+  note,
+  tone = 'ink',
+}: {
+  label: string;
+  value: string;
+  note?: string;
+  tone?: InkTone;
+}) {
+  return (
+    <div className="flex items-end justify-between gap-3">
+      <div className="min-w-0">
+        <div className="font-pixel ink-dim text-[8px] sm:text-[9px] uppercase tracking-[0.14em]">
+          {label}
+        </div>
+        {note && (
+          <div className="font-condensed ink-dim text-[15px] sm:text-[17px] leading-none mt-1">
+            {note}
+          </div>
+        )}
+      </div>
+      <div
+        className={`font-condensed ${INK[tone]} text-[40px] sm:text-[50px] leading-[0.8] tabular-nums shrink-0`}
+      >
+        {value}
+      </div>
     </div>
   );
 }
