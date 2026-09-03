@@ -24,7 +24,7 @@ import {
 import { getRegularForAnte } from '../data/opponents';
 import { TableFeltPattern } from './TableFeltPattern';
 import { CardFaceArt, getJokerArtUrl, getUnoArtUrl } from './CardFaceArt';
-import { ArrowUp, BookOpen, Layers, RotateCcw, Settings } from 'lucide-react';
+import { ArrowUp, BookOpen, ChevronDown, Layers, Menu, RotateCcw, Settings } from 'lucide-react';
 
 interface GameTableModel {
   hud: {
@@ -173,6 +173,28 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
   const reduceMotion = useReducedMotion();
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [activeUnoToApply, setActiveUnoToApply] = useState<UnoCard | null>(null);
+  const tableRef = React.useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const openNotes = () => tableRef.current?.querySelectorAll<HTMLDetailsElement>('details[data-table-disclosure][open]') ?? [];
+    const closeOutside = (event: PointerEvent) => {
+      for (const note of openNotes()) {
+        if (event.target instanceof Node && !note.contains(event.target)) note.open = false;
+      }
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      for (const note of openNotes()) {
+        note.open = false;
+        note.querySelector('summary')?.focus();
+      }
+    };
+    document.addEventListener('pointerdown', closeOutside);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('pointerdown', closeOutside);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, []);
   // A UNO card is consumed on use, so it asks before firing.
   const [unoPendingConfirm, setUnoPendingConfirm] = useState<UnoCard | null>(null);
   // Which item of the build is open for reading. A tooltip anchored to the slot
@@ -502,6 +524,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
 
   return (
     <div
+      ref={tableRef}
       // `max-w-6xl` lasciava il tavolo largo come un foglio di calcolo: su
       // desktop il panno si allargava e le carte restavano dov'erano, quindi
       // ogni cosa galleggiava lontana dall'altra. Un tavolo ha una misura.
@@ -514,15 +537,16 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
           (dove sei, che presa e' e i tasti), poi il numero che decide tutto -
           grosso come merita - e sotto la Briscola vera. */}
       <div className="slate-frame rounded-[10px] p-1 shrink-0 z-30 relative" data-game-hud>
-        <div className="slate-board rounded-[3px] px-2 sm:px-3 py-1">
+        <div className="game-hud-board slate-board rounded-[3px] px-2 sm:px-3 py-1">
           {/* Riga di servizio: quello che si consulta, non quello che si guarda. */}
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <div className="contents sm:flex sm:items-center sm:gap-3 min-w-0">
             <span
-              className="font-condensed text-[17px] sm:text-[20px] leading-none uppercase tracking-[0.06em] shrink-0"
+              className="game-hud-ante font-condensed text-[17px] sm:text-[20px] leading-none uppercase tracking-[0.06em] shrink-0"
+              title={endlessTier ? `Ante ${ante} · ${endlessTier.name}` : `Ante ${ante}, round ${round}`}
               style={{ color: endlessTier ? endlessTier.accentColor : 'var(--chalk-yellow)' }}
             >
               A{ante} R{round}
-              {endlessTier && <span className="ml-1.5 text-[14px] sm:text-[16px]">{endlessTier.name}</span>}
+              {endlessTier && <span className="hidden sm:inline ml-1.5 text-[14px] sm:text-[16px]">{endlessTier.name}</span>}
             </span>
 
             <span className="font-condensed chalk-dim text-[15px] sm:text-[17px] leading-none uppercase truncate hidden sm:inline">
@@ -530,7 +554,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
             </span>
 
             <span
-              className={`font-condensed text-[15px] sm:text-[17px] leading-none uppercase tabular-nums ml-auto shrink-0 ${
+              className={`game-hud-trick font-condensed text-[15px] sm:text-[17px] leading-none uppercase tabular-nums sm:ml-auto shrink-0 ${
                 trickHud.isFinalThree ? 'chalk-red' : 'chalk-dim'
               }`}
               title={trickHud.isFinalThree ? 'Ultime tre prese' : 'Presa corrente'}
@@ -538,7 +562,25 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
               Presa {trickHud.current}/{trickHud.total}
             </span>
 
-            <div className="flex items-center gap-0.5 shrink-0 -mr-1.5">
+            <details className="game-hud-tools sm:hidden" name="table-disclosure" data-table-disclosure>
+              <summary className="table-disclosure-toggle chalk-dim p-2 cursor-pointer" aria-label="Menu partita">
+                <Menu size={17} strokeWidth={1.7} />
+              </summary>
+              <div className="absolute right-0 top-full mt-1 slate-frame p-1 rounded-md z-40 min-w-44">
+                <div className="slate-board flex flex-col p-1" onClick={(event) => { event.currentTarget.closest('details')?.removeAttribute('open'); }}>
+                  {[
+                    { label: 'Ispettore Mazzo', Icon: Layers, action: onOpenDeckViewer },
+                    { label: 'Guida', Icon: BookOpen, action: onOpenTutorial },
+                    { label: 'Impostazioni', Icon: Settings, action: onOpenSettings },
+                  ].map(({ label, Icon, action }) => (
+                    <button key={label} type="button" onClick={action} className="chalk flex items-center gap-2 px-3 py-2 min-h-11 text-left font-condensed text-xl cursor-pointer hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-amber-200">
+                      <Icon size={17} strokeWidth={1.7} />{label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </details>
+            <div className="hidden sm:flex items-center gap-0.5 shrink-0 -mr-1.5">
               <button
                 type="button"
                 onClick={onOpenDeckViewer}
@@ -571,9 +613,9 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
 
           {/* Il numero della manche: decide se vivi, quindi e' scritto come il
               piatto del giorno e non come una didascalia. */}
-          <div className="flex flex-wrap items-end gap-x-3 gap-y-1 sm:gap-x-4 min-w-0 mt-1">
+          <div className="contents sm:flex sm:flex-wrap sm:items-end sm:gap-x-4 sm:gap-y-1 min-w-0 sm:mt-1">
             {hud.showChipsObjective && (
-              <div className="flex items-baseline gap-1.5 min-w-0 shrink">
+              <div className="game-hud-score flex items-baseline gap-1 sm:gap-1.5 min-w-0 shrink" role="group" aria-label={`Chips: ${currentRoundScore.toLocaleString('it-IT')} su ${targetScore.toLocaleString('it-IT')}`} style={{ '--hud-score-chars': currentRoundScore.toLocaleString('it-IT').length + targetScore.toLocaleString('it-IT').length + 3 } as React.CSSProperties}>
                 <motion.span
                   key={currentRoundScore}
                   initial={reduceMotion ? false : { scale: 1.18 }}
@@ -591,7 +633,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
               </div>
             )}
 
-            <div className="order-2 sm:order-3 flex items-center gap-2.5 sm:gap-4 ml-auto shrink-0 pb-0.5">
+            <div className="game-hud-resources sm:order-3 flex items-center gap-2 sm:gap-4 sm:ml-auto shrink-0 sm:pb-0.5">
               <span className="flex items-center gap-1 font-condensed chalk-yellow text-[20px] sm:text-[24px] leading-none">
                 <PixelSuitIcon suit={briscolaSuit} size={14} />
                 <span className="uppercase hidden sm:inline text-[17px]">{briscolaSuit}</span>
@@ -608,8 +650,8 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
               </span>
             </div>
             {/* La Briscola vera, che al tavolo si conta comunque. */}
-            <div className="order-3 sm:order-2 basis-full sm:basis-auto flex items-baseline gap-2 font-condensed tabular-nums flex-wrap pb-0.5">
-              <span className="chalk-dim text-[14px] sm:text-[16px] uppercase tracking-[0.1em]">Briscola</span>
+            <div className={`game-hud-briscola ${hud.showChipsObjective ? '' : 'game-hud-briscola-primary'} sm:order-2 flex items-baseline gap-1 sm:gap-2 font-condensed tabular-nums sm:flex-wrap pb-0.5`}>
+              <span className="hidden sm:inline chalk-dim text-[16px] uppercase tracking-[0.1em]">Briscola</span>
               <span className="chalk-dim text-[14px] sm:text-[16px] uppercase">tu</span>
               <span className={`chalk leading-none ${hud.primary === 'briscola' ? 'text-[22px] sm:text-[26px]' : 'text-[18px] sm:text-[21px]'}`}>
                 {roundPointsTaken}
@@ -621,11 +663,11 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
               </span>
               {hud.showBriscolaObjective && (
                 <span className={`text-[17px] sm:text-[19px] leading-none ${victory.briscolaPassed ? 'chalk-green' : 'chalk-dim'}`}>
-                  {victory.briscolaPassed ? 'fatto · ' : ''}su {BRISCOLA_TARGET_POINTS}
+                  <span className="hidden sm:inline">{victory.briscolaPassed ? 'fatto · ' : ''}su </span><span className="sm:hidden">/</span>{BRISCOLA_TARGET_POINTS}
                 </span>
               )}
               {reachedTarget && hud.showChipsObjective && (
-                <span className="chalk-green text-[15px] sm:text-[17px] leading-none ml-auto uppercase">
+                <span className="hidden sm:inline chalk-green text-[17px] leading-none ml-auto uppercase">
                   Target fatto · si continua per i punti
                 </span>
               )}
@@ -635,7 +677,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
           {/* Il tratto di gesso che si allunga: una riga sotto il numero, non un
               tubo di vetro con dentro un gradiente. */}
           {hud.showChipsObjective && (
-            <div className="mt-1 h-[3px] w-full bg-[rgba(236,229,214,0.12)] overflow-hidden">
+            <div className="game-hud-progress mt-1 h-[3px] w-full bg-[rgba(236,229,214,0.12)] overflow-hidden">
               <motion.div
                 className="h-full"
                 style={{
@@ -783,7 +825,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
         // `justify-between` lo spazio libero si accumulava in due buchi morti
         // in mezzo al panno; qui e' l'arena a tenerselo, che e' dove si guarda.
         ref={feltRef}
-        className={`my-0.5 flex-1 grid grid-rows-[auto_minmax(0,1fr)_auto] bg-gradient-to-b ${tableTheme.feltGradient} border-2 sm:border-3 ${tableTheme.feltBorder} ${tableTheme.feltOuterRing} rounded-2xl pixel-box ${shortScreen ? 'p-1.5' : 'p-2 sm:p-3'} relative shadow-2xl min-h-0 transition-colors duration-500`}
+        className={`my-0.5 flex-1 grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto] bg-gradient-to-b ${tableTheme.feltGradient} border-2 sm:border-3 ${tableTheme.feltBorder} ${tableTheme.feltOuterRing} rounded-2xl pixel-box ${shortScreen ? 'p-1.5' : 'p-2 sm:p-3'} relative shadow-2xl min-h-0 transition-colors duration-500`}
       >
         {/* Only the decoration is clipped. The felt itself must grow with its
             content: clipping it cut the hand and the action buttons off the
@@ -835,10 +877,10 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
         </div>
 
         {/* OPPONENT SECTION (Top of felt table) */}
-        <div ref={topBandRef} className={`flex flex-col z-10 shrink-0 border-b ${tableTheme.dividerBorder} pb-1.5`}>
+        <div ref={topBandRef} data-opponent-band className={`relative flex flex-col min-w-0 z-20 shrink-0 border-b ${tableTheme.dividerBorder} pb-1.5`}>
           <div className="flex items-center justify-between gap-2">
             {/* Opponent Info */}
-            <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="flex-1 min-w-0 flex items-center gap-1.5 sm:gap-2">
               <motion.div
                 key={`${opponentEmotion}-${opponentTrickCard?.id ?? 'none'}`}
                 animate={reduceMotion ? undefined : bodyReaction[opponentEmotion]}
@@ -883,14 +925,28 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                   </>
                 )}
               </motion.div>
-              <div className="flex items-center gap-1.5 leading-none">
-                <span className="font-pixel text-[9px] sm:text-[11px] lg:text-[15px] text-amber-300 font-bold">
-                  {currentBoss ? currentBoss.name : regular.name}
-                </span>
-                {currentBoss && (
-                  <span className={`text-[6.5px] sm:text-[7.5px] lg:text-[9px] bg-red-900 border border-red-500 text-red-200 px-1 lg:px-1.5 py-0.5 rounded font-pixel uppercase font-bold ${reduceMotion ? '' : 'animate-pulse'}`}>
-                    BOSS
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 leading-none min-w-0">
+                  <span className="font-pixel text-[9px] sm:text-[11px] lg:text-[15px] text-amber-300 font-bold truncate sm:whitespace-normal">
+                    {currentBoss ? currentBoss.name : regular.name}
                   </span>
+                  {currentBoss && (
+                    <span className={`hidden sm:inline text-[7.5px] lg:text-[9px] bg-red-900 border border-red-500 text-red-200 px-1 lg:px-1.5 py-0.5 rounded font-pixel uppercase font-bold ${reduceMotion ? '' : 'animate-pulse'}`}>
+                      BOSS
+                    </span>
+                  )}
+                </div>
+                {opponentSpeech && (
+                  <details className="sm:hidden mt-1" name="table-disclosure" data-table-disclosure>
+                    <summary className="table-disclosure-toggle flex items-center gap-1 min-h-8 cursor-pointer font-condensed text-[17px] chalk-dim" aria-label={`Dialogo di ${currentBoss ? currentBoss.name : regular.name}`}>
+                      <span className="truncate min-w-0">&ldquo;{opponentSpeech}&rdquo;</span>
+                      <ChevronDown size={12} className="shrink-0" />
+                    </summary>
+                    <div className="table-note-popover absolute top-full left-0 right-0 mt-1 z-40 bar-paper px-3 py-2 font-condensed text-[20px] leading-snug ink">
+                      <div className="ink-red">{currentBoss ? currentBoss.name : regular.name}</div>
+                      <p>&ldquo;{opponentSpeech}&rdquo;</p>
+                    </div>
+                  </details>
                 )}
               </div>
             </div>
@@ -921,67 +977,83 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
           </div>
 
           <div className="flex flex-col sm:flex-row sm:items-start sm:gap-2">
-          {/* Dedicated Clear Boss Debuff Box (Never cut off or truncated) */}
+          {/* On phones the rule stays one line; its full text floats over the
+              felt so reading it never resizes the hand or the clash. */}
           {currentBoss && (
-            <motion.div
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bar-paper mt-1.5 px-3 py-1.5 flex items-start gap-2 sm:flex-1 sm:min-w-0"
-              style={{ transform: 'rotate(-0.4deg)' }}
-            >
-              <div className="flex-1 min-w-0 text-left">
-                <div className="font-pixel text-[8px] sm:text-[9px] ink-red uppercase tracking-[0.12em] flex items-center gap-1.5 flex-wrap">
-                  <span>Regola della casa · {currentBoss.name}</span>
-                  {bossDebuffNeutralized && (
-                    <span className="ink-green">
-                      scudo · {bossShieldTricks} {bossShieldTricks === 1 ? 'presa' : 'prese'}
-                    </span>
-                  )}
-                </div>
-                <div
-                  className={`font-condensed text-[16px] sm:text-[18px] leading-tight mt-0.5 line-clamp-2 ${
-                    bossDebuffNeutralized ? 'ink-dim line-through' : 'ink'
-                  }`}
-                >
-                  {currentBoss.debuffDescription}
-                </div>
-
-                {/* The rule as it stands this instant. The description says what
-                    the boss does; this says what it is doing to you now. */}
-                {!bossDebuffNeutralized && forcedLeadSuit && isOpeningTrick && (
-                  <div className="mt-1 inline-flex items-center gap-1.5">
-                    <PixelSuitIcon suit={forcedLeadSuit} size={11} />
-                    <span className="font-condensed ink-red text-[16px] sm:text-[18px] uppercase leading-none">
-                      Pedaggio: apri di {getSuitDisplayName(forcedLeadSuit)}
-                    </span>
-                  </div>
-                )}
-                {!bossDebuffNeutralized &&
-                  silencedJokerIndex !== null &&
-                  activeJokers[silencedJokerIndex] && (
-                    <div className="mt-1 inline-flex items-baseline gap-1.5">
-                      <span className="font-condensed ink-red text-[16px] sm:text-[18px] uppercase leading-none">
-                        Zitto: {activeJokers[silencedJokerIndex].name}
+            <details className="sm:flex-1 sm:min-w-0" name={smallUp ? undefined : 'table-disclosure'} open={smallUp} data-table-disclosure={smallUp ? undefined : true}>
+              <summary className="table-disclosure-toggle sm:hidden mt-1 bar-paper px-2 min-h-8 flex items-center gap-2 cursor-pointer font-condensed text-[17px] leading-none">
+                <span className="ink-red shrink-0">Malus</span>
+                <span className={`min-w-0 truncate ${bossDebuffNeutralized ? 'ink-green' : 'ink'}`}>
+                  {bossDebuffNeutralized
+                    ? `Scudo · ${bossShieldTricks} ${bossShieldTricks === 1 ? 'presa' : 'prese'}`
+                    : forcedLeadSuit && isOpeningTrick
+                      ? `Apri di ${getSuitDisplayName(forcedLeadSuit)}`
+                      : silencedJokerIndex !== null && activeJokers[silencedJokerIndex]
+                        ? `Zitto: ${activeJokers[silencedJokerIndex].name}`
+                        : currentBoss.debuffDescription}
+                </span>
+                <ChevronDown size={14} className="ink-red ml-auto shrink-0" />
+              </summary>
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="table-note-popover absolute top-full left-0 right-0 z-40 sm:static bar-paper mt-1.5 px-3 py-1.5 flex items-start gap-2 sm:min-w-0"
+                style={{ transform: 'rotate(-0.4deg)' }}
+              >
+                <div className="flex-1 min-w-0 text-left">
+                  <div className="font-pixel text-[8px] sm:text-[9px] ink-red uppercase tracking-[0.12em] flex items-center gap-1.5 flex-wrap">
+                    <span>Regola della casa · {currentBoss.name}</span>
+                    {bossDebuffNeutralized && (
+                      <span className="ink-green">
+                        scudo · {bossShieldTricks} {bossShieldTricks === 1 ? 'presa' : 'prese'}
                       </span>
-                      {activeJokers.length > 1 && (
-                        <span className="font-condensed ink-dim text-[15px] leading-none">
-                          poi {activeJokers[(silencedJokerIndex + 1) % activeJokers.length].name}
-                        </span>
-                      )}
+                    )}
+                  </div>
+                  <div
+                    className={`font-condensed text-[18px] leading-tight mt-0.5 ${
+                      bossDebuffNeutralized ? 'ink-dim line-through' : 'ink'
+                    }`}
+                  >
+                    {currentBoss.debuffDescription}
+                  </div>
+
+                  {/* The rule as it stands this instant. The description says what
+                      the boss does; this says what it is doing to you now. */}
+                  {!bossDebuffNeutralized && forcedLeadSuit && isOpeningTrick && (
+                    <div className="mt-1 inline-flex items-center gap-1.5">
+                      <PixelSuitIcon suit={forcedLeadSuit} size={11} />
+                      <span className="font-condensed ink-red text-[16px] sm:text-[18px] uppercase leading-none">
+                        Pedaggio: apri di {getSuitDisplayName(forcedLeadSuit)}
+                      </span>
                     </div>
                   )}
-              </div>
-            </motion.div>
+                  {!bossDebuffNeutralized &&
+                    silencedJokerIndex !== null &&
+                    activeJokers[silencedJokerIndex] && (
+                      <div className="mt-1 inline-flex items-baseline gap-1.5">
+                        <span className="font-condensed ink-red text-[16px] sm:text-[18px] uppercase leading-none">
+                          Zitto: {activeJokers[silencedJokerIndex].name}
+                        </span>
+                        {activeJokers.length > 1 && (
+                          <span className="font-condensed ink-dim text-[15px] leading-none">
+                            poi {activeJokers[(silencedJokerIndex + 1) % activeJokers.length].name}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                </div>
+              </motion.div>
+            </details>
           )}
 
-          {/* Multi-line Comic Speech Bubble (Clear, Uncompressed & Legible) */}
+          {/* Desktop keeps its paper note; mobile reads it from the name row. */}
           {opponentSpeech && !shortScreen && (
             <motion.div
               key={opponentSpeech}
               initial={{ opacity: 0, y: -4, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.2 }}
-              className="mt-1.5 self-start max-w-full bar-paper px-3 py-1.5 sm:flex-1 sm:min-w-0"
+              className="hidden sm:block mt-1.5 self-start max-w-full bar-paper px-3 py-1.5 sm:flex-1 sm:min-w-0"
               style={{ transform: 'rotate(-0.5deg)' }}
             >
               <span
