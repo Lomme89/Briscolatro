@@ -13,7 +13,7 @@ interface UnoCardSlotProps {
   buyCost?: number;
   canUse?: boolean;
   isSelected?: boolean;
-  size?: 'sm' | 'pick' | 'md';
+  size?: 'hud' | 'sm' | 'pick' | 'md';
   /** Pickers open a proper inspector, so the inline tooltip only gets in the way. */
   disableTooltip?: boolean;
   /** Overrides the "use it now" tap, e.g. to inspect the card in a booster. */
@@ -36,6 +36,7 @@ export const UnoCardSlot: React.FC<UnoCardSlotProps> = ({
 
   const isSmall = size !== 'md';
   const sizeClasses = {
+    hud: 'w-11 h-14 p-1 text-[8px]',
     sm: 'w-11 sm:w-16 h-15 sm:h-22 p-1 text-[8px]',
     pick: `${PICKER_CARD_BOX} p-1 text-[8px]`,
     md: 'w-16 sm:w-20 h-22 sm:h-28 p-1.5 text-xs',
@@ -117,9 +118,20 @@ export const UnoCardSlot: React.FC<UnoCardSlotProps> = ({
   return (
     <div className="relative group shrink-0" id={`uno-card-${unoCard.id}`}>
       <motion.div
+        role={size === 'hud' ? 'button' : undefined}
+        tabIndex={size === 'hud' ? 0 : undefined}
+        aria-label={size === 'hud' ? unoCard.name : undefined}
+        aria-disabled={size === 'hud' ? !canUse : undefined}
+        onKeyDown={size === 'hud' ? (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            event.currentTarget.click();
+          }
+        } : undefined}
         whileHover={{ scale: 1.08, y: -4 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => {
+          if (size === 'hud' && !canUse) return;
           if (onInspect) {
             sound.playCardSelect();
             onInspect();
@@ -206,7 +218,7 @@ export const UnoCardSlot: React.FC<UnoCardSlotProps> = ({
       </motion.div>
 
       {/* Use / Sell Buttons on Hover (when in game player hand) */}
-      {!isShopItem && (
+      {!isShopItem && size !== 'hud' && (
         <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -bottom-7 left-1/2 -translate-x-1/2 flex gap-1 z-30 whitespace-nowrap">
           {onUse && (
             <button

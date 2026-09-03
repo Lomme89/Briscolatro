@@ -124,10 +124,9 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
 
   return (
     <div
-      // `flex-1` inside the shell's column already fills the screen. Flooring
-      // this at 100dvh on top of that only stacks a second full viewport onto
-      // whatever the shell contributes.
-      className="flex-1 flex flex-col w-full relative overflow-x-clip"
+      // Contain entrance transforms in this screen. Exceptionally short or
+      // zoomed viewports can scroll here without stretching the app shell.
+      className="blind-intro flex-none h-[100dvh] min-h-0 w-full relative overflow-x-hidden overflow-y-auto"
       onClick={skipIntro}
     >
       {/* The venue itself: the felt of this Ante, so arriving somewhere new looks like it. */}
@@ -141,13 +140,13 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
         />
       </div>
 
-      <div className="relative z-10 flex-1 flex flex-col max-w-3xl mx-auto w-full px-3 sm:px-5 py-5 sm:py-8 gap-4">
+      <div className="blind-intro-content relative z-10 min-h-full flex flex-col max-w-3xl mx-auto w-full px-3 sm:px-5 py-3 sm:py-5 gap-3">
         {/* Venue plate */}
         <motion.div
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35 }}
-          className="flex items-center justify-between gap-3 shrink-0"
+          className="blind-intro-venue flex items-center justify-between gap-3 shrink-0"
         >
           {/* L'insegna del posto in cui sei appena entrato: legno e vernice,
               come quella fuori dalla porta. Il nome e' dipinto, quello che
@@ -178,20 +177,20 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
         </motion.div>
 
         {/* The opponent */}
-        <div className="flex-1 flex flex-col items-center justify-center gap-3 min-h-0">
+        <div className="blind-intro-opponent flex-1 flex flex-col items-center justify-center gap-3">
           <AnimatePresence>
             <motion.div
               key={`${ante}-${round}`}
               initial={{ scale: 0.4, y: -60, opacity: 0, rotate: -8 }}
               animate={{ scale: 1, y: 0, opacity: 1, rotate: 0 }}
               transition={{ type: 'spring', damping: 14, stiffness: 220 }}
-              className="flex flex-col items-center"
+              className="blind-intro-identity flex flex-col items-center"
             >
               {/* Chi si siede al tavolo sta nella stessa cornice di legno delle
                   foto appese al muro del locale. Il Boss la fa scaldare, ma
                   resta la stessa cornice: cambia la luce, non il mobile. */}
               <div
-                className="slate-frame relative rounded-[8px] p-2 sm:p-3"
+                className="blind-intro-portrait slate-frame relative rounded-[8px] p-2"
                 style={
                   opponent.isBoss
                     ? { boxShadow: '0 22px 40px -10px rgba(0,0,0,0.82), 0 0 26px rgba(158,58,46,0.35), inset 0 2px 0 rgba(255,226,178,0.3)' }
@@ -215,7 +214,7 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
                 )}
               </div>
 
-              <div className="mt-3 text-center">
+              <div className="blind-intro-name mt-3 text-center">
                 <div
                   className={`font-condensed text-[26px] sm:text-[32px] leading-none uppercase tracking-[0.02em] ${
                     opponent.isBoss ? 'chalk-red' : 'chalk'
@@ -231,36 +230,34 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
           </AnimatePresence>
 
           {/* Speech bubble, typed out */}
-          <div className="w-full max-w-md min-h-[52px] sm:min-h-[58px] flex items-center justify-center px-1">
-            <AnimatePresence>
-              {revealed && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  className="slate-board w-full rounded-[3px] px-3.5 py-2.5"
-                >
-                  {/* Quello che dice l'avversario e' scritto a gesso come tutto
-                      il resto del locale: e' una battuta di stasera, domani la
-                      lavagna e' gia' passata dallo straccio. */}
-                  <p
-                    className={`font-condensed text-[19px] sm:text-[23px] leading-snug text-center ${
-                      opponent.isBoss ? 'chalk-red' : 'chalk'
-                    }`}
+          <div className="w-full max-w-md flex items-center justify-center px-1">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: revealed ? 1 : 0 }}
+              className={`blind-intro-quote slate-board grid w-full rounded-[3px] px-3 py-2 font-condensed text-[19px] sm:text-[23px] leading-snug text-center ${opponent.isBoss ? 'chalk-red' : 'chalk'}`}
+            >
+              {/* Reserve the final line breaks before the typewriter starts. */}
+              <p className="invisible col-start-1 row-start-1" aria-hidden="true">
+                &ldquo;{opponent.quote}&rdquo;
+              </p>
+              {/* Quello che dice l'avversario e' scritto a gesso come tutto
+                  il resto del locale: e' una battuta di stasera, domani la
+                  lavagna e' gia' passata dallo straccio. */}
+              <p className="col-start-1 row-start-1">
+                <span className="sr-only">&ldquo;{opponent.quote}&rdquo;</span>
+                <span aria-hidden="true">&ldquo;{typedQuote}&rdquo;</span>
+                {revealed && typedQuote.length < opponent.quote.length && (
+                  <motion.span
+                    animate={{ opacity: [1, 0] }}
+                    transition={{ repeat: Infinity, duration: 0.7 }}
+                    className="chalk-yellow absolute"
+                    aria-hidden="true"
                   >
-                    &ldquo;{typedQuote}&rdquo;
-                    {typedQuote.length < opponent.quote.length && (
-                      <motion.span
-                        animate={{ opacity: [1, 0] }}
-                        transition={{ repeat: Infinity, duration: 0.7 }}
-                        className="chalk-yellow"
-                      >
-                        |
-                      </motion.span>
-                    )}
-                  </p>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                    |
+                  </motion.span>
+                )}
+              </p>
+            </motion.div>
           </div>
         </div>
 
@@ -273,9 +270,9 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25, duration: 0.35 }}
-          className="shrink-0"
+          className="blind-intro-program shrink-0"
         >
-          <SlateBoard tilt={0} ledge={false}>
+          <SlateBoard tilt={0} ledge={false} compact>
             <div className="flex items-baseline justify-between gap-2 flex-wrap">
               <span className="font-condensed chalk-dim text-[16px] sm:text-[18px] uppercase tracking-[0.12em]">
                 Stasera
@@ -341,7 +338,7 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
-          className="shrink-0 flex justify-center"
+          className="blind-intro-rule shrink-0 flex justify-center"
         >
           <PaperScrap tilt={isBossEncounter(round) ? -1.6 : 1.1} className="w-full max-w-md">
             <div
@@ -373,7 +370,7 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
             sound.playCardSlam();
             onSitDown();
           }}
-          className="group w-full bg-transparent cursor-pointer flex items-center justify-center gap-3 shrink-0 py-2 focus:outline-none"
+          className="blind-intro-action group w-full bg-transparent cursor-pointer flex items-center justify-center gap-3 shrink-0 py-2 focus-visible:outline-2 focus-visible:outline-amber-200"
         >
           <span
             className={`font-condensed text-[32px] sm:text-[40px] leading-none uppercase tracking-[0.02em] opacity-[0.9] transition-[filter,opacity] duration-200 group-hover:opacity-100 group-hover:brightness-[1.15] ${

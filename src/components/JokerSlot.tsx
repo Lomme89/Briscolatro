@@ -16,7 +16,7 @@ interface JokerSlotProps {
   buyCost?: number;
   onBuy?: () => void;
   canAfford?: boolean;
-  size?: 'sm' | 'pick' | 'md';
+  size?: 'hud' | 'sm' | 'pick' | 'md';
   /** Pickers open a proper inspector, so the inline tooltip only gets in the way. */
   disableTooltip?: boolean;
 }
@@ -44,6 +44,7 @@ export const JokerSlot: React.FC<JokerSlotProps> = ({
 
   const isSmall = size !== 'md';
   const sizeClasses = {
+    hud: 'w-11 h-14 p-1 text-[8px]',
     sm: 'w-11 sm:w-16 h-15 sm:h-22 p-1 text-[8px]',
     pick: `${PICKER_CARD_BOX} p-1 text-[8px]`,
     md: 'w-16 sm:w-20 h-22 sm:h-28 p-1.5 text-xs',
@@ -81,6 +82,15 @@ export const JokerSlot: React.FC<JokerSlotProps> = ({
   return (
     <div className="relative group shrink-0">
       <motion.div
+        role={size === 'hud' ? 'button' : undefined}
+        tabIndex={size === 'hud' ? 0 : undefined}
+        aria-label={size === 'hud' ? joker.name : undefined}
+        onKeyDown={size === 'hud' ? (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            event.currentTarget.click();
+          }
+        } : undefined}
         animate={
           isTriggering
             ? {

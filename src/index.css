@@ -36,6 +36,44 @@
   font-family: 'Cabinet Grotesk', system-ui, sans-serif;
 }
 
+/* Keep the introduction inside the available height, including while typing. */
+@media (max-height: 700px) {
+  .blind-intro-content { padding-block: 12px; gap: 8px; }
+  .blind-intro-opponent { gap: 8px; }
+  .blind-intro-portrait svg { width: 80px; height: 80px; }
+}
+
+/* Short landscape screens put the programme beside the opponent. DOM and
+   keyboard order still follow venue, opponent, rules, then the action. */
+@media (min-width: 640px) and (max-height: 700px) {
+  .blind-intro-content {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto 1fr auto auto;
+    column-gap: 20px;
+  }
+  .blind-intro-venue, .blind-intro-action { grid-column: 1 / -1; }
+  .blind-intro-opponent { grid-column: 1; grid-row: 2 / 4; }
+  .blind-intro-program { grid-column: 2; grid-row: 2; align-self: end; }
+  .blind-intro-rule { grid-column: 2; grid-row: 3; }
+  .blind-intro-quote { font-size: 19px; }
+}
+
+@media (max-width: 639px) and (max-height: 600px) {
+  .blind-intro-identity { flex-direction: row; gap: 12px; }
+  .blind-intro-name { margin-top: 0; text-align: left; }
+  .blind-intro-portrait svg { width: 64px; height: 64px; }
+}
+
+@media (max-height: 450px) {
+  .blind-intro-content { padding-block: 8px; }
+}
+
+[data-build-rail] [role='button']:focus-visible {
+  outline: 2px solid var(--chalk-yellow, #e8c766);
+  outline-offset: 2px;
+}
+
 /* Pixel Art Crisp Rendering */
 .pixelated {
   image-rendering: pixelated;

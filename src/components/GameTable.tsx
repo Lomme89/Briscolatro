@@ -25,7 +25,6 @@ import { getRegularForAnte } from '../data/opponents';
 import { TableFeltPattern } from './TableFeltPattern';
 import { CardFaceArt, getJokerArtUrl, getUnoArtUrl } from './CardFaceArt';
 import { ArrowUp, BookOpen, Layers, RotateCcw, Settings } from 'lucide-react';
-import { ChalkRule } from './diegetic/Slate';
 
 interface GameTableModel {
   hud: {
@@ -514,8 +513,8 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
           una lastra sola, non quattro pannelli. Prima riga per il contorno
           (dove sei, che presa e' e i tasti), poi il numero che decide tutto -
           grosso come merita - e sotto la Briscola vera. */}
-      <div className="slate-frame rounded-[10px] p-1.5 sm:p-2 shrink-0 z-30 relative">
-        <div className={`slate-board rounded-[3px] px-2.5 sm:px-4 ${shortScreen ? 'py-1.5' : 'py-2 sm:py-2.5'}`}>
+      <div className="slate-frame rounded-[10px] p-1 shrink-0 z-30 relative" data-game-hud>
+        <div className="slate-board rounded-[3px] px-2 sm:px-3 py-1">
           {/* Riga di servizio: quello che si consulta, non quello che si guarda. */}
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <span
@@ -570,11 +569,9 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
             </div>
           </div>
 
-          <ChalkRule className={`opacity-70 ${shortScreen ? 'my-1' : 'my-1.5'}`} />
-
           {/* Il numero della manche: decide se vivi, quindi e' scritto come il
               piatto del giorno e non come una didascalia. */}
-          <div className="flex flex-wrap items-end gap-x-3 gap-y-1.5 sm:gap-x-5 min-w-0">
+          <div className="flex flex-wrap items-end gap-x-3 gap-y-1 sm:gap-x-4 min-w-0 mt-1">
             {hud.showChipsObjective && (
               <div className="flex items-baseline gap-1.5 min-w-0 shrink">
                 <motion.span
@@ -582,7 +579,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                   initial={reduceMotion ? false : { scale: 1.18 }}
                   animate={{ scale: 1 }}
                   transition={{ type: 'spring', damping: 12, stiffness: 320 }}
-                  className={`font-condensed leading-[0.8] tabular-nums ${shortScreen ? 'text-[26px]' : 'text-[34px] sm:text-[44px]'} ${
+                  className={`font-condensed leading-[0.8] tabular-nums ${shortScreen ? 'text-[26px]' : 'text-[30px] sm:text-[34px]'} ${
                     reachedTarget ? 'chalk-green' : 'chalk'
                   }`}
                 >
@@ -638,7 +635,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
           {/* Il tratto di gesso che si allunga: una riga sotto il numero, non un
               tubo di vetro con dentro un gradiente. */}
           {hud.showChipsObjective && (
-            <div className="mt-1.5 h-[3px] w-full bg-[rgba(236,229,214,0.12)] overflow-hidden">
+            <div className="mt-1 h-[3px] w-full bg-[rgba(236,229,214,0.12)] overflow-hidden">
               <motion.div
                 className="h-full"
                 style={{
@@ -657,7 +654,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
         {/* The build, always on screen. It used to live behind a toggle, which
             hid the one thing that decides whether the blind is beatable. */}
         {(activeJokers.length > 0 || consumables.length > 0) && (
-          <div className="flex items-center gap-2 mt-1.5 pt-1 pb-0.5 border-t border-slate-800 overflow-x-auto overflow-y-hidden no-scrollbar">
+          <div className="flex items-center gap-2 px-1 pt-1.5 pb-1 overflow-x-auto overflow-y-hidden no-scrollbar" role="group" aria-label="Jolly e carte Sola" data-build-rail>
             <div className="flex items-center gap-1 shrink-0">
               {activeJokers.map((joker, i) => (
                 <JokerSlot
@@ -671,7 +668,8 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                   isTriggering={joker.id === triggeringJokerId}
                   isSilenced={silencedJokerIndex === i}
                   showSellButton={false}
-                  size="sm"
+                  size="hud"
+                  disableTooltip
                 />
               ))}
               {activeJokers.length < maxJokers && (
@@ -690,7 +688,8 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                     onUse={() => handleUnoCardClick(unoCard)}
                     canUse={canUseSola}
                     isSelected={activeUnoToApply?.id === unoCard.id}
-                    size="sm"
+                    size="hud"
+                    disableTooltip
                   />
                 ))}
               </div>

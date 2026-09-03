@@ -12,19 +12,21 @@ export function SlateBoard({
   className = '',
   tilt = -0.7,
   ledge = true,
+  compact = false,
 }: {
   children: React.ReactNode;
   className?: string;
   /** Gradi di inclinazione. Zero solo dove la lavagna e' incassata nel layout. */
   tilt?: number;
   ledge?: boolean;
+  compact?: boolean;
 }) {
   return (
     <div
-      className={`slate-frame rounded-[10px] p-2.5 sm:p-3 ${className}`}
+      className={`slate-frame rounded-[10px] ${compact ? 'p-1.5 sm:p-2' : 'p-2.5 sm:p-3'} ${className}`}
       style={tilt ? { transform: `rotate(${tilt}deg)` } : undefined}
     >
-      <div className="slate-board rounded-[3px] px-4 py-5 sm:px-7 sm:py-6 relative overflow-hidden">
+      <div className={`slate-board rounded-[3px] ${compact ? 'px-3 py-3 sm:px-4' : 'px-4 py-5 sm:px-7 sm:py-6'} relative overflow-hidden`}>
         {children}
       </div>
       {ledge && (
