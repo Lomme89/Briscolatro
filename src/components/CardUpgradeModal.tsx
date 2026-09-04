@@ -98,7 +98,7 @@ export const CardUpgradeModal: React.FC<CardUpgradeModalProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[55] bg-slate-950/95 backdrop-blur-md flex flex-col p-2 sm:p-4"
+          className="mobile-dialog fixed inset-0 z-[55] bg-slate-950/95 backdrop-blur-md flex flex-col p-2 sm:p-4"
         >
           <motion.div
             initial={{ scale: 0.92, y: 16 }}

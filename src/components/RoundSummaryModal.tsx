@@ -61,7 +61,7 @@ export const RoundSummaryModal: React.FC<RoundSummaryModalProps> = ({
     .join(' · ');
 
   return (
-    <div className="fixed inset-0 z-50 bg-[rgba(9,6,3,0.86)] flex items-center justify-center p-3 sm:p-4 overflow-y-auto overflow-x-hidden select-none">
+    <div className="mobile-dialog fixed inset-0 z-50 bg-[rgba(9,6,3,0.86)] flex items-center justify-center p-3 sm:p-4 overflow-y-auto overflow-x-hidden select-none">
       <motion.div
         initial={{ y: 18 }}
         animate={{ y: 0 }}

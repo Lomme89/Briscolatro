@@ -1,4 +1,4 @@
-import { ArrowRight, Coins } from 'lucide-react';
+import { ArrowRight, ChevronDown, Coins } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Joker, UnoCard, BoosterPack, Voucher, PlayingCard } from '../types/game';
@@ -152,6 +152,7 @@ export const ShopView: React.FC<ShopViewProps> = ({ model, actions }) => {
   // tooltip built for the table, which in a grid covers the neighbours.
   const [inspectedBoosterItem, setInspectedBoosterItem] = useState<InspectableItem | null>(null);
   const [mobileTab, setMobileTab] = useState<'cards' | 'packs'>('cards');
+  const [inventoryOpen, setInventoryOpen] = useState(() => window.matchMedia('(min-width: 768px)').matches);
 
   // Selected item inspection modal on mobile
   const [inspectedItem, setInspectedItem] = useState<{
@@ -353,12 +354,12 @@ export const ShopView: React.FC<ShopViewProps> = ({ model, actions }) => {
   };
 
   return (
-    <div className="flex-1 flex flex-col p-2 sm:p-4 max-w-6xl mx-auto w-full relative pb-16 sm:pb-4 select-none">
+    <div className="shop-screen flex-1 flex flex-col p-2 sm:p-4 max-w-6xl mx-auto w-full relative pb-16 sm:pb-4 select-none">
       {/* 1. L'INSEGNA DEL BANCONE
           Il negozio e' il bancone del Bar Sport, e sopra il bancone c'e' la
           stessa lavagna del menu: nome dipinto, e a gesso quello che cambia
           ogni sera - dove sei arrivato e quanto ti resta in tasca. */}
-      <div className="slate-frame rounded-[8px] p-1.5 sm:p-2 mb-2.5">
+      <div className="shop-header slate-frame rounded-[8px] p-1.5 sm:p-2 mb-2.5">
         <div className="slate-board rounded-[3px] px-3 py-2 sm:px-4 sm:py-2.5 flex items-center justify-between gap-2 flex-wrap">
           <div className="min-w-0">
             <h2 className="font-pixel painted-sign text-[11px] sm:text-[13px] tracking-[0.12em] leading-tight truncate">
@@ -403,7 +404,12 @@ export const ShopView: React.FC<ShopViewProps> = ({ model, actions }) => {
       </div>
 
       {/* 2. PLAYER INVENTORY DOCK (Jolly & Carte UNO) */}
-      <div className="bg-slate-900/85 border border-slate-700/80 p-2 sm:p-3 rounded-xl pixel-box mb-3 shadow-md">
+      <details className="shop-inventory bg-slate-900/85 border border-slate-700/80 p-2 sm:p-3 rounded-xl pixel-box mb-3 shadow-md" open={inventoryOpen} onToggle={(event) => setInventoryOpen(event.currentTarget.open)}>
+        <summary className="table-disclosure-toggle flex items-center justify-between gap-2 min-h-11 cursor-pointer font-condensed text-xl chalk">
+          <span>La tua dotazione</span>
+          <span className="chalk-dim text-lg">Jolly {jokers.length}/{maxJokers} · Sola {consumables.length}/{maxConsumables}</span>
+          <ChevronDown size={18} className="shrink-0 transition-transform" />
+        </summary>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4">
           {/* Active Jokers Row */}
           <div className="flex flex-col gap-1">
@@ -511,12 +517,13 @@ export const ShopView: React.FC<ShopViewProps> = ({ model, actions }) => {
             onBuy={() => buySlot(consumableSlotOffer, onBuyConsumableSlot)}
           />
         </div>
-      </div>
+      </details>
 
       {/* 3. MOBILE TAB SWITCHER (Hidden on Desktop) */}
-      <div className="flex md:hidden items-center justify-center gap-2 mb-3 bg-slate-900/90 p-1 rounded-xl border border-slate-800 pixel-box">
+      <div className="shop-tabs flex md:hidden items-center justify-center gap-2 mb-3 bg-slate-900/90 p-1 rounded-xl border border-slate-800 pixel-box" role="group" aria-label="Scaffali del negozio">
         <button
           onClick={() => setMobileTab('cards')}
+          aria-pressed={mobileTab === 'cards'}
           className={`flex-1 py-1.5 px-2 rounded-lg font-pixel text-[9.5px] font-bold transition-all flex items-center justify-center gap-1.5 ${
             mobileTab === 'cards'
               ? 'bg-amber-500 text-slate-950 shadow-md'
@@ -528,6 +535,7 @@ export const ShopView: React.FC<ShopViewProps> = ({ model, actions }) => {
         </button>
         <button
           onClick={() => setMobileTab('packs')}
+          aria-pressed={mobileTab === 'packs'}
           className={`flex-1 py-1.5 px-2 rounded-lg font-pixel text-[9.5px] font-bold transition-all flex items-center justify-center gap-1.5 ${
             mobileTab === 'packs'
               ? 'bg-purple-600 text-white shadow-md'

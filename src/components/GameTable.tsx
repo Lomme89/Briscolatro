@@ -108,19 +108,21 @@ function useMediaQuery(query: string): boolean {
  * da cosa c'e' sopra - la regola della casa, la battuta, i jolly - e cambia
  * durante la partita. Una media query sull'altezza dello schermo non lo sa.
  */
-function useMeasuredHeight<T extends HTMLElement>(): [React.RefObject<T | null>, number] {
+function useMeasuredSize<T extends HTMLElement>(): [React.RefObject<T | null>, number, number] {
   const ref = React.useRef<T>(null);
   const [height, setHeight] = useState(0);
+  const [width, setWidth] = useState(0);
   React.useEffect(() => {
     const node = ref.current;
     if (!node) return;
     const observer = new ResizeObserver(([entry]) => {
       setHeight(Math.round(entry.contentRect.height));
+      setWidth(Math.round(entry.contentRect.width));
     });
     observer.observe(node);
     return () => observer.disconnect();
   }, []);
-  return [ref, height];
+  return [ref, height, width];
 }
 
 /** Seconds into the deal at which the stock is turned over. */
@@ -218,11 +220,13 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
   // Coperte e mute: stanno una misura sotto al mazzo, che invece si conta.
   const opponentCardSize = wideTable ? 'sm' : 'xs';
   const avatarSize = wideTable ? 56 : 32;
-  const [feltRef, feltHeight] = useMeasuredHeight<HTMLDivElement>();
-  const [topBandRef, topBandHeight] = useMeasuredHeight<HTMLDivElement>();
+  const [feltRef, feltHeight, feltWidth] = useMeasuredSize<HTMLDivElement>();
+  const [topBandRef, topBandHeight] = useMeasuredSize<HTMLDivElement>();
+  const landscapeTable = useMediaQuery('(min-width: 640px) and (max-height: 500px)');
   const wideScreen = useMediaQuery('(min-width: 1024px)');
   const mediumScreen = useMediaQuery('(min-width: 768px)');
   const smallUp = useMediaQuery('(min-width: 640px)');
+  const desktopNotes = smallUp && !landscapeTable;
   const cardHeight = (size: 'sm' | 'md' | 'lg') => {
     const step = wideScreen ? 3 : mediumScreen ? 2 : smallUp ? 1 : 0;
     if (size === 'sm') return [80, 104, 104, 104][step];
@@ -231,24 +235,34 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
   };
   // Quello che la mano si porta dietro oltre alle carte: la riga di stato e i
   // due tasti.
-  const HAND_CHROME = 82;
+  const HAND_CHROME = 108;
   const free = feltHeight > 0 ? feltHeight - topBandHeight - 26 : 0;
   const measured = free > 0;
 
   // La mano viene prima: e' quella che si tocca. Prende la misura piu' grande
   // che lascia comunque in piedi una presa leggibile.
-  const handCardSize: 'sm' | 'md' | 'lg' = !measured
+  const handCardSize: 'sm' | 'md' | 'lg' = landscapeTable
+    ? (free >= cardHeight('md') + HAND_CHROME ? 'md' : 'sm')
+    : !measured
     ? 'md'
-    : cardHeight('lg') + HAND_CHROME + cardHeight('md') <= free
+    : (smallUp || feltWidth >= 336) && cardHeight('lg') + HAND_CHROME + cardHeight('md') <= free
       ? 'lg'
       : cardHeight('md') + HAND_CHROME + cardHeight('sm') <= free
         ? 'md'
         : 'sm';
 
-  const arenaBudget = measured ? free - cardHeight(handCardSize) - HAND_CHROME : 0;
+  const arenaBudget = landscapeTable ? free : measured ? free - cardHeight(handCardSize) - HAND_CHROME : 0;
+  const cardWidth = (size: 'sm' | 'md' | 'lg') => {
+    const step = wideScreen ? 3 : mediumScreen ? 2 : smallUp ? 1 : 0;
+    if (size === 'sm') return [56, 72, 72, 72][step];
+    if (size === 'md') return [80, 96, 104, 104][step];
+    return [96, 114, 128, 140][step];
+  };
+  const clashWidth = landscapeTable ? feltWidth * 0.48 - 90 : !smallUp ? feltWidth - 90 : feltWidth - (wideTable ? 300 : 160);
   const fits = (size: 'sm' | 'md' | 'lg', stacked: boolean) =>
-    arenaBudget >= cardHeight(size) * (stacked ? 2 : 1) + (stacked ? 10 : 0);
-  const stackedClash = fits('md', true);
+    arenaBudget >= cardHeight(size) * (stacked ? 2 : 1) + (stacked ? 10 : 0)
+    && clashWidth >= cardWidth(size) * (stacked ? 1 : 2) + (stacked ? 0 : 16);
+  const stackedClash = smallUp && !landscapeTable && fits('md', true);
   const trickCardSize: 'sm' | 'md' | 'lg' = stackedClash
     ? fits('lg', true)
       ? 'lg'
@@ -528,7 +542,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
       // `max-w-6xl` lasciava il tavolo largo come un foglio di calcolo: su
       // desktop il panno si allargava e le carte restavano dov'erano, quindi
       // ogni cosa galleggiava lontana dall'altra. Un tavolo ha una misura.
-      className="flex-1 flex flex-col justify-between p-1.5 sm:p-2 max-w-3xl mx-auto w-full relative h-[100dvh] max-h-[100dvh] min-h-0 select-none"
+      className="game-screen flex-1 flex flex-col justify-between p-1.5 sm:p-2 max-w-3xl mx-auto w-full relative h-[100dvh] max-h-[100dvh] min-h-0 select-none"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.5rem)' }}
     >
       {/* 1. IL BANCO DEL LOCALE
@@ -825,7 +839,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
         // `justify-between` lo spazio libero si accumulava in due buchi morti
         // in mezzo al panno; qui e' l'arena a tenerselo, che e' dove si guarda.
         ref={feltRef}
-        className={`my-0.5 flex-1 grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto] bg-gradient-to-b ${tableTheme.feltGradient} border-2 sm:border-3 ${tableTheme.feltBorder} ${tableTheme.feltOuterRing} rounded-2xl pixel-box ${shortScreen ? 'p-1.5' : 'p-2 sm:p-3'} relative shadow-2xl min-h-0 transition-colors duration-500`}
+        className={`game-felt my-0.5 flex-1 grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto] bg-gradient-to-b ${tableTheme.feltGradient} border-2 sm:border-3 ${tableTheme.feltBorder} ${tableTheme.feltOuterRing} rounded-2xl pixel-box ${shortScreen ? 'p-1.5' : 'p-2 sm:p-3'} relative shadow-2xl min-h-0 transition-colors duration-500`}
       >
         {/* Only the decoration is clipped. The felt itself must grow with its
             content: clipping it cut the hand and the action buttons off the
@@ -842,7 +856,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
 
         {/* Felt Watermark Venue Stamp (Top-Right) */}
         <div
-          className={`absolute top-2 right-2.5 z-10 pointer-events-none hidden md:flex items-center gap-1.5 font-pixel text-[8px] sm:text-[9px] ${tableTheme.accentBadge.text} bg-black/40 px-2 py-0.5 rounded-lg border border-white/10 backdrop-blur-xs`}
+          className={`game-theme absolute top-2 right-2.5 z-10 pointer-events-none hidden md:flex items-center gap-1.5 font-pixel text-[8px] sm:text-[9px] ${tableTheme.accentBadge.text} bg-black/40 px-2 py-0.5 rounded-lg border border-white/10 backdrop-blur-xs`}
         >
           <span>{tableTheme.icon}</span>
           <span className="uppercase font-bold tracking-wider">{tableTheme.name}</span>
@@ -952,7 +966,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
             </div>
 
             {/* Opponent Face-down Cards */}
-            <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+            <div className="game-opponent-cards flex items-center gap-1 sm:gap-1.5 shrink-0">
               {hasVision && (
                 <motion.span
                   initial={{ opacity: 0, scale: 0.8 }}
@@ -980,7 +994,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
           {/* On phones the rule stays one line; its full text floats over the
               felt so reading it never resizes the hand or the clash. */}
           {currentBoss && (
-            <details className="sm:flex-1 sm:min-w-0" name={smallUp ? undefined : 'table-disclosure'} open={smallUp} data-table-disclosure={smallUp ? undefined : true}>
+            <details className="game-boss-note sm:flex-1 sm:min-w-0" name={desktopNotes ? undefined : 'table-disclosure'} open={desktopNotes} data-table-disclosure={desktopNotes ? undefined : true}>
               <summary className="table-disclosure-toggle sm:hidden mt-1 bar-paper px-2 min-h-8 flex items-center gap-2 cursor-pointer font-condensed text-[17px] leading-none">
                 <span className="ink-red shrink-0">Malus</span>
                 <span className={`min-w-0 truncate ${bossDebuffNeutralized ? 'ink-green' : 'ink'}`}>
@@ -1074,11 +1088,20 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
             Three columns with the clash in the auto-sized middle one put it back
             on the real centre of the felt, with the stock hanging off its own
             side. */}
-        <div className="min-h-0 my-1 py-1 grid grid-cols-[1fr_auto_1fr] items-center gap-1 sm:gap-3 z-10 relative px-1 min-w-0">
+        <div className="game-arena min-h-0 my-1 py-1 grid grid-cols-[1fr_auto_1fr] items-center gap-1 sm:gap-3 z-10 relative px-1 min-w-0">
           {/* Left: Deck & Briscola Face-Up Card */}
           <div 
             className="col-start-1 flex flex-col items-center cursor-pointer group shrink-0 justify-self-start"
             onClick={onOpenDeckViewer}
+            role="button"
+            tabIndex={0}
+            aria-label="Apri il mazzo"
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                onOpenDeckViewer();
+              }
+            }}
             title="Ispettore Mazzo (Tocca per vedere)"
           >
             <div className="relative flex items-center justify-center min-w-[70px] sm:min-w-[80px] lg:min-w-[150px]">
@@ -1149,7 +1172,6 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
               )}
               {/* Il posto vuoto di fronte al mazzo: senza, il centro del panno
               cadeva sempre un mazzo piu' a destra di dove lo si guarda. */}
-          <div className="col-start-3" aria-hidden />
         </div>
 
             {/* Briscola Suit Pill Under Deck */}
@@ -1299,7 +1321,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
         </div>
 
         {/* 3. PLAYER HAND & ACTION CONTROLS (THE MAIN FOCUS) */}
-        <div className={`z-10 flex flex-col items-center shrink-0 border-t ${tableTheme.dividerBorder} pt-1`}>
+        <div className={`game-hand z-10 flex flex-col items-center shrink-0 border-t ${tableTheme.dividerBorder} pt-1`}>
           {/* One line, one job: what happens if you commit. When the opponent has
               already led the outcome is known, so it replaces the generic prompt. */}
           <div className="mb-1.5 flex items-center justify-center gap-1.5 leading-none min-h-[18px]">
@@ -1342,7 +1364,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
 
           {/* The Player Hand Cards with Fan Spread and Gentle Floating Idle */}
           <div
-            className="relative flex items-center justify-center my-1.5 w-full max-w-md sm:max-w-lg px-2"
+            className="game-hand-cards relative flex items-center justify-center mt-6 mb-2 w-full max-w-md sm:max-w-lg px-2"
             style={{ minHeight: cardHeight(handCardSize) }}
           >
             {/* Cards overlap instead of spilling past the felt when an effect
@@ -1368,9 +1390,9 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                     initial={{ x: -150, y: -110, opacity: 0, scale: 0.45, rotate: -40 }}
                     animate={{
                       x: 0,
-                      y: isSelected ? -20 : reduceMotion ? fanY : [fanY, fanY - 4, fanY],
+                      y: isSelected ? 0 : reduceMotion ? fanY : [fanY, fanY - 4, fanY],
                       rotate: isSelected ? 0 : reduceMotion ? fanRotate : [fanRotate, fanRotate + (offset < 0 ? -0.8 : offset > 0 ? 0.8 : 0), fanRotate],
-                      scale: isSelected ? 1.08 : 1,
+                      scale: 1,
                       opacity: 1,
                       zIndex: isSelected ? 30 : 10 + i,
                     }}

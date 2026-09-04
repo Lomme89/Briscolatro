@@ -44,7 +44,7 @@ export function TitleScreen({
   const stroke = { size: 22, strokeWidth: 1.6 } as const;
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 sm:py-10 z-10 relative">
+    <div className="title-screen flex-1 flex flex-col items-center justify-center px-4 py-8 sm:py-10 z-10 relative">
       <motion.div
         initial={{ y: 18 }}
         animate={{ y: 0 }}

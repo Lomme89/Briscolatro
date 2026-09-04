@@ -60,7 +60,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
   const winRate = totalTricks > 0 ? Math.round((totalTricksWon / totalTricks) * 100) : 0;
 
   return (
-    <div className="fixed inset-0 z-50 bg-[rgba(9,6,3,0.9)] flex items-center justify-center p-3 sm:p-4 overflow-y-auto overflow-x-hidden select-none">
+    <div className="mobile-dialog fixed inset-0 z-50 bg-[rgba(9,6,3,0.9)] flex items-center justify-center p-3 sm:p-4 overflow-y-auto overflow-x-hidden select-none">
       <motion.div
         initial={{ y: 20 }}
         animate={{ y: 0 }}

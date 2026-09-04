@@ -78,7 +78,7 @@ export const CardInspectorModal: React.FC<CardInspectorModalProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm"
+          className="mobile-dialog fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm"
         >
           <motion.div
             initial={{ scale: 0.9, y: 20, opacity: 0 }}

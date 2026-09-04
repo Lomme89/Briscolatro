@@ -14,7 +14,7 @@ export function RunConfirmationModal({
   if (!confirmation) return null;
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 p-6">
+    <div className="mobile-dialog fixed inset-0 z-[90] flex items-center justify-center bg-black/80 p-6">
       <div className="w-full max-w-sm bg-slate-950 border-3 border-amber-500 rounded-2xl p-5 pixel-box text-center">
         <p className="font-pixel text-xs text-amber-300">
           {confirmation === 'new_run' ? 'INIZIARE UNA NUOVA RUN?' : 'ABBANDONARE LA RUN?'}

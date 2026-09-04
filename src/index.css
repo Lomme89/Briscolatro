@@ -36,6 +36,98 @@
   font-family: 'Cabinet Grotesk', system-ui, sans-serif;
 }
 
+/* The phone's usable screen includes the browser chrome and safe areas. */
+.game-screen {
+  padding: max(6px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
+}
+.title-screen, .shop-screen, .blind-intro-content {
+  padding-top: max(16px, env(safe-area-inset-top));
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+button, summary, [role='button'], input { touch-action: manipulation; }
+button:focus-visible, [role='button']:focus-visible, input:focus-visible {
+  outline: 2px solid var(--chalk-yellow);
+  outline-offset: 3px;
+}
+.mobile-dialog {
+  padding-top: max(12px, env(safe-area-inset-top));
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+  padding-left: max(12px, env(safe-area-inset-left));
+  padding-right: max(12px, env(safe-area-inset-right));
+}
+.mobile-dialog input[type='range'] { min-height: 44px; min-width: 0; }
+.shop-inventory[open] > summary { margin-bottom: 12px; }
+.shop-inventory[open] > summary > svg { transform: rotate(180deg); }
+
+@media (max-height: 740px) {
+  .title-screen { padding-block: 16px; }
+  /* The decorative fan yields to the menu on short screens. */
+  .title-screen > div:first-child > div:first-child { display: none; }
+  .title-screen .slate-board { padding-block: 12px; }
+  .title-screen > div:last-child { margin-top: 24px; }
+}
+
+@media (max-width: 639px) {
+  .game-arena { grid-template-columns: 72px minmax(0, 1fr); gap: 8px; }
+  .game-hand { padding-top: 10px; }
+  .game-hand-cards { padding-inline: 0; }
+  .game-hud-board { padding-block: 6px; }
+  .game-hud-tools summary { min-width: 44px; min-height: 44px; display: grid; place-items: center; }
+  .game-hud-briscola { gap: 4px; }
+  [data-opponent-band] summary { min-height: 44px; }
+  .game-hand > div:first-child { flex-wrap: wrap; text-align: center; }
+  .title-screen { padding-inline: 20px; }
+  .title-screen .slate-board { padding-inline: 16px; }
+  .title-screen .chalk-write { min-height: 48px; }
+  .title-screen > div:last-child { margin-top: 32px; }
+  .blind-intro-content { gap: 16px; }
+  .blind-intro-opponent { flex: 1 0 auto; padding-block: 20px; }
+  .blind-intro-action { min-height: 52px; }
+  .mobile-dialog > div {
+    max-height: 100%;
+    min-height: 0;
+    overscroll-behavior: contain;
+  }
+  .mobile-dialog { max-height: 100dvh; }
+  .mobile-dialog button { min-height: 44px; }
+  .mobile-dialog button:has(> svg:only-child) { min-width: 44px; }
+  .mobile-dialog .font-retro { font-family: var(--font-condensed); font-size: 18px; line-height: 1.25; }
+  .mobile-dialog input[type='range'] { width: clamp(80px, 26vw, 128px); }
+  .shop-screen { padding-inline: 12px; gap: 4px; }
+  .shop-header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30; }
+  .shop-header > div { display: grid; grid-template-columns: minmax(0, 1fr); padding-inline: 8px; }
+  .shop-header > div > div:first-child { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .shop-header > div > div:last-child { justify-content: space-between; width: 100%; gap: 12px; }
+  .shop-header h2 { flex-shrink: 0; }
+  .shop-inventory > summary { gap: 6px; }
+  .shop-tabs button { min-height: 48px; font-size: 8px; line-height: 1.6; }
+  .shop-screen button { min-height: 44px; }
+  .shop-screen .font-retro { font-family: var(--font-condensed); font-size: 18px; line-height: 1.25; }
+}
+
+/* In landscape the hand sits beside the trick, with both controls in reach. */
+@media (min-width: 640px) and (max-height: 500px) {
+  .game-screen { max-width: 1100px; }
+  .game-felt {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    column-gap: 16px;
+    padding: 6px 10px;
+  }
+  [data-opponent-band] { grid-column: 1 / -1; padding-bottom: 4px; }
+  .game-opponent-cards > div { width: 30px; height: 44px; }
+  .game-theme { display: none; }
+  .game-boss-note > summary { display: flex; min-height: 36px; }
+  .game-boss-note[open] > div { position: absolute; inset: 100% 0 auto; z-index: 40; max-height: 50dvh; overflow-y: auto; }
+  .game-arena { grid-column: 1; grid-row: 2; grid-template-columns: 72px minmax(0, 1fr); gap: 8px; }
+  .game-hand { grid-column: 2; grid-row: 2; border-top: 0; justify-content: center; }
+  .game-hand-cards { margin-top: 20px; }
+  .game-hand > div:first-child span { font-size: 17px; }
+  .game-hand button { min-height: 44px; padding-block: 6px; }
+  .game-hud-board { padding-block: 3px; }
+  .title-screen { padding-block: 24px; }
+}
+
 /* Keep the introduction inside the available height, including while typing. */
 @media (max-height: 700px) {
   .blind-intro-content { padding-block: 12px; gap: 8px; }
@@ -99,8 +191,8 @@
     container-type: inline-size;
     white-space: nowrap;
   }
-  .game-hud-score > span:first-child { font-size: min(26px, calc(180cqw / var(--hud-score-chars))); }
-  .game-hud-score > span:last-child { font-size: min(19px, calc(160cqw / var(--hud-score-chars))); }
+  .game-hud-score > span:first-child { font-size: min(34px, calc(180cqw / var(--hud-score-chars))); }
+  .game-hud-score > span:last-child { font-size: min(22px, calc(160cqw / var(--hud-score-chars))); }
   .game-hud-briscola { grid-area: 2 / 3 / 3 / 5; justify-self: end; white-space: nowrap; }
   .game-hud-briscola-primary { grid-column: 1 / -1; justify-self: start; }
   .game-hud-progress { grid-column: 1 / -1; }

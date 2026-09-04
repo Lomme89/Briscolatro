@@ -195,6 +195,17 @@ export const PixelCard: React.FC<PixelCardProps> = ({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={handleMouseLeave}
       onClick={disabled ? undefined : onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick && !disabled ? 0 : undefined}
+      aria-label={onClick ? `${info.name} di ${getSuitDisplayName(card.suit)}` : undefined}
+      aria-pressed={onClick ? selected : undefined}
+      aria-disabled={onClick ? disabled : undefined}
+      onKeyDown={onClick ? (event) => {
+        if (!disabled && (event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault();
+          onClick();
+        }
+      } : undefined}
       style={{
         transformPerspective: 800,
         transformStyle: 'preserve-3d',

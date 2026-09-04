@@ -30,7 +30,7 @@ export const EndlessOfferModal: React.FC<EndlessOfferModalProps> = ({
   const firstTier = ENDLESS_TIERS[0];
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto select-none">
+    <div className="mobile-dialog fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto select-none">
       <motion.div
         initial={{ scale: 0.9, opacity: 0, y: 15 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
