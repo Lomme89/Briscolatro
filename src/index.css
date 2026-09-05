@@ -714,7 +714,7 @@ button:focus-visible, [role='button']:focus-visible, input:focus-visible {
 }
 
 /* Quiet brass lettering on the table edge, clear of the chalk treatment. */
-.game-hud-board, .game-hud-board .font-condensed { font-family: var(--font-display); text-shadow: none; }
+.game-hud-board, .game-hud-board .font-condensed { font-family: var(--font-condensed); text-shadow: none; }
 .game-hud-board { --chalk-dim: #b7beb7; --chalk-yellow: #d8ba7e; }
 .game-hud-heading { min-height: 40px; gap: 12px; border-bottom-color: #2b3830; }
 .game-hud-heading .game-hud-ante { font-size: 12px; font-weight: 700; letter-spacing: .04em; }
@@ -743,4 +743,74 @@ button:focus-visible, [role='button']:focus-visible, input:focus-visible {
 @media (min-width: 640px) and (max-height: 500px) {
   .game-hud-score > span:first-child { font-size: 24px; }
   .game-hud-stats { padding-top: 4px; }
+}
+
+/* Match the table's pixel lettering, with a separate Briscola balance. */
+.game-hud-heading .game-hud-ante, .game-hud-heading .game-hud-trick, .game-hud-venue { font-size: 17px; font-weight: 400; }
+.game-hud-score > span:first-child { font-weight: 400; letter-spacing: 0; }
+.game-hud-score > span:last-child, .game-hud-target-label { font-size: 17px; }
+.game-hud-resources > span { font-size: 21px; font-weight: 400; }
+.game-hud-suit-name, .game-hud-briscola > span { font-size: 16px; }
+.game-hud-briscola > .chalk, .game-hud-briscola > .chalk-red { font-size: 21px; font-weight: 400; }
+.game-hud-briscola { flex-wrap: wrap; }
+.game-hud-menu button { font-size: 20px; }
+.game-hud-lead { flex-basis: 100%; min-width: 110px; }
+.game-hud-lead-track { position: relative; height: 5px; background: #d4756a; overflow: hidden; border-radius: 2px; }
+.game-hud-lead-track > span { display: block; height: 100%; background: #9ec98a; transition: width 200ms ease-out; }
+.game-hud-lead-track::after { content: ''; position: absolute; left: 50%; top: 0; height: 100%; width: 1px; background: #121d19; }
+.game-hud-lead-track[data-empty='true'], .game-hud-lead-track[data-empty='true'] > span { background: #526052; }
+.game-hud-lead-caption { display: block; color: #cbd0c5; text-align: center; font-size: 14px; line-height: 1.1; margin-top: 3px; }
+@media (prefers-reduced-motion: reduce) { .game-hud-lead-track > span { transition: none; } }
+
+/* The hand is the action centre; its utilities recede beneath the primary move. */
+.game-hand-actions { padding-inline: 0; }
+.game-hand-actions button { text-shadow: none; border-width: 1px; }
+.game-hand-actions button:first-child:enabled { background: #d8ba7e; color: #17231c; border-color: #d8ba7e; }
+.game-hand-actions button:first-child:enabled:hover { background: #eed5a0; }
+.game-hand-actions button:disabled { opacity: 1; background: #142019; color: #a9b3a9; border-color: #405045; }
+.game-hand-actions button:last-child:enabled { background: #27332a; color: #efb8a5; border-color: #a5725f; }
+.game-turn-status { width: 100%; padding-top: 6px; min-height: 28px; text-wrap: balance; }
+.game-turn-status .animate-ping { animation: none; }
+.game-hand .table-card-drawer-trigger { margin-top: 5px; background: transparent; box-shadow: none; color: #d8ba7e; border-radius: 0; }
+.game-hand .table-card-drawer-trigger:hover { background: #d8ba7e0d; }
+.game-hand .table-card-drawer-counts { color: #b7beb7; }
+.game-hud-stats { grid-template-columns: minmax(0,1fr) minmax(180px,1fr) auto; }
+.game-hud-lead { min-width: 0; }
+.game-hud-score > span:first-child { font-size: 36px; }
+@media (max-width: 639px) {
+  .game-hud-stats { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+  .game-hud-score > span:first-child { font-size: 32px; }
+  .game-hud-briscola { justify-content: space-between; }
+  .game-hud-resources { gap: 8px; }
+  .game-hud-briscola > span { font-size: 15px; }
+  .game-hud-briscola > .chalk, .game-hud-briscola > .chalk-red { font-size: 20px; }
+}
+.sola-confirm { position: fixed; inset: 0; margin: auto; width: min(420px, calc(100% - 24px)); max-height: calc(100dvh - 24px); padding: 0; border: 1px solid #75613d; border-radius: 12px; background: #1b2922; color: #ece5d6; font-family: var(--font-condensed); overflow-y: auto; overscroll-behavior: contain; box-shadow: 0 16px 48px #0006; }
+.sola-confirm::backdrop { background: #070c08c7; }
+.sola-confirm-content { padding: 18px; }
+.sola-confirm header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+.sola-confirm h2 { font-size: 27px; color: #e8c766; line-height: 1.1; }
+.sola-confirm-close { display: grid; place-items: center; min-width: 44px; min-height: 44px; cursor: pointer; }
+.sola-confirm-card { display: flex; align-items: flex-start; gap: 16px; }
+.sola-confirm-card > div:last-child { min-width: 0; }
+.sola-confirm h3 { font-size: 23px; line-height: 1.1; margin-bottom: 8px; color: #f3e7bd; }
+.sola-confirm p { font-size: 20px; line-height: 1.25; }
+.sola-confirm legend { font-size: 20px; padding-top: 16px; margin-bottom: 8px; }
+.sola-confirm-suits { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 6px; }
+.sola-confirm-suits button { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 2px; border: 1px solid #526052; border-radius: 5px; font-size: 17px; cursor: pointer; }
+.sola-confirm-suits button[aria-pressed='true'] { background: #e8c766; color: #17231c; border-color: #e8c766; }
+.sola-confirm button:disabled { opacity: .55; cursor: not-allowed; }
+.sola-confirm .sola-confirm-note { color: #c3c0af; font-size: 18px; margin-block: 18px; }
+.sola-confirm footer { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sola-confirm footer button { min-height: 44px; font-size: 22px; border-radius: 5px; cursor: pointer; border: 1px solid #526052; }
+.sola-confirm footer button:last-child { background: #e8c766; color: #17231c; border-color: #e8c766; }
+.sola-confirm footer button:hover:enabled { filter: brightness(1.1); }
+@media (min-width: 640px) and (max-height: 500px) {
+  .game-hand { display: grid; grid-template-columns: minmax(0,1fr) 44px; gap: 4px; align-content: center; min-height: 0; }
+  .game-hand > div { grid-column: 1 / -1; }
+  .game-hand .game-turn-status { padding-top: 0; min-height: 18px; margin-bottom: 0; }
+  .game-hand .game-hand-cards { margin-top: 8px; margin-bottom: 2px; }
+  .game-hand .game-hand-actions { grid-column: 1; }
+  .game-hand .table-card-drawer-trigger { grid-column: 2; margin-top: 0; min-width: 44px; padding: 4px; border: 1px solid #75613d; border-radius: 5px; }
+  .game-hand .table-card-drawer-trigger span, .game-hand .table-card-drawer-trigger svg:last-child { display: none; }
 }

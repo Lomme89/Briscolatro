@@ -233,14 +233,14 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
   };
   // Quello che la mano si porta dietro oltre alle carte: la riga di stato e i
   // due tasti.
-  const HAND_CHROME = 108;
+  const HAND_CHROME = 152;
   const free = feltHeight > 0 ? feltHeight - topBandHeight - 26 : 0;
   const measured = free > 0;
 
   // La mano viene prima: e' quella che si tocca. Prende la misura piu' grande
   // che lascia comunque in piedi una presa leggibile.
   const handCardSize: 'sm' | 'md' | 'lg' = landscapeTable
-    ? (free >= cardHeight('md') + HAND_CHROME ? 'md' : 'sm')
+    ? 'sm'
     : !measured
     ? 'md'
     : (smallUp || feltWidth >= 336) && cardHeight('lg') + HAND_CHROME + cardHeight('md') <= free
@@ -636,7 +636,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                 {roundPointsTaken}
               </span>
               <span className="chalk-dim text-[16px] leading-none">&mdash;</span>
-              <span className="chalk-dim text-[14px] sm:text-[16px] uppercase">lui</span>
+              <span className="chalk-dim text-[14px] sm:text-[16px] uppercase">AI</span>
               <span className={`chalk-red leading-none ${hud.primary === 'briscola' ? 'text-[22px] sm:text-[26px]' : 'text-[18px] sm:text-[21px]'}`}>
                 {opponentPointsTaken}
               </span>
@@ -645,6 +645,12 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                   <span className="hidden sm:inline">{victory.briscolaPassed ? 'fatto · ' : ''}su </span><span className="sm:hidden">/</span>{BRISCOLA_TARGET_POINTS}
                 </span>
               )}
+              <div className="game-hud-lead" role="img" aria-label={`Punti Briscola: tu ${roundPointsTaken}, AI ${opponentPointsTaken}. ${roundPointsTaken === opponentPointsTaken ? 'Parità' : roundPointsTaken > opponentPointsTaken ? 'Sei in vantaggio' : 'AI in vantaggio'}`}>
+                <div className="game-hud-lead-track" data-empty={roundPointsTaken + opponentPointsTaken === 0}>
+                  <span style={{ width: `${roundPointsTaken + opponentPointsTaken === 0 ? 50 : roundPointsTaken / (roundPointsTaken + opponentPointsTaken) * 100}%` }} />
+                </div>
+                <span className="game-hud-lead-caption">{roundPointsTaken === opponentPointsTaken ? 'Parità' : roundPointsTaken > opponentPointsTaken ? `Tu +${roundPointsTaken - opponentPointsTaken}` : `AI +${opponentPointsTaken - roundPointsTaken}`}</span>
+              </div>
               {reachedTarget && hud.showChipsObjective && (
                 <span className="hidden sm:inline chalk-green text-[17px] leading-none ml-auto uppercase">
                   Target fatto · si continua per i punti
@@ -1192,7 +1198,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
         <div className={`game-hand z-10 flex flex-col items-center shrink-0 border-t ${tableTheme.dividerBorder} pt-1`}>
           {/* One line, one job: what happens if you commit. When the opponent has
               already led the outcome is known, so it replaces the generic prompt. */}
-          <div className="mb-1.5 flex items-center justify-center gap-1.5 leading-none min-h-[18px]">
+          <div className="game-turn-status mb-1.5 flex items-center justify-center gap-1.5 leading-none min-h-[18px]" role="status">
             {followPreview ? (
               <motion.div
                 key={`${followPreview.wins}-${followPreview.points}-${followPreview.baseMult}`}
@@ -1223,7 +1229,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                   {isDealing
                     ? 'Si distribuiscono le carte...'
                     : isPlayerTurn
-                      ? 'Tocca una carta per giocare'
+                      ? activeUnoToApply ? 'Scegli la carta a cui applicare la Sola' : selectedCard ? 'Premi Gioca per calare la carta' : 'Scegli una carta dalla mano'
                       : 'L\'avversario sta giocando...'}
                 </span>
               </>
@@ -1258,8 +1264,8 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                     initial={{ x: -150, y: -110, opacity: 0, scale: 0.45, rotate: -40 }}
                     animate={{
                       x: 0,
-                      y: isSelected ? 0 : reduceMotion ? fanY : [fanY, fanY - 4, fanY],
-                      rotate: isSelected ? 0 : reduceMotion ? fanRotate : [fanRotate, fanRotate + (offset < 0 ? -0.8 : offset > 0 ? 0.8 : 0), fanRotate],
+                      y: isSelected ? -8 : fanY,
+                      rotate: isSelected ? 0 : fanRotate,
                       scale: 1,
                       opacity: 1,
                       zIndex: isSelected ? 30 : 10 + i,
@@ -1267,14 +1273,14 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                     transition={{
                       x: { type: 'spring', damping: 18, stiffness: 260, delay: dealDelay },
                       y: {
-                        repeat: isSelected || reduceMotion ? 0 : Infinity,
-                        duration: 2.8 + i * 0.4,
+                        repeat: 0,
+                        duration: reduceMotion ? 0 : 0.2,
                         ease: 'easeInOut',
                         delay: dealDelay,
                       },
                       rotate: {
-                        repeat: isSelected || reduceMotion ? 0 : Infinity,
-                        duration: 3.4 + i * 0.4,
+                        repeat: 0,
+                        duration: reduceMotion ? 0 : 0.2,
                         ease: 'easeInOut',
                         delay: dealDelay,
                       },
@@ -1308,7 +1314,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                     <PixelCard
                       card={card}
                       selected={isSelected}
-                      disabled={!canPlay || !isCardPlayable(card)}
+                      disabled={activeUnoToApply ? !canUseSola : !canPlay || !isCardPlayable(card)}
                       onClick={() => handleCardClick(card)}
                       isBriscola={card.suit === briscolaSuit}
                       size={handCardSize}
@@ -1347,7 +1353,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
           )}
 
           {/* Ergonomic Hand Action Buttons */}
-          <div className="flex items-center gap-2 w-full max-w-md sm:max-w-lg justify-center px-2 mb-0.5">
+          <div className="game-hand-actions flex items-center gap-2 w-full max-w-md sm:max-w-lg justify-center px-2 mb-0.5">
             <button
               type="button"
               onClick={handlePlaySelected}
@@ -1383,6 +1389,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
             type="button"
             className="table-card-drawer-trigger"
             aria-haspopup="dialog"
+            aria-label={`Portacarte: ${activeJokers.length} Jolly e ${consumables.length} Sola`}
             aria-expanded={cardDrawerOpen}
             aria-controls="table-card-drawer"
             onClick={() => setCardDrawerOpen(true)}
