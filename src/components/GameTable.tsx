@@ -551,19 +551,19 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
           (dove sei, che presa e' e i tasti), poi il numero che decide tutto -
           grosso come merita - e sotto la Briscola vera. */}
       <div className="slate-frame rounded-[10px] p-1 shrink-0 z-30 relative" data-game-hud>
-        <div className="game-hud-board slate-board rounded-[3px] px-2 sm:px-3 py-1">
+        <div className="game-hud-board slate-board rounded-[3px]">
           {/* Riga di servizio: quello che si consulta, non quello che si guarda. */}
-          <div className="contents sm:flex sm:items-center sm:gap-3 min-w-0">
+          <div className="game-hud-heading">
             <span
               className="game-hud-ante font-condensed text-[17px] sm:text-[20px] leading-none uppercase tracking-[0.06em] shrink-0"
               title={endlessTier ? `Ante ${ante} · ${endlessTier.name}` : `Ante ${ante}, round ${round}`}
               style={{ color: endlessTier ? endlessTier.accentColor : 'var(--chalk-yellow)' }}
             >
-              A{ante} R{round}
+              Ante {ante} <span className="chalk-dim">· R{round}</span>
               {endlessTier && <span className="hidden sm:inline ml-1.5 text-[14px] sm:text-[16px]">{endlessTier.name}</span>}
             </span>
 
-            <span className="font-condensed chalk-dim text-[15px] sm:text-[17px] leading-none uppercase truncate hidden sm:inline">
+            <span className="game-hud-venue font-condensed chalk-dim">
               {tableTheme.name}
             </span>
 
@@ -627,9 +627,9 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
 
           {/* Il numero della manche: decide se vivi, quindi e' scritto come il
               piatto del giorno e non come una didascalia. */}
-          <div className="contents sm:flex sm:flex-wrap sm:items-end sm:gap-x-4 sm:gap-y-1 min-w-0 sm:mt-1">
+          <div className="game-hud-stats">
             {hud.showChipsObjective && (
-              <div className="game-hud-score flex items-baseline gap-1 sm:gap-1.5 min-w-0 shrink" role="group" aria-label={`Chips: ${currentRoundScore.toLocaleString('it-IT')} su ${targetScore.toLocaleString('it-IT')}`} style={{ '--hud-score-chars': currentRoundScore.toLocaleString('it-IT').length + targetScore.toLocaleString('it-IT').length + 3 } as React.CSSProperties}>
+              <div className="game-hud-score flex items-baseline gap-1 sm:gap-1.5 min-w-0 shrink" role="group" aria-label={`Chips: ${currentRoundScore.toLocaleString('it-IT')} su ${targetScore.toLocaleString('it-IT')}`} >
                 <motion.span
                   key={currentRoundScore}
                   initial={reduceMotion ? false : { scale: 1.18 }}
@@ -642,15 +642,15 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                   {currentRoundScore.toLocaleString('it-IT')}
                 </motion.span>
                 <span className="font-condensed chalk-dim text-[19px] sm:text-[23px] leading-none tabular-nums whitespace-nowrap">
-                  / {targetScore.toLocaleString('it-IT')}
+                  <span className="game-hud-target-label">Obiettivo </span>{targetScore.toLocaleString('it-IT')}
                 </span>
               </div>
             )}
 
             <div className="game-hud-resources sm:order-3 flex items-center gap-2 sm:gap-4 sm:ml-auto shrink-0 sm:pb-0.5">
-              <span className="flex items-center gap-1 font-condensed chalk-yellow text-[20px] sm:text-[24px] leading-none">
+              <span aria-label={`Briscola: ${getSuitDisplayName(briscolaSuit)}`} className="flex items-center gap-1 font-condensed chalk-yellow text-[20px] sm:text-[24px] leading-none">
                 <PixelSuitIcon suit={briscolaSuit} size={14} />
-                <span className="uppercase hidden sm:inline text-[17px]">{briscolaSuit}</span>
+                <span className="game-hud-suit-name uppercase text-[17px]">{briscolaSuit}</span>
               </span>
               <span className="font-condensed chalk-yellow text-[20px] sm:text-[24px] leading-none tabular-nums">
                 ${money}
@@ -665,7 +665,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
             </div>
             {/* La Briscola vera, che al tavolo si conta comunque. */}
             <div className={`game-hud-briscola ${hud.showChipsObjective ? '' : 'game-hud-briscola-primary'} sm:order-2 flex items-baseline gap-1 sm:gap-2 font-condensed tabular-nums sm:flex-wrap pb-0.5`}>
-              <span className="hidden sm:inline chalk-dim text-[16px] uppercase tracking-[0.1em]">Briscola</span>
+              <span className="game-hud-briscola-label chalk-dim text-[16px] uppercase">Briscola</span>
               <span className="chalk-dim text-[14px] sm:text-[16px] uppercase">tu</span>
               <span className={`chalk leading-none ${hud.primary === 'briscola' ? 'text-[22px] sm:text-[26px]' : 'text-[18px] sm:text-[21px]'}`}>
                 {roundPointsTaken}
