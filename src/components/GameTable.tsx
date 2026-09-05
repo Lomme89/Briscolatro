@@ -7,8 +7,7 @@ import { PixelAvatar, OpponentEmotion } from './PixelAvatar';
 import { CaricoParticles } from './CaricoParticles';
 import { resolveTrick, getSuitDisplayName } from '../game/briscola';
 import { BOSS_RULES } from '../game/bossRules';
-import { JokerSlot } from './JokerSlot';
-import { UnoCardSlot } from './UnoCardSlot';
+import { TableCardDrawer } from './TableCardDrawer';
 import { UnoConfirmModal } from './UnoConfirmModal';
 import { sound } from '../services/soundEngine';
 import { SPECIAL_INFO } from '../game/specialCards';
@@ -23,7 +22,6 @@ import {
 } from '../game/victoryModes';
 import { getRegularForAnte } from '../data/opponents';
 import { TableFeltPattern } from './TableFeltPattern';
-import { CardFaceArt, getJokerArtUrl, getUnoArtUrl } from './CardFaceArt';
 import { ArrowUp, BookOpen, ChevronDown, Layers, Menu, RotateCcw, Settings } from 'lucide-react';
 
 interface GameTableModel {
@@ -281,9 +279,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
         ? 'w-20 sm:w-24 md:w-26 h-28 sm:h-34 md:h-38'
         : 'w-14 sm:w-18 h-20 sm:h-26';
 
-  const [inspected, setInspected] = useState<
-    { kind: 'joker'; index: number } | { kind: 'uno'; index: number } | null
-  >(null);
+  const [cardDrawerOpen, setCardDrawerOpen] = useState(false);
 
   const selectedCard = playerHand.find((c) => c.id === selectedCardId);
 
@@ -373,12 +369,13 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
       setActiveUnoToApply(null);
       return;
     }
+    setCardDrawerOpen(false);
     setUnoPendingConfirm(unoCard);
   };
 
   const confirmUnoCard = (chosenSuit?: Suit) => {
     const unoCard = unoPendingConfirm;
-    if (!unoCard) return;
+    if (!unoCard || !canUseSola) return;
     setUnoPendingConfirm(null);
     if (unoCard.targetType === 'card_in_hand') {
       setActiveUnoToApply(unoCard);
@@ -484,33 +481,6 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
     return { wins: clash.playerWon, points: clash.rawPoints, baseMult };
   })();
 
-  const inspectedItem = (() => {
-    if (!inspected) return null;
-    if (inspected.kind === 'joker') {
-      const joker = activeJokers[inspected.index];
-      if (!joker) return null;
-      const badges: string[] = [joker.rarity.toUpperCase()];
-      if (joker.stats?.accumulatedMult) badges.push(`+${joker.stats.accumulatedMult} Mult accumulati`);
-      if (joker.stats?.accumulatedChips) badges.push(`+${joker.stats.accumulatedChips} Chips accumulati`);
-      return {
-        icon: joker.icon,
-        artUrl: getJokerArtUrl(joker.id),
-        name: joker.name,
-        description: joker.description,
-        badges,
-      };
-    }
-    const unoCard = consumables[inspected.index];
-    if (!unoCard) return null;
-    return {
-      icon: unoCard.icon,
-      artUrl: getUnoArtUrl(unoCard.id),
-      name: unoCard.name,
-      description: unoCard.description,
-      badges: ['CARTA SOLA'],
-    };
-  })();
-
   const tableTheme = getTableThemeForAnte(ante);
   // null through the whole campaign: the HUD only grows the extra line past Ante 8.
   const endlessTier = getEndlessTier(ante);
@@ -545,14 +515,9 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
       className="game-screen flex-1 flex flex-col justify-between p-1.5 sm:p-2 max-w-3xl mx-auto w-full relative h-[100dvh] max-h-[100dvh] min-h-0 select-none"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.5rem)' }}
     >
-      {/* 1. IL BANCO DEL LOCALE
-          Il conto della manche sta scritto sulla lavagnetta sopra il tavolo:
-          una lastra sola, non quattro pannelli. Prima riga per il contorno
-          (dove sei, che presa e' e i tasti), poi il numero che decide tutto -
-          grosso come merita - e sotto la Briscola vera. */}
-      <div className="slate-frame rounded-[10px] p-1 shrink-0 z-30 relative" data-game-hud>
-        <div className="game-hud-board slate-board rounded-[3px]">
-          {/* Riga di servizio: quello che si consulta, non quello che si guarda. */}
+      {/* The score and table account sit in the table's upper edge. */}
+      <div className="game-hud-frame shrink-0 z-50 relative" data-game-hud>
+        <div className="game-hud-board">
           <div className="game-hud-heading">
             <span
               className="game-hud-ante font-condensed text-[17px] sm:text-[20px] leading-none uppercase tracking-[0.06em] shrink-0"
@@ -580,8 +545,8 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
               <summary className="table-disclosure-toggle chalk-dim p-2 cursor-pointer" aria-label="Menu partita">
                 <Menu size={17} strokeWidth={1.7} />
               </summary>
-              <div className="absolute right-0 top-full mt-1 slate-frame p-1 rounded-md z-40 min-w-44">
-                <div className="slate-board flex flex-col p-1" onClick={(event) => { event.currentTarget.closest('details')?.removeAttribute('open'); }}>
+              <div className="game-hud-menu absolute right-0 top-full mt-1 p-1 rounded-md z-40 min-w-44">
+                <div className="flex flex-col p-1" onClick={(event) => { event.currentTarget.closest('details')?.removeAttribute('open'); }}>
                   {[
                     { label: 'Ispettore Mazzo', Icon: Layers, action: onOpenDeckViewer },
                     { label: 'Guida', Icon: BookOpen, action: onOpenTutorial },
@@ -696,8 +661,8 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                 className="h-full"
                 style={{
                   background: reachedTarget
-                    ? 'linear-gradient(90deg, rgba(158,201,138,0.5), rgba(158,201,138,0.95))'
-                    : 'linear-gradient(90deg, rgba(232,199,102,0.45), rgba(236,229,214,0.9))',
+                    ? '#9ec98a'
+                    : '#c5a568',
                 }}
                 animate={{ width: `${scoreProgress}%` }}
                 transition={{ type: 'spring', damping: 20, stiffness: 120 }}
@@ -707,103 +672,6 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
 
         </div>
 
-        {/* The build, always on screen. It used to live behind a toggle, which
-            hid the one thing that decides whether the blind is beatable. */}
-        {(activeJokers.length > 0 || consumables.length > 0) && (
-          <div className="flex items-center gap-2 px-1 pt-1.5 pb-1 overflow-x-auto overflow-y-hidden no-scrollbar" role="group" aria-label="Jolly e carte Sola" data-build-rail>
-            <div className="flex items-center gap-1 shrink-0">
-              {activeJokers.map((joker, i) => (
-                <JokerSlot
-                  key={`${joker.id}-${i}`}
-                  joker={joker}
-                  onClick={() =>
-                    setInspected((prev) =>
-                      prev && prev.kind === 'joker' && prev.index === i ? null : { kind: 'joker', index: i }
-                    )
-                  }
-                  isTriggering={joker.id === triggeringJokerId}
-                  isSilenced={silencedJokerIndex === i}
-                  showSellButton={false}
-                  size="hud"
-                  disableTooltip
-                />
-              ))}
-              {activeJokers.length < maxJokers && (
-                <span className="font-pixel text-[7px] sm:text-[8px] text-slate-600 px-1 shrink-0">
-                  {activeJokers.length}/{maxJokers}
-                </span>
-              )}
-            </div>
-
-            {consumables.length > 0 && (
-              <div className="flex items-center gap-1 shrink-0 pl-2 border-l border-slate-800">
-                {consumables.map((unoCard, i) => (
-                  <UnoCardSlot
-                    key={`${unoCard.id}-${i}`}
-                    unoCard={unoCard}
-                    onUse={() => handleUnoCardClick(unoCard)}
-                    canUse={canUseSola}
-                    isSelected={activeUnoToApply?.id === unoCard.id}
-                    size="hud"
-                    disableTooltip
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Details of whatever you tapped in the rail. */}
-        <AnimatePresence>
-          {inspectedItem && (
-            <motion.div
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              // Floats over the felt: pushing the table down would shove the
-              // hand and its buttons off a phone screen.
-              className="absolute left-0 right-0 top-full mt-1 z-40 px-1"
-            >
-              <div className="bg-slate-950/97 backdrop-blur-sm border-2 border-amber-500/70 rounded-lg px-2.5 py-2 flex items-start gap-2.5 shadow-2xl">
-                {inspectedItem.artUrl ? (
-                  <div className="w-9 h-12 shrink-0 rounded overflow-hidden border border-amber-500/40">
-                    <CardFaceArt src={inspectedItem.artUrl} alt={inspectedItem.name} />
-                  </div>
-                ) : (
-                  <span className="text-lg shrink-0 leading-none mt-0.5">{inspectedItem.icon}</span>
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-pixel text-[9px] sm:text-[11px] text-amber-300 font-bold truncate">
-                      {inspectedItem.name}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setInspected(null)}
-                      className="font-pixel text-[8px] text-slate-400 hover:text-white px-1 cursor-pointer shrink-0"
-                      aria-label="Chiudi dettagli"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <p className="font-retro text-[11px] sm:text-xs text-slate-200 leading-snug mt-0.5">
-                    {inspectedItem.description}
-                  </p>
-                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                    {inspectedItem.badges.map((badge) => (
-                      <span
-                        key={badge}
-                        className="bg-slate-900 border border-slate-600 text-slate-200 font-pixel text-[7.5px] sm:text-[8.5px] px-1.5 py-0.5 rounded"
-                      >
-                        {badge}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
 
       {/* UNO Action Prime Floating Banner */}
@@ -1511,8 +1379,33 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
               <span>Scarta {discardsLeft}</span>
             </button>
           </div>
+          <button
+            type="button"
+            className="table-card-drawer-trigger"
+            aria-haspopup="dialog"
+            aria-expanded={cardDrawerOpen}
+            aria-controls="table-card-drawer"
+            onClick={() => setCardDrawerOpen(true)}
+          >
+            <Layers size={19} aria-hidden="true" />
+            <span>Portacarte</span>
+            <span className="table-card-drawer-counts">{activeJokers.length} Jolly · {consumables.length} Sola</span>
+            <ChevronDown size={16} className="rotate-180" aria-hidden="true" />
+          </button>
         </div>
       </div>
+
+      <TableCardDrawer
+        open={cardDrawerOpen}
+        onClose={() => setCardDrawerOpen(false)}
+        jokers={activeJokers}
+        consumables={consumables}
+        maxJokers={maxJokers}
+        canUseSola={canUseSola}
+        silencedJokerIndex={silencedJokerIndex}
+        triggeringJokerId={triggeringJokerId}
+        onUse={handleUnoCardClick}
+      />
 
       <UnoConfirmModal
         unoCard={unoPendingConfirm}
