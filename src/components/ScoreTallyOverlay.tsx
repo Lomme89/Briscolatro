@@ -206,7 +206,7 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
               <div className="font-pixel text-base sm:text-lg text-red-300 font-bold tracking-wider">
                 PRESA LORO
               </div>
-              <div className="font-pixel text-[10px] text-red-100/90 mt-1.5 tabular-nums">
+              <div className="font-pixel text-[14px] text-red-100/90 mt-1.5 tabular-nums">
                 +{trickPoints} PT · TU {playerBriscolaPoints} · LORO {opponentBriscolaPoints}
               </div>
             </div>
@@ -244,7 +244,7 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.14 }}
-                  className={`px-2.5 py-1 font-pixel text-[10px] sm:text-[11px] rounded-lg uppercase border-2 shadow-lg ${
+                  className={`px-2.5 py-1 font-pixel text-[14px] sm:text-[15px] rounded-lg uppercase border-2 shadow-lg ${
                     activeStep.kind === 'chips'
                       ? 'bg-blue-950 border-blue-400 text-blue-200'
                       : activeStep.kind === 'dollars'
@@ -273,7 +273,7 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
               }}
               className="flex-1 bg-blue-950/92 border-2 border-blue-400 px-3 py-2 rounded-xl text-center pixel-box"
             >
-              <div className="text-[8px] sm:text-[9px] font-pixel text-blue-300 uppercase tracking-wider">
+              <div className="text-[12px] sm:text-[13px] font-pixel text-blue-300 uppercase tracking-wider">
                 CHIPS
               </div>
               <div className="text-2xl sm:text-3xl font-pixel text-blue-100 font-bold tabular-nums mt-1">
@@ -293,7 +293,7 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
               }}
               className="flex-1 bg-red-950/92 border-2 border-red-400 px-3 py-2 rounded-xl text-center pixel-box"
             >
-              <div className="text-[8px] sm:text-[9px] font-pixel text-red-300 uppercase tracking-wider">
+              <div className="text-[12px] sm:text-[13px] font-pixel text-red-300 uppercase tracking-wider">
                 MOLT.
               </div>
               <div className="text-2xl sm:text-3xl font-pixel text-red-100 font-bold tabular-nums mt-1">
@@ -313,7 +313,7 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
             }
             className="w-full bg-gradient-to-r from-amber-950 via-amber-900 to-amber-950 border-3 border-amber-300 px-3 py-2.5 rounded-2xl text-center pixel-box"
           >
-            <div className="text-[8px] sm:text-[9px] font-pixel text-amber-300/90 uppercase tracking-widest">
+            <div className="text-[12px] sm:text-[13px] font-pixel text-amber-300/90 uppercase tracking-widest">
               PRESA TUA · +{trickPoints} PT
             </div>
             <div className="text-4xl sm:text-5xl font-pixel text-amber-300 font-bold leading-none tabular-nums mt-1.5">
@@ -327,12 +327,12 @@ export const ScoreTallyOverlay: React.FC<ScoreTallyProps> = ({
               {multReasons.map((reason) => (
                 <span
                   key={reason}
-                  className="px-2 py-0.5 bg-red-950/90 border border-red-500/60 text-red-200 font-pixel text-[9px] rounded uppercase"
+                  className="px-2 py-0.5 bg-red-950/90 border border-red-500/60 text-red-200 font-pixel text-[13px] rounded uppercase"
                 >
                   {reason}
                 </span>
               ))}
-              <span className="px-2 py-0.5 bg-slate-950/90 border border-slate-600 text-slate-300 font-pixel text-[9px] rounded uppercase tabular-nums">
+              <span className="px-2 py-0.5 bg-slate-950/90 border border-slate-600 text-slate-300 font-pixel text-[13px] rounded uppercase tabular-nums">
                 TU {playerBriscolaPoints} · LORO {opponentBriscolaPoints}
               </span>
             </div>

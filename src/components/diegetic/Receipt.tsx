@@ -31,7 +31,7 @@ export function ReceiptSheet({
 export function ReceiptHead({ place, subject }: { place: string; subject: string }) {
   return (
     <div className="text-center">
-      <div className="font-pixel ink text-[9px] sm:text-[11px] tracking-[0.16em] uppercase">
+      <div className="font-pixel ink text-[13px] sm:text-[15px] tracking-[0.16em] uppercase">
         {place}
       </div>
       <div className="font-condensed ink-dim text-[15px] sm:text-[17px] uppercase tracking-[0.14em] mt-1">
@@ -107,7 +107,7 @@ export function ReceiptTotal({
   return (
     <div className="flex items-end justify-between gap-3">
       <div className="min-w-0">
-        <div className="font-pixel ink-dim text-[8px] sm:text-[9px] uppercase tracking-[0.14em]">
+        <div className="font-pixel ink-dim text-[12px] sm:text-[13px] uppercase tracking-[0.14em]">
           {label}
         </div>
         {note && (
@@ -142,7 +142,7 @@ export function RubberStamp({
       className={`rubber-stamp ${tone === 'red' ? 'ink-red' : 'ink-green'} px-3 py-1.5 inline-block ${className}`}
       style={{ transform: `rotate(${tilt}deg)` }}
     >
-      <span className="font-pixel text-[10px] sm:text-[12px] uppercase font-bold">{text}</span>
+      <span className="font-pixel text-[14px] sm:text-[14px] uppercase font-bold">{text}</span>
     </div>
   );
 }
@@ -164,7 +164,7 @@ export function InkButton({
     <button
       type="button"
       onClick={onClick}
-      className={`w-full min-h-[44px] font-pixel text-[10px] sm:text-[11px] uppercase tracking-[0.12em] cursor-pointer border-2 px-3 py-3 transition-transform duration-100 active:translate-y-[2px] focus-visible:outline-2 focus-visible:outline-offset-2 ${
+      className={`w-full min-h-[44px] font-pixel text-[14px] sm:text-[15px] uppercase tracking-[0.12em] cursor-pointer border-2 px-3 py-3 transition-transform duration-100 active:translate-y-[2px] focus-visible:outline-2 focus-visible:outline-offset-2 ${
         tone === 'red'
           ? 'ink-red border-current hover:bg-[rgba(158,58,46,0.12)]'
           : 'ink border-current hover:bg-[rgba(47,36,24,0.1)]'

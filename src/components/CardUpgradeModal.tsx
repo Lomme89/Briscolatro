@@ -27,7 +27,7 @@ const ENHANCEMENT_LABEL: Record<Enhancement, string> = {
   none: 'Nessuno',
   bonus: `Bonus (+${V.bonusChips} Chips)`,
   mult: `Mult (+${V.multBonus} Mult)`,
-  wild: 'Jolly (vale come Briscola)',
+  wild: 'Matta (vale come Briscola)',
   steel: `Acciaio (x${V.steelXMult} Mult in mano)`,
   stone: `Pietra (+${V.stoneChips} Chips, senza seme)`,
 };
@@ -54,11 +54,11 @@ const DiffRow: React.FC<{ label: string; before: string; after: string }> = ({
   const changed = before !== after;
   return (
     <div className={`flex items-start gap-2 py-1 ${changed ? '' : 'opacity-45'}`}>
-      <span className="font-pixel text-[7px] text-slate-500 w-16 shrink-0 pt-0.5">{label}</span>
-      <span className="font-retro text-[10px] text-slate-400 flex-1 leading-tight">{before}</span>
-      <span className="font-pixel text-[8px] text-slate-600 shrink-0">→</span>
+      <span className="font-pixel text-[11px] text-slate-500 w-16 shrink-0 pt-0.5">{label}</span>
+      <span className="font-retro text-[14px] text-slate-400 flex-1 leading-tight">{before}</span>
+      <span className="font-pixel text-[12px] text-slate-600 shrink-0">→</span>
       <span
-        className={`font-retro text-[10px] flex-1 leading-tight ${
+        className={`font-retro text-[14px] flex-1 leading-tight ${
           changed ? 'text-amber-300 font-bold' : 'text-slate-400'
         }`}
       >
@@ -107,10 +107,10 @@ export const CardUpgradeModal: React.FC<CardUpgradeModalProps> = ({
             className="bg-slate-900 border-3 border-amber-400 rounded-2xl pixel-box flex flex-col w-full max-w-lg mx-auto my-auto min-h-0 max-h-full overflow-hidden"
           >
             <div className="shrink-0 px-3 pt-3 pb-2 text-center border-b-2 border-slate-700">
-              <h3 className="font-pixel text-[10px] sm:text-sm text-amber-300 font-bold">
+              <h3 className="font-pixel text-[14px] sm:text-sm text-amber-300 font-bold">
                 POTENZIA LA TUA CARTA
               </h3>
-              <p className="font-retro text-[10px] sm:text-xs text-slate-400 mt-0.5">
+              <p className="font-retro text-[14px] sm:text-[14px] text-slate-400 mt-0.5">
                 Stai trasformando il tuo {RANK_INFO[current.rank]?.name ?? current.rank} di{' '}
                 {getSuitDisplayName(current.suit)}. Il mazzo resta di 40 carte.
               </p>
@@ -120,12 +120,12 @@ export const CardUpgradeModal: React.FC<CardUpgradeModalProps> = ({
               {/* The card, before and after. */}
               <div className="flex items-center justify-center gap-3 sm:gap-5">
                 <div className="flex flex-col items-center gap-1">
-                  <span className="font-pixel text-[8px] text-slate-500">ORA</span>
+                  <span className="font-pixel text-[12px] text-slate-500">ORA</span>
                   <PixelCard card={current} size="pick" showBriscolaBadge={false} />
                 </div>
                 <div className="font-pixel text-xl sm:text-2xl text-amber-400">→</div>
                 <div className="flex flex-col items-center gap-1">
-                  <span className="font-pixel text-[8px] text-amber-300">DOPO</span>
+                  <span className="font-pixel text-[12px] text-amber-300">DOPO</span>
                   <PixelCard card={upgraded} size="pick" showBriscolaBadge={false} />
                 </div>
               </div>
@@ -135,19 +135,19 @@ export const CardUpgradeModal: React.FC<CardUpgradeModalProps> = ({
                 <div className="mt-3 border-2 border-slate-700 rounded-xl p-2.5 bg-slate-950/60">
                   <div className="flex items-center gap-2 mb-1.5">
                     <span
-                      className={`font-pixel text-[8px] px-1.5 py-0.5 rounded border ${newSpecial.className}`}
+                      className={`font-pixel text-[12px] px-1.5 py-0.5 rounded border ${newSpecial.className}`}
                     >
                       {newSpecial.badge}
                     </span>
-                    <span className="font-pixel text-[8px] text-slate-500">AZZARDO</span>
+                    <span className="font-pixel text-[12px] text-slate-500">AZZARDO</span>
                   </div>
-                  <p className="font-retro text-[11px] text-emerald-300 leading-snug">
+                  <p className="font-retro text-[15px] text-emerald-300 leading-snug">
                     ↑ {newSpecial.bonus}
                   </p>
-                  <p className="font-retro text-[11px] text-rose-300 leading-snug mt-0.5">
+                  <p className="font-retro text-[15px] text-rose-300 leading-snug mt-0.5">
                     ↓ {newSpecial.cost}
                   </p>
-                  <p className="font-retro text-[10px] text-slate-500 italic leading-snug mt-1.5">
+                  <p className="font-retro text-[14px] text-slate-500 italic leading-snug mt-1.5">
                     {newSpecial.flavor}
                   </p>
                 </div>
@@ -158,8 +158,8 @@ export const CardUpgradeModal: React.FC<CardUpgradeModalProps> = ({
                   omission. */}
               {!newSpecial && (
                 <div className="mt-3 border-2 border-slate-800 rounded-xl p-2.5 bg-slate-950/60 text-center">
-                  <span className="font-pixel text-[8px] text-sky-300">POTENZIAMENTO SICURO</span>
-                  <p className="font-retro text-[10px] text-slate-400 leading-snug mt-1">
+                  <span className="font-pixel text-[12px] text-sky-300">POTENZIAMENTO SICURO</span>
+                  <p className="font-retro text-[14px] text-slate-400 leading-snug mt-1">
                     Nessun rischio e nessun costo: questa carta diventa
                     semplicemente più forte.
                   </p>
@@ -167,7 +167,7 @@ export const CardUpgradeModal: React.FC<CardUpgradeModalProps> = ({
               )}
 
               {replacesSpecial && oldSpecial && (
-                <p className="font-retro text-[10px] text-amber-400 text-center mt-2 leading-snug">
+                <p className="font-retro text-[14px] text-amber-400 text-center mt-2 leading-snug">
                   ⚠ Una carta porta un solo Azzardo: {newSpecial?.name} sostituisce{' '}
                   {oldSpecial.name}.
                 </p>
@@ -201,13 +201,13 @@ export const CardUpgradeModal: React.FC<CardUpgradeModalProps> = ({
             <div className="shrink-0 flex items-center gap-2 px-3 py-2.5 border-t-2 border-slate-700">
               <button
                 onClick={onCancel}
-                className="font-pixel text-[9px] text-slate-400 hover:text-white px-3 py-2 border border-slate-700 rounded-lg pixel-box cursor-pointer"
+                className="font-pixel text-[13px] text-slate-400 hover:text-white px-3 py-2 border border-slate-700 rounded-lg pixel-box cursor-pointer"
               >
                 ANNULLA
               </button>
               <button
                 onClick={onConfirm}
-                className="flex-1 font-pixel text-[9px] sm:text-xs font-bold px-3 py-2 rounded-lg pixel-box bg-amber-500 hover:bg-amber-400 text-slate-950 cursor-pointer"
+                className="flex-1 font-pixel text-[13px] sm:text-[13px] font-bold px-3 py-2 rounded-lg pixel-box bg-amber-500 hover:bg-amber-400 text-slate-950 cursor-pointer"
               >
                 APPLICA MODIFICA
               </button>

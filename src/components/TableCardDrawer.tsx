@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Layers, X } from 'lucide-react';
 import { Joker, UnoCard } from '../types/game';
 import { CardFaceArt, getJokerArtUrl, getUnoArtUrl } from './CardFaceArt';
+import { RARITY_LABEL } from '../data/jokers';
 
 interface Props {
   open: boolean;
@@ -23,7 +24,6 @@ function DrawerArt({ src, name }: { src: string | undefined; name: string }) {
 /** Native modal keeps keyboard focus and taps inside the open table drawer. */
 export function TableCardDrawer({ open, onClose, jokers, consumables, maxJokers, canUseSola, silencedJokerIndex, triggeringJokerId, onUse }: Props) {
   const [section, setSection] = useState<'jokers' | 'sola'>(consumables.length ? 'sola' : 'jokers');
-  const rarityNames: Record<string, string> = { common: 'Comune', uncommon: 'Non comune', rare: 'Raro', legendary: 'Leggendario' };
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const node = dialog.current;
@@ -56,7 +56,7 @@ export function TableCardDrawer({ open, onClose, jokers, consumables, maxJokers,
               <div><h4>{joker.name}</h4><p>{joker.description}</p>
                 {Boolean(joker.stats?.accumulatedMult) && <p className="table-card-drawer-status">+{joker.stats?.accumulatedMult} Mult accumulati</p>}
                 {Boolean(joker.stats?.accumulatedChips) && <p className="table-card-drawer-status">+{joker.stats?.accumulatedChips} Chips accumulati</p>}
-                <p className="table-card-drawer-status">{index === silencedJokerIndex ? 'Silenziato per questa presa' : triggeringJokerId === joker.id ? 'Effetto in azione' : 'Passivo'} · {rarityNames[joker.rarity] ?? joker.rarity}</p>
+                <p className="table-card-drawer-status">{index === silencedJokerIndex ? 'Silenziato per questa presa' : triggeringJokerId === joker.id ? 'Effetto in azione' : 'Passivo'} · {RARITY_LABEL[joker.rarity] ?? joker.rarity}</p>
               </div>
             </article>)}
           </section>

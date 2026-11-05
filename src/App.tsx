@@ -1976,7 +1976,6 @@ function App() {
               onPlayCard: handlePlayCard,
               onDiscardCard: handleDiscardCard,
               onUseUnoCard: handleUseUnoCard,
-              onOpenDeckViewer: () => setShowDeckViewer(true),
               onOpenTutorial: () => setShowTutorial(true),
               onOpenSettings: () => setShowSettings(true),
             }}
@@ -2013,6 +2012,7 @@ function App() {
               onBuyConsumableSlot: handleBuyConsumableSlot,
               onUpgradeCard: handleUpgradeCard,
               onNextRound: handleNextRoundFromShop,
+              onOpenDeckViewer: () => setShowDeckViewer(true),
               onReroll: spendMoney,
               onShopStateChange: handleShopStateChange,
             }}
@@ -2105,8 +2105,7 @@ function App() {
         <DeckViewerModal
           isOpen={showDeckViewer}
           onClose={() => setShowDeckViewer(false)}
-          deck={phase === 'playing' ? [...drawPile, ...(trumpCard ? [trumpCard] : []), ...playerHand] : runDeck}
-          briscolaSuit={briscolaSuit}
+          deck={runDeck}
         />
 
         <UnoCastOverlay

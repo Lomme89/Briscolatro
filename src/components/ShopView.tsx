@@ -1,9 +1,9 @@
-import { ArrowRight, ChevronDown, Coins } from 'lucide-react';
+import { ArrowRight, Coins } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Joker, UnoCard, BoosterPack, Voucher, PlayingCard } from '../types/game';
 import { ALL_BOOSTER_PACKS, ALL_VOUCHERS, ALL_UNO_CARDS } from '../data/unoCards';
-import { getRandomJokers } from '../data/jokers';
+import { getRandomJokers, RARITY_LABEL } from '../data/jokers';
 import { JokerSlot } from './JokerSlot';
 import { UnoCardSlot } from './UnoCardSlot';
 import { PixelCard } from './PixelCard';
@@ -56,6 +56,7 @@ interface ShopViewActions {
   onBuyConsumableSlot: () => boolean;
   onUpgradeCard: (upgraded: PlayingCard) => void;
   onNextRound: () => void;
+  onOpenDeckViewer: () => void;
   onReroll: (cost: number) => boolean;
   onShopStateChange: (patch: Partial<ShopSnapshotV1>) => void;
 }
@@ -80,6 +81,7 @@ export const ShopView: React.FC<ShopViewProps> = ({ model, actions }) => {
     onBuyConsumableSlot,
     onUpgradeCard,
     onNextRound,
+    onOpenDeckViewer,
     onReroll,
     onShopStateChange,
   } = actions;
@@ -151,8 +153,6 @@ export const ShopView: React.FC<ShopViewProps> = ({ model, actions }) => {
   // Same idea for the jolly and the carte UNO of a booster: their slots carry a
   // tooltip built for the table, which in a grid covers the neighbours.
   const [inspectedBoosterItem, setInspectedBoosterItem] = useState<InspectableItem | null>(null);
-  const [mobileTab, setMobileTab] = useState<'cards' | 'packs'>('cards');
-  const [inventoryOpen, setInventoryOpen] = useState(() => window.matchMedia('(min-width: 768px)').matches);
 
   // Selected item inspection modal on mobile
   const [inspectedItem, setInspectedItem] = useState<{
@@ -356,13 +356,12 @@ export const ShopView: React.FC<ShopViewProps> = ({ model, actions }) => {
   return (
     <div className="shop-screen flex-1 flex flex-col p-2 sm:p-4 max-w-6xl mx-auto w-full relative pb-16 sm:pb-4 select-none">
       {/* 1. L'INSEGNA DEL BANCONE
-          Il negozio e' il bancone del Bar Sport, e sopra il bancone c'e' la
-          stessa lavagna del menu: nome dipinto, e a gesso quello che cambia
-          ogni sera - dove sei arrivato e quanto ti resta in tasca. */}
-      <div className="shop-header slate-frame rounded-[8px] p-1.5 sm:p-2 mb-2.5">
-        <div className="slate-board rounded-[3px] px-3 py-2 sm:px-4 sm:py-2.5 flex items-center justify-between gap-2 flex-wrap">
+          L'insegna di legno del Bar Sport, la stessa del locale nella scelta
+          del tavolo: nome in ottone, dove sei arrivato e quanto hai in tasca. */}
+      <div className="shop-header wood-sign rounded-[8px] mb-2.5">
+        <div className="rounded-[3px] px-3 py-2 sm:px-4 sm:py-2.5 flex items-center justify-between gap-2 flex-wrap">
           <div className="min-w-0">
-            <h2 className="font-pixel painted-sign text-[11px] sm:text-[13px] tracking-[0.12em] leading-tight truncate">
+            <h2 className="font-pixel painted-sign text-[22px] sm:text-[26px] tracking-[0.06em] leading-none truncate">
               BAR SPORT
             </h2>
             <p className="font-condensed chalk-dim text-[15px] sm:text-[17px] uppercase leading-none mt-1">
@@ -388,36 +387,32 @@ export const ShopView: React.FC<ShopViewProps> = ({ model, actions }) => {
                 sound.playCardFlick();
                 onNextRound();
               }}
-              className="group flex items-center gap-2 cursor-pointer min-h-[44px] px-3.5 py-2 rounded-[6px] border-2 border-[rgba(232,199,102,0.75)] bg-[rgba(232,199,102,0.12)] hover:bg-[rgba(232,199,102,0.22)] transition-colors duration-150 active:translate-y-[1px] focus-visible:outline-2 focus-visible:outline-offset-2"
+              className="group flex items-center gap-2 cursor-pointer min-h-[44px] px-3.5 py-2 rounded-[6px] bg-[#f0cf6c] hover:bg-[#f7dd90] shadow-[inset_0_-3px_0_rgba(0,0,0,0.2)] transition-colors duration-150 active:translate-y-[1px] focus-visible:outline-2 focus-visible:outline-offset-2"
             >
-              <span className="font-condensed chalk-yellow text-[22px] sm:text-[26px] leading-none uppercase whitespace-nowrap">
+              <span className="font-condensed text-[#2f2418] text-[22px] sm:text-[26px] leading-none uppercase whitespace-nowrap">
                 Torna al tavolo
               </span>
               <ArrowRight
                 size={20}
                 strokeWidth={1.9}
-                className="chalk-yellow transition-transform duration-200 group-hover:translate-x-1"
+                className="text-[#2f2418] transition-transform duration-200 group-hover:translate-x-1"
               />
             </button>
           </div>
         </div>
       </div>
 
-      {/* 2. PLAYER INVENTORY DOCK (Jolly & Carte UNO) */}
-      <details className="shop-inventory bg-slate-900/85 border border-slate-700/80 p-2 sm:p-3 rounded-xl pixel-box mb-3 shadow-md" open={inventoryOpen} onToggle={(event) => setInventoryOpen(event.currentTarget.open)}>
-        <summary className="table-disclosure-toggle flex items-center justify-between gap-2 min-h-11 cursor-pointer font-condensed text-xl chalk">
-          <span>La tua dotazione</span>
-          <span className="chalk-dim text-lg">Jolly {jokers.length}/{maxJokers} · Sola {consumables.length}/{maxConsumables}</span>
-          <ChevronDown size={18} className="shrink-0 transition-transform" />
-        </summary>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4">
-          {/* Active Jokers Row */}
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center justify-between text-[9px] sm:text-[10px] font-pixel text-slate-300 px-1">
-              <span className="text-amber-400 flex items-center gap-1 font-bold">
-                <span>🃏</span> JOLLY ATTIVI ({jokers.length}/{maxJokers})
-              </span>
-              <span className="text-[8px] text-slate-400">Tocca per vendere</span>
+      {/* 2. LA TUA DOTAZIONE
+          Sempre aperta, anche sul telefono: un jolly si compra guardando quelli
+          che hai gia'. Prima era una tendina chiusa di default. */}
+      <section className="shop-panel rounded-xl p-2.5 sm:p-3 mb-3" aria-label="La tua dotazione">
+        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] gap-2 sm:gap-4">
+          <div className="min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <ShelfHeading label="I tuoi Jolly" count={`${jokers.length}/${maxJokers}`} />
+              <button onClick={onOpenDeckViewer} className="price-btn price-btn-ghost font-pixel text-[14px] px-2.5 min-h-[36px] rounded-lg">
+                Il tuo mazzo
+              </button>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-0.5 px-0.5">
               {Array.from({ length: maxJokers }).map((_, i) => {
@@ -432,16 +427,10 @@ export const ShopView: React.FC<ShopViewProps> = ({ model, actions }) => {
                       disableTooltip
                       onClick={() => {
                         if (!j) return;
-                        setInspectedItem({
-                          type: 'joker',
-                          item: j,
-                          isShop: false,
-                          inventoryIndex: i,
-                        });
+                        setInspectedItem({ type: 'joker', item: j, isShop: false, inventoryIndex: i });
                       }}
                       onSell={() => onSellJoker(i)}
-                      // The rail clips it in half anyway; VENDI lives in the
-                      // inspector the tap opens.
+                      // VENDI lives in the inspector the tap opens.
                       showSellButton={false}
                     />
                   </div>
@@ -450,15 +439,8 @@ export const ShopView: React.FC<ShopViewProps> = ({ model, actions }) => {
             </div>
           </div>
 
-          {/* Active Uno Cards Row */}
-          <div className="flex flex-col gap-1 border-t md:border-t-0 md:border-l border-slate-800 pt-1.5 md:pt-0 md:pl-3">
-            <div className="flex items-center justify-between text-[9px] sm:text-[10px] font-pixel text-slate-300 px-1">
-              <span className="text-red-400 flex items-center gap-1 font-bold">
-                <span className="bg-red-600 text-white px-1 rounded text-[7.5px] font-black">SOLA</span>
-                CARTE AZIONE ({consumables.length}/{maxConsumables})
-              </span>
-              <span className="text-[8px] text-slate-400">Tocca per vendere</span>
-            </div>
+          <div className="min-w-0 border-t md:border-t-0 md:border-l border-[#2c3b31] pt-2 md:pt-0 md:pl-4">
+            <ShelfHeading label="Carte Sola" count={`${consumables.length}/${maxConsumables}`} />
             <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-0.5 px-0.5">
               {Array.from({ length: maxConsumables }).map((_, i) => {
                 const u = consumables[i] || null;
@@ -469,15 +451,7 @@ export const ShopView: React.FC<ShopViewProps> = ({ model, actions }) => {
                       size="sm"
                       disableTooltip
                       onInspect={
-                        u
-                          ? () =>
-                              setInspectedItem({
-                                type: 'uno',
-                                item: u,
-                                isShop: false,
-                                inventoryIndex: i,
-                              })
-                          : undefined
+                        u ? () => setInspectedItem({ type: 'uno', item: u, isShop: false, inventoryIndex: i }) : undefined
                       }
                       onSell={() => onSellUnoCard(i)}
                     />
@@ -487,358 +461,164 @@ export const ShopView: React.FC<ShopViewProps> = ({ model, actions }) => {
             </div>
           </div>
         </div>
+        {(jokers.length > 0 || consumables.length > 0) && (
+          <p className="font-retro text-[14px] chalk-dim mt-1.5 px-1">Tocca una carta per vederla o venderla.</p>
+        )}
+      </section>
 
-        {/*
-          The two permanent services, in a fixed strip under the dock they act
-          on. Deliberately not on the random shelves: these are always for sale
-          until the cap, so a bad reroll must never be able to hide them.
-        */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2 mt-2 pt-2 border-t border-slate-800">
-          <SlotServiceButton
-            icon="🪑"
-            label="AMPLIA TAVOLO"
-            microcopy="+1 SLOT JOLLY"
-            currentSlots={maxJokers}
-            cap={getJokerSlotCap(slotRules)}
-            offer={jokerSlotOffer}
-            money={money}
-            accent="amber"
-            onBuy={() => buySlot(jokerSlotOffer, onBuyJokerSlot)}
-          />
-          <SlotServiceButton
-            icon="👝"
-            label="ALLARGA TASCA"
-            microcopy="+1 SLOT CARTE SOLA"
-            currentSlots={maxConsumables}
-            cap={getConsumableSlotCap(slotRules)}
-            offer={consumableSlotOffer}
-            money={money}
-            accent="red"
-            onBuy={() => buySlot(consumableSlotOffer, onBuyConsumableSlot)}
-          />
+      {/* 3. IL BANCONE
+          Una sola colonna di lettura: prima jolly e Carte Sola, poi bustine e
+          tagliandi. Niente schede sul telefono: meta' delle offerte stava
+          dietro una linguetta. */}
+      <section className="shop-panel rounded-xl p-2.5 sm:p-4 mb-3" aria-label="Jolly e Carte Sola in vendita">
+        <div className="flex items-center justify-between gap-2 mb-2.5">
+          <h3 className="font-pixel text-[18px] sm:text-[20px] chalk-yellow leading-none">Al bancone</h3>
+          <button
+            onClick={handleReroll}
+            disabled={money < rerollCost}
+            className="price-btn price-btn-ghost font-pixel text-[15px] px-3 min-h-[40px] rounded-lg"
+          >
+            Cambia offerte · ${rerollCost}
+          </button>
         </div>
-      </details>
 
-      {/* 3. MOBILE TAB SWITCHER (Hidden on Desktop) */}
-      <div className="shop-tabs flex md:hidden items-center justify-center gap-2 mb-3 bg-slate-900/90 p-1 rounded-xl border border-slate-800 pixel-box" role="group" aria-label="Scaffali del negozio">
-        <button
-          onClick={() => setMobileTab('cards')}
-          aria-pressed={mobileTab === 'cards'}
-          className={`flex-1 py-1.5 px-2 rounded-lg font-pixel text-[9.5px] font-bold transition-all flex items-center justify-center gap-1.5 ${
-            mobileTab === 'cards'
-              ? 'bg-amber-500 text-slate-950 shadow-md'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <span>🃏</span>
-          <span>JOLLY & SOLA ({shopJokers.length + shopUnoCards.length})</span>
-        </button>
-        <button
-          onClick={() => setMobileTab('packs')}
-          aria-pressed={mobileTab === 'packs'}
-          className={`flex-1 py-1.5 px-2 rounded-lg font-pixel text-[9.5px] font-bold transition-all flex items-center justify-center gap-1.5 ${
-            mobileTab === 'packs'
-              ? 'bg-purple-600 text-white shadow-md'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <span>🎁</span>
-          <span>BUSTINE & VOUCHER</span>
-        </button>
-      </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
+          {shopJokers.map((joker, idx) => {
+            const cost = discountedShopCost(joker.cost, hasSconto);
+            return (
+              <ShelfItem
+                key={joker.id + idx}
+                badge={RARITY_LABEL[joker.rarity]}
+                badgeTone={joker.rarity}
+                name={joker.name}
+                description={joker.description}
+                art={getJokerArtUrl(joker.id)}
+                icon={joker.icon}
+                cost={cost}
+                money={money}
+                full={jokers.length >= maxJokers}
+                onInspect={() => setInspectedItem({ type: 'joker', item: joker, isShop: true, cost })}
+                onBuy={() => {
+                  sound.playCashChime();
+                  purchaseShelfItem(`joker:${rerolls}:${joker.id}`, () => onBuyJoker(joker, cost));
+                }}
+              />
+            );
+          })}
+          {shopUnoCards.map((unoCard, idx) => {
+            const cost = discountedShopCost(unoCard.cost, hasSconto);
+            return (
+              <ShelfItem
+                key={unoCard.id + idx}
+                badge="Carta Sola"
+                badgeTone="sola"
+                name={unoCard.name}
+                description={unoCard.description}
+                art={getUnoArtUrl(unoCard.id)}
+                icon={unoCard.icon}
+                cost={cost}
+                money={money}
+                full={consumables.length >= maxConsumables}
+                onInspect={() => setInspectedItem({ type: 'uno', item: unoCard, isShop: true, cost })}
+                onBuy={() => {
+                  sound.playCashChime();
+                  purchaseShelfItem(`sola:${rerolls}:${unoCard.id}`, () => onBuyUnoCard(unoCard, cost));
+                }}
+              />
+            );
+          })}
+          {shopJokers.length + shopUnoCards.length === 0 && (
+            <p className="col-span-full font-retro text-[16px] chalk-dim py-4 text-center">
+              Il bancone è vuoto. Cambia le offerte o torna al tavolo.
+            </p>
+          )}
+        </div>
+      </section>
 
-      {/* 4. MAIN SHOP CONTENT GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-3 flex-1">
-        {/* LEFT / TAB 1: Jolly & Carte Azione UNO Shelf */}
-        <div
-          className={`md:col-span-7 bg-slate-900/90 border border-amber-500/50 p-2.5 sm:p-4 rounded-xl pixel-box flex flex-col justify-between shadow-lg ${
-            mobileTab === 'cards' ? 'flex' : 'hidden md:flex'
-          }`}
-        >
-          <div>
-            {/* Shelf Header */}
-            <div className="flex items-center justify-between mb-2.5 border-b border-slate-800 pb-2">
-              <span className="font-pixel text-[10.5px] sm:text-xs text-amber-400 font-bold flex items-center gap-1.5">
-                <span>🃏</span> PERSONAGGI & CARTE SOLA
-              </span>
-              <button
-                onClick={handleReroll}
-                disabled={money < rerollCost}
-                className={`font-pixel text-[8.5px] sm:text-[9.5px] px-2.5 sm:px-3 py-1 sm:py-1.5 rounded pixel-box flex items-center gap-1 cursor-pointer transition-all active:scale-95 ${
-                  money >= rerollCost
-                    ? 'bg-amber-600 hover:bg-amber-500 text-white shadow'
-                    : 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                }`}
-              >
-                <span>REROLL</span>
-                <span className="font-bold">(${rerollCost})</span>
-              </button>
-            </div>
-
-            {/* Shop Cards Grid */}
-            <div className="grid grid-cols-2 gap-2 sm:gap-3">
-              {/* Jokers for sale */}
-              {shopJokers.map((joker, idx) => {
-                const cost = discountedShopCost(joker.cost, hasSconto);
-                const canAfford = money >= cost && jokers.length < maxJokers;
-                const isFull = jokers.length >= maxJokers;
-
-                return (
-                  <div
-                    key={joker.id + idx}
-                    className="bg-slate-950/80 border border-amber-500/40 rounded-xl p-2 pixel-box flex flex-col justify-between gap-1.5 shadow-sm hover:border-amber-400 transition-colors"
-                  >
-                    <div
-                      className="cursor-pointer flex flex-col items-center text-center"
-                      onClick={() =>
-                        setInspectedItem({
-                          type: 'joker',
-                          item: joker,
-                          isShop: true,
-                          cost,
-                        })
-                      }
-                    >
-                      <div className="flex items-center justify-between w-full mb-1">
-                        <span className="text-[7px] font-pixel px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 uppercase font-bold border border-amber-500/30">
-                          {joker.rarity}
-                        </span>
-                        <span className="text-[9px] text-slate-400">ⓘ Info</span>
-                      </div>
-
-                      <div className={`${PICKER_CARD_BOX} rounded-lg bg-slate-900 border border-slate-700 flex flex-col items-center justify-center overflow-hidden my-0.5`}>
-                        {getJokerArtUrl(joker.id) ? (
-                          <CardFaceArt src={getJokerArtUrl(joker.id)!} alt={joker.name} />
-                        ) : (
-                          <span className="text-xl sm:text-2xl">{joker.icon}</span>
-                        )}
-                      </div>
-
-                      <div className="font-pixel text-[9px] sm:text-[10px] text-amber-300 font-bold leading-tight mt-0.5 line-clamp-2">
-                        {joker.name}
-                      </div>
-                      <div className="text-[8px] sm:text-[9px] text-slate-300 line-clamp-3 leading-tight mt-0.5 font-retro">
-                        {joker.description}
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        if (!canAfford) return;
-                        sound.playCashChime();
-                        purchaseShelfItem(`joker:${rerolls}:${joker.id}`, () => onBuyJoker(joker, cost));
-                      }}
-                      disabled={!canAfford}
-                      className={`w-full py-1.5 px-2 rounded-lg font-pixel text-[8.5px] sm:text-[9.5px] font-bold flex items-center justify-center gap-1 pixel-box transition-all active:scale-95 cursor-pointer ${
-                        isFull
-                          ? 'bg-red-950/60 border border-red-800 text-red-400 cursor-not-allowed'
-                          : canAfford
-                          ? 'bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 shadow-md'
-                          : 'bg-slate-800 border border-slate-700 text-slate-500 cursor-not-allowed'
-                      }`}
-                    >
-                      {isFull ? (
-                        <span>SLOT PIENI</span>
-                      ) : (
-                        <>
-                          <span>COMPRA</span>
-                          <span>${cost}</span>
-                        </>
-                      )}
+      {/* 4. BUSTINE / TAGLIANDI E SERVIZI
+          Gli slot si compravano in tre posti diversi (due servizi sotto la
+          dotazione e un tagliando): ora stanno tutti qui, uno accanto all'altro,
+          cosi' si vede che Tavolo Allargato e Amplia Tavolo sono parenti. */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1">
+        <section className="shop-panel rounded-xl p-2.5 sm:p-4" aria-label="Bustine">
+          <h3 className="font-pixel text-[18px] sm:text-[20px] chalk-yellow leading-none mb-2.5">Bustine</h3>
+          <div className="space-y-2">
+            {shopPacks.length === 0 && (
+              <p className="font-retro text-[15px] chalk-dim py-2">Bustine finite per stasera.</p>
+            )}
+            {shopPacks.map((pack) => {
+              const cost = discountedShopCost(pack.cost, hasSconto);
+              return (
+                <ShopRow
+                  key={pack.id}
+                  icon={pack.icon}
+                  name={pack.name}
+                  detail={pack.subtitle}
+                  action={
+                    <button onClick={() => handleOpenBooster(pack)} disabled={money < cost} className="price-btn font-pixel text-[16px] px-3 min-h-[40px] min-w-[64px] rounded-lg">
+                      ${cost}
                     </button>
-                  </div>
-                );
-              })}
-
-              {/* Uno Cards for sale */}
-              {shopUnoCards.map((unoCard, idx) => {
-                const cost = discountedShopCost(unoCard.cost, hasSconto);
-                const canAfford = money >= cost && consumables.length < maxConsumables;
-                const isFull = consumables.length >= maxConsumables;
-
-                return (
-                  <div
-                    key={unoCard.id + idx}
-                    className="bg-slate-950/80 border border-red-500/40 rounded-xl p-2 pixel-box flex flex-col justify-between gap-1.5 shadow-sm hover:border-red-400 transition-colors"
-                  >
-                    <div
-                      className="cursor-pointer flex flex-col items-center text-center"
-                      onClick={() =>
-                        setInspectedItem({
-                          type: 'uno',
-                          item: unoCard,
-                          isShop: true,
-                          cost,
-                        })
-                      }
-                    >
-                      <div className="flex items-center justify-between w-full mb-1">
-                        <span className="text-[7px] font-pixel px-1 py-0.2 rounded bg-red-600 text-white uppercase font-black">
-                          SOLA
-                        </span>
-                        <span className="text-[9px] text-slate-400">ⓘ Info</span>
-                      </div>
-
-                      <div className={`${PICKER_CARD_BOX} rounded-lg bg-slate-900 border border-red-800 flex flex-col items-center justify-center overflow-hidden my-0.5`}>
-                        {getUnoArtUrl(unoCard.id) ? (
-                          <CardFaceArt src={getUnoArtUrl(unoCard.id)!} alt={unoCard.name} />
-                        ) : (
-                          <span className="text-xl sm:text-2xl">{unoCard.icon}</span>
-                        )}
-                      </div>
-
-                      <div className="font-pixel text-[9px] sm:text-[10px] text-red-300 font-bold leading-tight mt-0.5 line-clamp-2">
-                        {unoCard.name}
-                      </div>
-                      <div className="text-[8px] sm:text-[9px] text-slate-300 line-clamp-3 leading-tight mt-0.5 font-retro">
-                        {unoCard.description}
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        if (!canAfford) return;
-                        sound.playCashChime();
-                        purchaseShelfItem(`sola:${rerolls}:${unoCard.id}`, () => onBuyUnoCard(unoCard, cost));
-                      }}
-                      disabled={!canAfford}
-                      className={`w-full py-1.5 px-2 rounded-lg font-pixel text-[8.5px] sm:text-[9.5px] font-bold flex items-center justify-center gap-1 pixel-box transition-all active:scale-95 cursor-pointer ${
-                        isFull
-                          ? 'bg-red-950/60 border border-red-800 text-red-400 cursor-not-allowed'
-                          : canAfford
-                          ? 'bg-gradient-to-r from-red-600 to-rose-500 hover:from-red-500 hover:to-rose-400 text-white shadow-md'
-                          : 'bg-slate-800 border border-slate-700 text-slate-500 cursor-not-allowed'
-                      }`}
-                    >
-                      {isFull ? (
-                        <span>SLOT PIENI</span>
-                      ) : (
-                        <>
-                          <span>COMPRA</span>
-                          <span>${cost}</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
+                  }
+                />
+              );
+            })}
           </div>
-        </div>
+        </section>
 
-        {/* RIGHT / TAB 2: Bustine & Tagliandi (Vouchers) */}
-        <div
-          className={`md:col-span-5 bg-slate-900/90 border border-purple-500/50 p-2.5 sm:p-4 rounded-xl pixel-box flex flex-col justify-between shadow-lg ${
-            mobileTab === 'packs' ? 'flex' : 'hidden md:flex'
-          }`}
-        >
-          <div>
-            <div className="font-pixel text-[10.5px] sm:text-xs text-purple-400 font-bold mb-2.5 border-b border-slate-800 pb-2 flex items-center gap-1.5">
-              <span>🎁</span> BUSTINE & VOUCHER
-            </div>
-
-            {/* Booster Packs List */}
-            <div className="space-y-2 mb-3">
-              {shopPacks.map((pack) => {
-                const cost = discountedShopCost(pack.cost, hasSconto);
-                const canAfford = money >= cost;
-                return (
-                  <div
-                    key={pack.id}
-                    className="p-2 sm:p-2.5 bg-slate-950/80 border border-purple-800/80 rounded-xl pixel-box flex items-center justify-between gap-2 shadow-sm"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-xl sm:text-2xl shrink-0">{pack.icon}</span>
-                      <div className="min-w-0">
-                        <div className="font-pixel text-[9px] sm:text-[10px] text-purple-200 font-bold line-clamp-2">
-                          {pack.name}
-                        </div>
-                        <div className="font-retro text-[8px] sm:text-[9px] text-slate-400 truncate">
-                          {pack.subtitle}
-                        </div>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => handleOpenBooster(pack)}
-                      disabled={!canAfford}
-                      className={`shrink-0 font-pixel text-[8.5px] sm:text-[9px] px-2.5 sm:px-3 py-1.5 rounded-lg pixel-box font-bold flex items-center gap-1 cursor-pointer transition-all active:scale-95 ${
-                        canAfford
-                          ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-md'
-                          : 'bg-slate-800 border border-slate-700 text-slate-500 cursor-not-allowed'
-                      }`}
-                    >
-                      <span>APRI</span>
-                      <span>${cost}</span>
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Vouchers Section */}
-            <div className="border-t border-slate-800 pt-2.5">
-              <div className="font-pixel text-[9px] sm:text-[10px] text-amber-300 font-bold mb-2 flex items-center gap-1">
-                <span>🏷️</span> TAGLIANDI PERMANENTI
-              </div>
-              <div className="space-y-1.5">
-                {shopVouchers.length === 0 && (
-                  <div className="font-retro text-[11px] text-slate-500 px-1 py-2">
-                    Hai già tutti i tagliandi. Il barista non sa più cosa venderti.
-                  </div>
-                )}
-                {shopVouchers.map((voucher) => {
-                  const isBought = vouchers.some(v => v.id === voucher.id && v.bought);
-                  const cost = discountedShopCost(voucher.cost, hasSconto);
-                  const canAfford = money >= cost && !isBought;
-                  return (
-                    <div
-                      key={voucher.id}
-                      className={`p-2 rounded-xl border pixel-box flex items-center justify-between gap-2 text-xs ${
-                        isBought
-                          ? 'bg-emerald-950/40 border-emerald-800/80 text-emerald-300'
-                          : 'bg-slate-950/60 border-slate-800 text-slate-200'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-base sm:text-lg shrink-0">{voucher.icon}</span>
-                        <div className="min-w-0">
-                          <div className="font-pixel text-[8.5px] sm:text-[9px] font-bold line-clamp-2">
-                            {voucher.name}
-                          </div>
-                          <div className="text-[8px] sm:text-[8.5px] text-slate-400 leading-tight truncate font-retro">
-                            {voucher.description}
-                          </div>
-                        </div>
-                      </div>
-
-                      {isBought ? (
-                        <span className="font-pixel text-[7.5px] bg-emerald-700 text-white px-2 py-1 rounded shrink-0">
-                          ATTIVO
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            sound.playCashChime();
-                            purchaseShelfItem(`voucher:${voucher.id}`, () => onBuyVoucher(voucher, cost));
-                          }}
-                          disabled={!canAfford}
-                          className={`font-pixel text-[8px] sm:text-[8.5px] px-2.5 py-1.5 rounded-lg pixel-box font-bold shrink-0 cursor-pointer transition-all active:scale-95 ${
-                            canAfford
-                              ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow'
-                              : 'bg-slate-800 border border-slate-700 text-slate-500 cursor-not-allowed'
-                          }`}
-                        >
-                          ${cost}
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+        <section className="shop-panel rounded-xl p-2.5 sm:p-4" aria-label="Tagliandi e servizi">
+          <h3 className="font-pixel text-[18px] sm:text-[20px] chalk-yellow leading-none mb-2.5">Tagliandi e servizi</h3>
+          <div className="space-y-2">
+            {shopVouchers.map((voucher) => {
+              const isBought = vouchers.some((v) => v.id === voucher.id && v.bought);
+              const cost = discountedShopCost(voucher.cost, hasSconto);
+              return (
+                <ShopRow
+                  key={voucher.id}
+                  icon={voucher.icon}
+                  name={voucher.name}
+                  detail={voucher.description}
+                  action={
+                    isBought ? (
+                      <span className="font-pixel text-[15px] chalk-green px-2">Attivo</span>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          sound.playCashChime();
+                          purchaseShelfItem(`voucher:${voucher.id}`, () => onBuyVoucher(voucher, cost));
+                        }}
+                        disabled={money < cost}
+                        className="price-btn font-pixel text-[16px] px-3 min-h-[40px] min-w-[64px] rounded-lg"
+                      >
+                        ${cost}
+                      </button>
+                    )
+                  }
+                />
+              );
+            })}
+            {/* Always for sale until the cap: a bad reroll must never hide them. */}
+            <SlotServiceButton
+              icon="🪑"
+              label="Amplia tavolo"
+              microcopy="+1 slot Jolly"
+              currentSlots={maxJokers}
+              cap={getJokerSlotCap(slotRules)}
+              offer={jokerSlotOffer}
+              money={money}
+              onBuy={() => buySlot(jokerSlotOffer, onBuyJokerSlot)}
+            />
+            <SlotServiceButton
+              icon="👝"
+              label="Allarga tasca"
+              microcopy="+1 slot Carte Sola"
+              currentSlots={maxConsumables}
+              cap={getConsumableSlotCap(slotRules)}
+              offer={consumableSlotOffer}
+              money={money}
+              onBuy={() => buySlot(consumableSlotOffer, onBuyConsumableSlot)}
+            />
           </div>
-        </div>
+        </section>
       </div>
 
       {/* 5. ITEM INSPECTION MODAL (Tapping on card on mobile or anywhere) */}
@@ -880,11 +660,11 @@ export const ShopView: React.FC<ShopViewProps> = ({ model, actions }) => {
                 {inspectedItem.item.name}
               </h3>
               {'rarity' in inspectedItem.item ? (
-                <span className="font-pixel text-[7.5px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 uppercase mb-2 border border-amber-500/40">
-                  {inspectedItem.item.rarity}
+                <span className="font-pixel text-[11px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 uppercase mb-2 border border-amber-500/40">
+                  {RARITY_LABEL[inspectedItem.item.rarity]}
                 </span>
               ) : inspectedItem.type === 'uno' ? (
-                <span className="font-pixel text-[7.5px] px-2 py-0.5 rounded bg-red-600/20 text-red-300 uppercase mb-2 border border-red-500/40">
+                <span className="font-pixel text-[11px] px-2 py-0.5 rounded bg-red-600/20 text-red-300 uppercase mb-2 border border-red-500/40">
                   Carta Sola
                 </span>
               ) : null}
@@ -904,14 +684,14 @@ export const ShopView: React.FC<ShopViewProps> = ({ model, actions }) => {
                       }
                       setInspectedItem(null);
                     }}
-                    className="flex-1 bg-red-600 hover:bg-red-500 text-white font-pixel text-[9px] py-2 rounded-lg pixel-box font-bold cursor-pointer"
+                    className="flex-1 bg-red-600 hover:bg-red-500 text-white font-pixel text-[13px] py-2 rounded-lg pixel-box font-bold cursor-pointer"
                   >
                     VENDI (+${'sellValue' in inspectedItem.item ? inspectedItem.item.sellValue : 1})
                   </button>
                 )}
                 <button
                   onClick={() => setInspectedItem(null)}
-                  className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-pixel text-[9px] py-2 rounded-lg pixel-box cursor-pointer"
+                  className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-pixel text-[13px] py-2 rounded-lg pixel-box cursor-pointer"
                 >
                   CHIUDI
                 </button>
@@ -943,11 +723,11 @@ export const ShopView: React.FC<ShopViewProps> = ({ model, actions }) => {
               <p className="font-retro text-xs text-slate-300 mb-3">
                 Scegli {activeBooster.pack.selectCount - activeBooster.selectedCount}{' '}
                 {activeBooster.pack.selectCount - activeBooster.selectedCount === 1 ? 'carta' : 'carte'}!
-                <span className="block text-[10px] text-slate-400 mt-1">
+                <span className="block text-[14px] text-slate-400 mt-1">
                   Tocca una carta per guardarla da vicino.
                 </span>
                 {activeBooster.cards.length > 0 && (
-                  <span className="block text-[10px] text-slate-400 mt-1">
+                  <span className="block text-[14px] text-slate-400 mt-1">
                     Ogni carta qui è una TUA carta potenziata: la trasformi, non la aggiungi. Il mazzo resta di {runDeck.length} carte.
                   </span>
                 )}
@@ -968,7 +748,7 @@ export const ShopView: React.FC<ShopViewProps> = ({ model, actions }) => {
                     />
                     <button
                       onClick={() => handleSelectBoosterCard(card)}
-                      className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-pixel text-[8px] font-bold px-2 py-1 rounded-lg pixel-box shadow cursor-pointer"
+                      className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-pixel text-[12px] font-bold px-2 py-1 rounded-lg pixel-box shadow cursor-pointer"
                     >
                       SCEGLI
                     </button>
@@ -985,7 +765,7 @@ export const ShopView: React.FC<ShopViewProps> = ({ model, actions }) => {
                     />
                     <button
                       onClick={() => handleSelectBoosterUnoCard(unoCard)}
-                      className="bg-red-600 hover:bg-red-500 text-white font-pixel text-[8px] font-bold px-2 py-1 rounded-lg pixel-box shadow cursor-pointer"
+                      className="bg-red-600 hover:bg-red-500 text-white font-pixel text-[12px] font-bold px-2 py-1 rounded-lg pixel-box shadow cursor-pointer"
                     >
                       SCEGLI
                     </button>
@@ -1003,7 +783,7 @@ export const ShopView: React.FC<ShopViewProps> = ({ model, actions }) => {
                     />
                     <button
                       onClick={() => handleSelectBoosterJoker(joker)}
-                      className="bg-rose-600 hover:bg-rose-500 text-white font-pixel text-[8px] font-bold px-2 py-1 rounded-lg pixel-box shadow cursor-pointer"
+                      className="bg-rose-600 hover:bg-rose-500 text-white font-pixel text-[12px] font-bold px-2 py-1 rounded-lg pixel-box shadow cursor-pointer"
                     >
                       SCEGLI
                     </button>
@@ -1019,7 +799,7 @@ export const ShopView: React.FC<ShopViewProps> = ({ model, actions }) => {
                   <div className="flex gap-2 justify-center">
                     <button
                       onClick={() => setConfirmBoosterAbandon(false)}
-                      className="font-pixel text-[8px] sm:text-[9px] text-slate-200 px-3 py-2 border border-slate-600 rounded-lg pixel-box cursor-pointer"
+                      className="font-pixel text-[12px] sm:text-[13px] text-slate-200 px-3 py-2 border border-slate-600 rounded-lg pixel-box cursor-pointer"
                     >
                       CONTINUA A SCEGLIERE
                     </button>
@@ -1028,7 +808,7 @@ export const ShopView: React.FC<ShopViewProps> = ({ model, actions }) => {
                         setConfirmBoosterAbandon(false);
                         setActiveBooster(null);
                       }}
-                      className="font-pixel text-[8px] sm:text-[9px] text-white bg-rose-700 hover:bg-rose-600 px-3 py-2 border border-rose-400 rounded-lg pixel-box cursor-pointer"
+                      className="font-pixel text-[12px] sm:text-[13px] text-white bg-rose-700 hover:bg-rose-600 px-3 py-2 border border-rose-400 rounded-lg pixel-box cursor-pointer"
                     >
                       {boosterAbandonLabel(activeBooster.pack.selectCount, activeBooster.selectedCount)}
                     </button>
@@ -1037,7 +817,7 @@ export const ShopView: React.FC<ShopViewProps> = ({ model, actions }) => {
               ) : (
                 <button
                   onClick={() => setConfirmBoosterAbandon(true)}
-                  className="font-pixel text-[9px] sm:text-xs text-slate-400 hover:text-white px-3 py-1.5 border border-slate-700 rounded-lg pixel-box cursor-pointer"
+                  className="font-pixel text-[13px] sm:text-[13px] text-slate-400 hover:text-white px-3 py-1.5 border border-slate-700 rounded-lg pixel-box cursor-pointer"
                 >
                   SALTA / CHIUDI
                 </button>
@@ -1108,47 +888,87 @@ const SlotServiceButton: React.FC<{
   cap: number;
   offer: SlotExpansion | null;
   money: number;
-  accent: 'amber' | 'red';
   onBuy: () => void;
-}> = ({ icon, label, microcopy, currentSlots, cap, offer, money, accent, onBuy }) => {
-  const atCap = currentSlots >= cap;
-  const canAfford = offer !== null && money >= offer.cost;
-  const accentText = accent === 'amber' ? 'text-amber-300' : 'text-red-300';
-  const accentButton =
-    accent === 'amber'
-      ? 'bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950'
-      : 'bg-gradient-to-r from-red-600 to-rose-500 hover:from-red-500 hover:to-rose-400 text-white';
-
-  return (
-    <div className="bg-slate-950/70 border border-slate-700/80 rounded-xl px-2 py-1.5 pixel-box flex items-center justify-between gap-2 min-h-[44px]">
-      <div className="flex items-center gap-1.5 min-w-0">
-        <span className="text-lg sm:text-xl shrink-0">{icon}</span>
-        <div className="min-w-0">
-          <div className={`font-pixel text-[8.5px] sm:text-[9.5px] font-bold truncate ${accentText}`}>
-            {label}
-          </div>
-          <div className="font-retro text-[8.5px] sm:text-[9.5px] text-slate-400 truncate">
-            {microcopy} • {currentSlots}/{cap}
-            {offer && <span className="text-slate-300"> ➔ {offer.toSlots}</span>}
-          </div>
-        </div>
-      </div>
-
-      {atCap || !offer ? (
-        <span className="font-pixel text-[8px] sm:text-[8.5px] bg-emerald-800 text-emerald-100 px-2.5 rounded shrink-0 flex items-center min-h-[36px]">
-          MAX
-        </span>
+}> = ({ icon, label, microcopy, currentSlots, cap, offer, money, onBuy }) => (
+  <ShopRow
+    icon={icon}
+    name={label}
+    detail={
+      currentSlots >= cap || !offer
+        ? `${microcopy} · al massimo (${cap})`
+        : `${microcopy} · da ${currentSlots} a ${offer.toSlots} (max ${cap})`
+    }
+    action={
+      currentSlots >= cap || !offer ? (
+        <span className="font-pixel text-[15px] chalk-dim px-2">Max</span>
       ) : (
-        <button
-          onClick={onBuy}
-          disabled={!canAfford}
-          className={`shrink-0 font-pixel text-[8.5px] sm:text-[9px] px-3 rounded-lg pixel-box font-bold cursor-pointer transition-all active:scale-95 min-h-[36px] min-w-[56px] ${
-            canAfford ? `${accentButton} shadow-md` : 'bg-slate-800 border border-slate-700 text-slate-500 cursor-not-allowed'
-          }`}
-        >
+        <button onClick={onBuy} disabled={money < offer.cost} className="price-btn font-pixel text-[16px] px-3 min-h-[40px] min-w-[64px] rounded-lg">
           ${offer.cost}
         </button>
-      )}
+      )
+    }
+  />
+);
+
+const ShelfHeading: React.FC<{ label: string; count: string }> = ({ label, count }) => (
+  <div className="flex items-baseline gap-2 px-1 mb-1">
+    <span className="font-pixel text-[16px] sm:text-[17px] chalk-yellow">{label}</span>
+    <span className="font-condensed text-[16px] chalk-dim tabular-nums">{count}</span>
+  </div>
+);
+
+/** One line of the right-hand lists: icon, what it is, one price on the right. */
+const ShopRow: React.FC<{ icon: string; name: string; detail: string; action: React.ReactNode }> = ({ icon, name, detail, action }) => (
+  <div className="shop-item rounded-lg px-2.5 py-2 flex items-center justify-between gap-2.5">
+    <div className="flex items-center gap-2.5 min-w-0">
+      <span className="text-xl shrink-0" aria-hidden>{icon}</span>
+      <div className="min-w-0">
+        <div className="font-pixel text-[16px] sm:text-[17px] chalk leading-tight">{name}</div>
+        {/* Two lines, not one truncated: half the voucher text used to end in an ellipsis. */}
+        <div className="font-retro text-[14px] sm:text-[15px] chalk-dim leading-snug line-clamp-2">{detail}</div>
+      </div>
     </div>
-  );
+    <div className="shrink-0">{action}</div>
+  </div>
+);
+
+const BADGE_TONE: Record<string, string> = {
+  common: 'chalk-dim',
+  uncommon: 'chalk-green',
+  rare: 'chalk-yellow',
+  legendary: 'chalk-red',
+  sola: 'chalk-red',
 };
+
+/**
+ * Una carta sul bancone. Il colore sta solo nell'etichetta della categoria: il
+ * tasto del prezzo e' uguale per tutto, cosi' l'occhio confronta i prezzi e non
+ * i gradienti (prima giallo, rosso, viola e arancio a seconda dello scaffale).
+ */
+const ShelfItem: React.FC<{
+  badge: string;
+  badgeTone: string;
+  name: string;
+  description: string;
+  art: string | null | undefined;
+  icon: string;
+  cost: number;
+  money: number;
+  full: boolean;
+  onInspect: () => void;
+  onBuy: () => void;
+}> = ({ badge, badgeTone, name, description, art, icon, cost, money, full, onInspect, onBuy }) => (
+  <div className="shop-item rounded-xl p-2 flex flex-col gap-1.5">
+    <button type="button" onClick={onInspect} className="flex flex-col items-center text-center cursor-pointer min-w-0" aria-label={`Dettagli: ${name}`}>
+      <span className={`font-pixel text-[13px] uppercase tracking-[0.06em] self-start ${BADGE_TONE[badgeTone] ?? 'chalk-dim'}`}>{badge}</span>
+      <div className={`${PICKER_CARD_BOX} rounded-lg bg-[#0f1813] flex items-center justify-center overflow-hidden my-1`}>
+        {art ? <CardFaceArt src={art} alt={name} /> : <span className="text-2xl">{icon}</span>}
+      </div>
+      <span className="font-pixel text-[16px] sm:text-[17px] chalk leading-tight line-clamp-2">{name}</span>
+      <span className="font-retro text-[14px] chalk-dim leading-snug line-clamp-3 mt-0.5">{description}</span>
+    </button>
+    <button onClick={onBuy} disabled={full || money < cost} className="price-btn font-pixel text-[16px] w-full min-h-[40px] rounded-lg mt-auto">
+      {full ? 'Slot pieni' : `Compra · $${cost}`}
+    </button>
+  </div>
+);

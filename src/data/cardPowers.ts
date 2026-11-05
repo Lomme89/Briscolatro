@@ -69,7 +69,7 @@ const ENHANCEMENT_POWERS: Record<Exclude<Enhancement, 'none'>, CardPower> = {
     className: 'bg-red-950 border-red-400 text-red-200',
   },
   wild: {
-    label: 'Jolly',
+    label: 'Matta',
     description: 'Vale sempre come carta di Briscola, qualunque sia il seme.',
     className: 'bg-fuchsia-950 border-fuchsia-400 text-fuchsia-200',
   },

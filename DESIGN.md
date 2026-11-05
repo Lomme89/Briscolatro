@@ -74,7 +74,7 @@ dal punteggio. Ora funzionano, e sono la via di crescita alternativa ai jolly:
 
 - **Sigillo rosso**: ritrigger della carta giocata. **Oro**: +$2 alla cattura.
   **Blu**: 20% di una carta UNO gratis. **Viola**: +1 scarto.
-- **Bonus** +40 Chips · **Mult** +5 Mult · **Acciaio** x1.6 mentre resta in mano ·
+- **Bonus** +40 Chips · **Mult** +5 Mult · **Matta** vale sempre come Briscola · **Acciaio** x1.6 mentre resta in mano ·
   **Vetro** x2.2 e si rompe perdendo · **Pietra** +60 Chips e nessun seme.
 
 Il Vetro rotto **non** sparisce dal mazzo: perde l'enhancement. La Briscola a due
@@ -120,3 +120,39 @@ build migliore. Una run senza motore muore intorno all'ante 3–4, ed è voluto.
 - Nessun consumabile assegna enhancement: si trovano solo nelle bustine.
 - Il pool di jolly non ha ancora un vero equilibrio rarità/potenza: alcune comuni
   battono delle rare.
+
+## L'interfaccia: carta, non lavagna
+
+La lavagna era d'atmosfera ma si leggeva male: gesso chiaro su ardesia scura,
+glow che sfocava i bordi del pixel font, e un terzo del testo sotto gli 11px in
+due font tutti maiuscoli (Press Start 2P, Silkscreen). Balatro si legge per la
+dimensione, non per il font: anche lì esiste una mod (Readabletro) solo per
+renderlo leggibile su schermi piccoli.
+
+- **Un font solo:** Jersey 15 (lettere miste, C/B/8 distinti a 13px). I ruoli
+  `font-pixel` / `font-retro` / `font-condensed` restano come nomi.
+- **Pavimento a 10px**, nessun breakpoint che rimpicciolisce il testo.
+- **Ciò che va letto sta su carta** (inchiostro su crema, >11:1): menù,
+  programma della serata, scontrino. Il legno fa da insegna. Il panno è il tavolo.
+- **Le etichette dicono cosa fanno**, il colore del locale va nella nota
+  ("Nuova partita" · *Carte nuove*).
+
+### La bottega
+
+Il negozio di Balatro ha sei cose da guardare (2 carte, 2 bustine, 1 tagliando,
+reroll). Il nostro ne aveva tredici, ciascuna con un gradiente diverso, e sul
+telefono metà stava dietro una linguetta.
+
+- Una sola colonna di lettura, niente schede: dotazione → bancone → bustine e tagliandi.
+- La dotazione è sempre aperta: un jolly si compra guardando quelli che hai.
+- Un solo tasto prezzo (crema su inchiostro) per tutto; il colore resta alle
+  etichette di rarità. Il tasto più forte è "Torna al tavolo".
+- Gli slot si compravano in tre posti: ora i due servizi stanno accanto ai tagliandi.
+- Un nome per cosa: Jolly (non "Personaggi"), Carte Sola (non "Carte azione").
+- Le quantità (3 jolly, 2 Sola, 3 bustine) restano: sono misurate (vedi sopra).
+
+### Niente ispettore durante la mano
+
+Mostrare il tallone rimasto contava le carte al posto del giocatore: per
+esclusione dava anche la mano avversaria. Nella Briscola contare è la bravura.
+Al tavolo resta il numero sul dorso; il mazzo si guarda in bottega, ordinato.

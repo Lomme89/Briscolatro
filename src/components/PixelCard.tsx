@@ -17,7 +17,7 @@ const ENHANCEMENT_BADGES: Record<
 > = {
   bonus: { label: `+${V.bonusChips}`, title: `Bonus: +${V.bonusChips} Chips`, className: 'bg-sky-600 text-white border-sky-300' },
   mult: { label: `+${V.multBonus}x`, title: `Mult: +${V.multBonus} Mult`, className: 'bg-red-600 text-white border-red-300' },
-  wild: { label: 'JOLLY', title: 'Wild: vale sempre come Briscola', className: 'bg-fuchsia-600 text-white border-fuchsia-300' },
+  wild: { label: 'MATTA', title: 'Matta: vale sempre come Briscola', className: 'bg-fuchsia-600 text-white border-fuchsia-300' },
   steel: { label: `X${V.steelXMult}`, title: `Acciaio: x${V.steelXMult} Mult mentre resta in mano`, className: 'bg-slate-400 text-slate-900 border-slate-200' },
   stone: { label: 'PIETRA', title: `Pietra: +${V.stoneChips} Chips, nessun seme`, className: 'bg-stone-500 text-white border-stone-300' },
 };
@@ -80,9 +80,9 @@ export const PixelCard: React.FC<PixelCardProps> = ({
 
   // Card dimensions based on size with generous, readable hand dimensions
   const sizeClasses = {
-    xs: 'w-11 sm:w-13 h-16 sm:h-18 text-[8px] sm:text-[9px]',
-    pick: `${PICKER_CARD_BOX} text-[9px] sm:text-[10px]`,
-    sm: 'w-14 sm:w-18 h-20 sm:h-26 text-[9px] sm:text-xs',
+    xs: 'w-11 sm:w-13 h-16 sm:h-18 text-[12px] sm:text-[13px]',
+    pick: `${PICKER_CARD_BOX} text-[13px] sm:text-[14px]`,
+    sm: 'w-14 sm:w-18 h-20 sm:h-26 text-[13px] sm:text-[13px]',
     md: 'w-20 sm:w-24 md:w-26 h-28 sm:h-34 md:h-38 text-xs sm:text-sm',
     lg: 'w-[96px] sm:w-[114px] md:w-[128px] lg:w-[140px] h-[138px] sm:h-[164px] md:h-[184px] lg:h-[200px] text-xs sm:text-sm',
   }[size];
@@ -153,14 +153,14 @@ export const PixelCard: React.FC<PixelCardProps> = ({
         <div className={`absolute inset-0.5 sm:inset-1 border border-dashed rounded flex flex-col items-center justify-center ${styleDef.cardBackInner} p-0.5 text-center`}>
           <div className="grid grid-cols-2 gap-0.5 opacity-80 leading-none mb-0.5">
             {styleDef.cardBackIcons.map((ic, idx) => (
-              <span key={idx} className="text-[8px] sm:text-[10px]">
+              <span key={idx} className="text-[12px] sm:text-[14px]">
                 {ic}
               </span>
             ))}
           </div>
           {/* No "BRISCOLA" on the back: next to the real trump indicator it reads
               as if every face-down card were a Briscola. */}
-          <span className={`${styleDef.cardBackText} font-pixel text-[6px] sm:text-[7.5px] font-bold tracking-tight leading-none truncate max-w-full`}>
+          <span className={`${styleDef.cardBackText} font-pixel text-[10px] sm:text-[11px] font-bold tracking-tight leading-none truncate max-w-full`}>
             {activeStyleId === 'neo_noir' ? 'NOIR' : activeStyleId === 'neon_cyber' ? 'CYBER' : '★'}
           </span>
         </div>
@@ -253,7 +253,7 @@ export const PixelCard: React.FC<PixelCardProps> = ({
       {isBriscola && showBriscolaBadge && (
         // No stars: with a large system font the ribbon grew wider than the card
         // and collided with the neighbouring one.
-        <div className={`absolute -top-2.5 left-1/2 -translate-x-1/2 font-pixel text-[6.5px] sm:text-[7.5px] px-1 py-0.5 rounded shadow pixel-box z-20 whitespace-nowrap max-w-full ${styleDef.briscolaBadgeClass}`}>
+        <div className={`absolute -top-2.5 left-1/2 -translate-x-1/2 font-pixel text-[10px] sm:text-[11px] px-1 py-0.5 rounded shadow pixel-box z-20 whitespace-nowrap max-w-full ${styleDef.briscolaBadgeClass}`}>
           BRISCOLA
         </div>
       )}
@@ -262,22 +262,22 @@ export const PixelCard: React.FC<PixelCardProps> = ({
       {card.seal !== 'none' && (
         <div className="absolute -top-1.5 -right-1.5 z-20">
           {card.seal === 'red' && (
-            <span className="w-4 h-4 rounded-full bg-red-600 text-white flex items-center justify-center text-[8px] font-pixel shadow border border-red-300">
+            <span className="w-4 h-4 rounded-full bg-red-600 text-white flex items-center justify-center text-[12px] font-pixel shadow border border-red-300">
               🔴
             </span>
           )}
           {card.seal === 'gold' && (
-            <span className="w-4 h-4 rounded-full bg-amber-400 text-slate-900 flex items-center justify-center text-[8px] font-pixel shadow border border-amber-200 font-bold">
+            <span className="w-4 h-4 rounded-full bg-amber-400 text-slate-900 flex items-center justify-center text-[12px] font-pixel shadow border border-amber-200 font-bold">
               $
             </span>
           )}
           {card.seal === 'blue' && (
-            <span className="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[8px] font-pixel shadow border border-blue-300">
+            <span className="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[12px] font-pixel shadow border border-blue-300">
               🎴
             </span>
           )}
           {card.seal === 'purple' && (
-            <span className="w-4 h-4 rounded-full bg-purple-600 text-white flex items-center justify-center text-[8px] font-pixel shadow border border-purple-300">
+            <span className="w-4 h-4 rounded-full bg-purple-600 text-white flex items-center justify-center text-[12px] font-pixel shadow border border-purple-300">
               🔄
             </span>
           )}
@@ -289,7 +289,7 @@ export const PixelCard: React.FC<PixelCardProps> = ({
           the top-right. */}
       {card.enhancement !== 'none' && (
         <div
-          className={`absolute -bottom-1.5 -right-1.5 z-20 px-1 py-0.5 rounded font-pixel text-[6px] sm:text-[7px] font-bold shadow border ${ENHANCEMENT_BADGES[card.enhancement].className}`}
+          className={`absolute -bottom-1.5 -right-1.5 z-20 px-1 py-0.5 rounded font-pixel text-[10px] sm:text-[11px] font-bold shadow border ${ENHANCEMENT_BADGES[card.enhancement].className}`}
           title={ENHANCEMENT_BADGES[card.enhancement].title}
         >
           {ENHANCEMENT_BADGES[card.enhancement].label}
@@ -300,7 +300,7 @@ export const PixelCard: React.FC<PixelCardProps> = ({
           edge to itself rather than sharing a corner with the pure upside. */}
       {card.special !== 'none' && (
         <div
-          className={`absolute -top-1.5 left-1/2 -translate-x-1/2 z-20 px-1 py-0.5 rounded font-pixel text-[6px] sm:text-[7px] font-bold shadow border whitespace-nowrap ${SPECIAL_INFO[card.special].className}`}
+          className={`absolute -top-1.5 left-1/2 -translate-x-1/2 z-20 px-1 py-0.5 rounded font-pixel text-[10px] sm:text-[11px] font-bold shadow border whitespace-nowrap ${SPECIAL_INFO[card.special].className}`}
           title={`${SPECIAL_INFO[card.special].bonus} - ${SPECIAL_INFO[card.special].cost}`}
         >
           {SPECIAL_INFO[card.special].badge}
@@ -319,7 +319,7 @@ export const PixelCard: React.FC<PixelCardProps> = ({
               // as a sticker someone put on the card.
               <div className="flex flex-col items-start leading-none">
                 <span
-                  className={`font-pixel font-bold text-[10px] sm:text-xs md:text-sm ${styleDef.rankTextColor} tracking-tighter`}
+                  className={`font-pixel font-bold text-[14px] sm:text-[14px] md:text-sm ${styleDef.rankTextColor} tracking-tighter`}
                   style={{ textShadow: '0 1px 2px rgba(245,244,232,0.95)' }}
                 >
                   {info.shortName}
@@ -334,7 +334,7 @@ export const PixelCard: React.FC<PixelCardProps> = ({
           <>
             {/* Top-Left Corner Index */}
             <div className="flex flex-col items-start leading-none pointer-events-none">
-              <span className={`font-pixel font-bold text-[10px] sm:text-xs md:text-sm ${styleDef.rankTextColor} tracking-tighter`}>
+              <span className={`font-pixel font-bold text-[14px] sm:text-[14px] md:text-sm ${styleDef.rankTextColor} tracking-tighter`}>
                 {info.shortName}
               </span>
               <div className="mt-0.5">
@@ -351,36 +351,20 @@ export const PixelCard: React.FC<PixelCardProps> = ({
 
         {/* Bottom Bar: Points and Inverted Index */}
         <div className="flex items-end justify-between leading-none pointer-events-none">
-          {showPoints && chipsVisible && size !== 'xs' && size !== 'sm' ? (
+          {/* Solo le carte che valgono: le lisce sono meta' del mazzo e un
+              "0 PT" su ognuna era rumore sopra il disegno. */}
+          {showPoints && chipsVisible && info.points > 0 && size !== 'xs' && size !== 'sm' ? (
             <div className="flex items-center">
               {usesFullArt ? (
                 <span
-                  className={`font-pixel text-[7px] sm:text-[8px] md:text-[9px] font-bold ${
-                    info.points > 0 ? '' : 'opacity-60'
-                  }`}
-                  style={{
-                    // Su carta avorio lo slate-500 spariva: le carte da zero
-                    // punti sono la meta' del mazzo, e la loro riga si deve
-                    // leggere quanto le altre, solo piu' scarica.
-                    color: info.points > 0 ? '#7c2d12' : '#8a7455',
-                    textShadow: '0 1px 2px rgba(245,244,232,0.95)',
-                  }}
+                  className="font-pixel text-[12px] sm:text-[13px] md:text-[14px]"
+                  style={{ color: '#7c2d12', textShadow: '0 1px 2px rgba(245,244,232,0.95)' }}
                 >
-                  {info.points} PT CARTA
-                </span>
-              ) : info.points > 0 ? (
-                <span className={`font-pixel text-[7px] sm:text-[8px] md:text-[9px] px-1 py-0.5 rounded shadow-xs font-bold ${styleDef.pointsBadgeClass}`}>
-                  {info.points} PT CARTA
+                  {info.points} PT
                 </span>
               ) : (
-                // Grigio chiaro su carta avorio: la scritta era li' solo per
-                // chi sapeva gia' che c'era. Stesso inchiostro dell'altra,
-                // solo piu' scarico.
-                <span
-                  className="font-pixel text-[6px] sm:text-[7px] font-bold"
-                  style={{ color: '#8a7455', textShadow: '0 1px 2px rgba(245,244,232,0.95)' }}
-                >
-                  0 PT CARTA
+                <span className={`font-pixel text-[12px] sm:text-[13px] md:text-[14px] px-1 py-0.5 rounded shadow-xs ${styleDef.pointsBadgeClass}`}>
+                  {info.points} PT
                 </span>
               )}
             </div>
@@ -388,7 +372,7 @@ export const PixelCard: React.FC<PixelCardProps> = ({
 
           {!usesFullArt && (
             <div className="flex flex-col items-end rotate-180">
-              <span className={`font-pixel font-bold text-[10px] sm:text-xs md:text-sm ${styleDef.rankTextColor} tracking-tighter`}>
+              <span className={`font-pixel font-bold text-[14px] sm:text-[14px] md:text-sm ${styleDef.rankTextColor} tracking-tighter`}>
                 {info.shortName}
               </span>
               <div className="mt-0.5">

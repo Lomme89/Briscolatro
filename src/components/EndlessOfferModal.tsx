@@ -42,7 +42,7 @@ export const EndlessOfferModal: React.FC<EndlessOfferModalProps> = ({
           <h2 className="font-pixel text-base sm:text-lg text-amber-400 font-bold uppercase tracking-wider">
             TORNEO VINTO
           </h2>
-          <div className="inline-block mt-1.5 px-3 py-0.5 rounded-full font-pixel text-[9px] sm:text-[10px] border font-bold bg-emerald-950/80 border-emerald-500 text-emerald-300">
+          <div className="inline-block mt-1.5 px-3 py-0.5 rounded-full font-pixel text-[13px] sm:text-[14px] border font-bold bg-emerald-950/80 border-emerald-500 text-emerald-300">
             VITTORIA REGISTRATA ✓
           </div>
           <p className="font-retro text-xs text-slate-300 mt-2 max-w-sm mx-auto">
@@ -56,7 +56,7 @@ export const EndlessOfferModal: React.FC<EndlessOfferModalProps> = ({
             Il barista pulisce il tavolo e non se ne va. «Uno in piu&apos;? Da qui in poi
             si sale: <span className="text-amber-300 font-bold">ANTE {nextAnte} · {firstTier.name}</span>.»
           </p>
-          <p className="font-retro text-[11px] text-slate-400 mt-2">
+          <p className="font-retro text-[15px] text-slate-400 mt-2">
             Se cadi in Endless perdi solo la posta. La vittoria del torneo resta scritta.
           </p>
         </div>
@@ -64,13 +64,13 @@ export const EndlessOfferModal: React.FC<EndlessOfferModalProps> = ({
         <div className="flex flex-col sm:flex-row gap-2.5">
           <button
             onClick={onClose}
-            className="flex-1 min-h-[48px] bg-slate-800 hover:bg-slate-700 border-2 border-slate-600 text-slate-100 font-pixel text-[10px] sm:text-xs font-bold px-4 rounded-xl pixel-box cursor-pointer transition-all active:scale-95"
+            className="flex-1 min-h-[48px] bg-slate-800 hover:bg-slate-700 border-2 border-slate-600 text-slate-100 font-pixel text-[14px] sm:text-[14px] font-bold px-4 rounded-xl pixel-box cursor-pointer transition-all active:scale-95"
           >
             CHIUDI LA PARTITA
           </button>
           <button
             onClick={onDouble}
-            className="flex-1 min-h-[48px] bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-pixel text-[10px] sm:text-xs font-bold px-4 rounded-xl pixel-box shadow-lg cursor-pointer transition-all active:scale-95"
+            className="flex-1 min-h-[48px] bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-pixel text-[14px] sm:text-[14px] font-bold px-4 rounded-xl pixel-box shadow-lg cursor-pointer transition-all active:scale-95"
           >
             RADDOPPIA LA POSTA
           </button>

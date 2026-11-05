@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Joker } from '../types/game';
 import { CardFaceArt, getJokerArtUrl } from './CardFaceArt';
 import { PICKER_CARD_BOX } from './cardSizing';
+import { RARITY_LABEL } from '../data/jokers';
 
 interface JokerSlotProps {
   joker: Joker | null;
@@ -44,9 +45,9 @@ export const JokerSlot: React.FC<JokerSlotProps> = ({
 
   const isSmall = size !== 'md';
   const sizeClasses = {
-    hud: 'w-11 h-14 p-1 text-[8px]',
-    sm: 'w-11 sm:w-16 h-15 sm:h-22 p-1 text-[8px]',
-    pick: `${PICKER_CARD_BOX} p-1 text-[8px]`,
+    hud: 'w-11 h-14 p-1 text-[12px]',
+    sm: 'w-11 sm:w-16 h-15 sm:h-22 p-1 text-[12px]',
+    pick: `${PICKER_CARD_BOX} p-1 text-[12px]`,
     md: 'w-16 sm:w-20 h-22 sm:h-28 p-1.5 text-xs',
   }[size];
 
@@ -56,7 +57,7 @@ export const JokerSlot: React.FC<JokerSlotProps> = ({
         className={`${sizeClasses} border-2 border-dashed border-slate-700/60 rounded-lg flex flex-col items-center justify-center text-slate-600 bg-slate-900/30 shrink-0`}
       >
         <span className={`${isSmall ? 'text-sm sm:text-base' : 'text-lg sm:text-xl'} opacity-30`}>🃏</span>
-        <span className="text-[7px] sm:text-[8px] font-pixel mt-0.5 opacity-40">VUOTO</span>
+        <span className="text-[11px] sm:text-[12px] font-pixel mt-0.5 opacity-40">VUOTO</span>
       </div>
     );
   }
@@ -143,8 +144,8 @@ export const JokerSlot: React.FC<JokerSlotProps> = ({
 
         {/* Top bar: Rarity & Icon */}
         <div className="flex items-center justify-between z-10 leading-none">
-          <span className={`text-[6px] sm:text-[7px] font-pixel px-0.5 sm:px-1 py-0.5 rounded font-bold uppercase ${rarityBadge}`}>
-            {isSmall ? joker.rarity.slice(0, 3) : joker.rarity}
+          <span className={`text-[10px] sm:text-[11px] font-pixel px-0.5 sm:px-1 py-0.5 rounded font-bold uppercase ${rarityBadge}`}>
+            {isSmall ? RARITY_LABEL[joker.rarity].slice(0, 3) : RARITY_LABEL[joker.rarity]}
           </span>
           {!artUrl && <span className={`${isSmall ? 'text-xs' : 'text-sm'}`}>{joker.icon}</span>}
         </div>
@@ -154,7 +155,7 @@ export const JokerSlot: React.FC<JokerSlotProps> = ({
           // The art already is the portrait, so the name hugs the bottom bar
           // instead of sitting across the character's face.
           !isSmall && (
-            <span className="z-10 mt-auto text-[7.5px] sm:text-[8px] font-pixel font-bold leading-tight line-clamp-1 text-center text-amber-300 [text-shadow:0_1px_2px_rgb(2_6_23)]">
+            <span className="z-10 mt-auto text-[11px] sm:text-[12px] font-pixel font-bold leading-tight line-clamp-1 text-center text-amber-300 [text-shadow:0_1px_2px_rgb(2_6_23)]">
               {joker.name}
             </span>
           )
@@ -164,7 +165,7 @@ export const JokerSlot: React.FC<JokerSlotProps> = ({
               {joker.icon}
             </div>
             {!isSmall && (
-              <span className="text-[7.5px] sm:text-[8px] font-pixel font-bold leading-tight mt-0.5 line-clamp-1 text-center text-amber-300">
+              <span className="text-[11px] sm:text-[12px] font-pixel font-bold leading-tight mt-0.5 line-clamp-1 text-center text-amber-300">
                 {joker.name}
               </span>
             )}
@@ -172,11 +173,11 @@ export const JokerSlot: React.FC<JokerSlotProps> = ({
         )}
 
         {/* Bottom Bar: Action / Trigger Indicator */}
-        <div className="z-10 flex items-center justify-between text-[7px] sm:text-[8px] font-pixel pt-0.5 border-t border-slate-700/50">
+        <div className="z-10 flex items-center justify-between text-[11px] sm:text-[12px] font-pixel pt-0.5 border-t border-slate-700/50">
           {isShopItem ? (
             <span className="text-amber-400 font-bold">${buyCost || joker.cost}</span>
           ) : (
-            <span className="text-slate-300 text-[6.5px] sm:text-[7px] truncate max-w-full">
+            <span className="text-slate-300 text-[10px] sm:text-[11px] truncate max-w-full">
               {joker.chipsBonus ? `+${joker.chipsBonus}C` : joker.multBonus ? `+${joker.multBonus}M` : joker.xMultBonus ? `x${joker.xMultBonus}M` : 'ABILITA'}
             </span>
           )}
@@ -191,7 +192,7 @@ export const JokerSlot: React.FC<JokerSlotProps> = ({
             setPinned(false);
             onSell();
           }}
-          className={`transition-opacity absolute -bottom-2.5 left-1/2 -translate-x-1/2 bg-red-600 hover:bg-red-500 text-white font-pixel text-[7px] px-2 py-0.5 rounded shadow pixel-box whitespace-nowrap z-30 cursor-pointer ${
+          className={`transition-opacity absolute -bottom-2.5 left-1/2 -translate-x-1/2 bg-red-600 hover:bg-red-500 text-white font-pixel text-[11px] px-2 py-0.5 rounded shadow pixel-box whitespace-nowrap z-30 cursor-pointer ${
             isOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
           }`}
         >
@@ -206,7 +207,7 @@ export const JokerSlot: React.FC<JokerSlotProps> = ({
             onBuy();
           }}
           disabled={!canAfford}
-          className={`w-full mt-1.5 py-1 px-1 rounded font-pixel text-[8px] flex items-center justify-center gap-1 pixel-box ${
+          className={`w-full mt-1.5 py-1 px-1 rounded font-pixel text-[12px] flex items-center justify-center gap-1 pixel-box ${
             canAfford
               ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold cursor-pointer'
               : 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-60'
@@ -227,29 +228,29 @@ export const JokerSlot: React.FC<JokerSlotProps> = ({
             className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2.5 bg-slate-900 border-2 border-amber-500 text-white rounded-lg pixel-box shadow-2xl z-50"
           >
             <div className="flex items-center justify-between border-b border-slate-700 pb-1 mb-1.5">
-              <span className="font-pixel text-[9px] text-amber-400 font-bold">{joker.name}</span>
-              <span className={`font-pixel text-[7px] px-1 py-0.5 rounded uppercase ${rarityBadge}`}>
-                {joker.rarity}
+              <span className="font-pixel text-[13px] text-amber-400 font-bold">{joker.name}</span>
+              <span className={`font-pixel text-[11px] px-1 py-0.5 rounded uppercase ${rarityBadge}`}>
+                {RARITY_LABEL[joker.rarity]}
               </span>
             </div>
-            <p className="text-[10px] text-slate-200 leading-relaxed font-retro mb-2">
+            <p className="text-[14px] text-slate-200 leading-relaxed font-retro mb-2">
               {joker.description}
             </p>
             {(joker.stats?.accumulatedMult || joker.stats?.accumulatedChips) && !isShopItem ? (
               <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
                 {joker.stats?.accumulatedMult ? (
-                  <span className="bg-red-950 border border-red-500/70 text-red-200 font-pixel text-[8px] px-1.5 py-0.5 rounded">
+                  <span className="bg-red-950 border border-red-500/70 text-red-200 font-pixel text-[12px] px-1.5 py-0.5 rounded">
                     +{joker.stats.accumulatedMult} Mult accumulati
                   </span>
                 ) : null}
                 {joker.stats?.accumulatedChips ? (
-                  <span className="bg-blue-950 border border-blue-500/70 text-blue-200 font-pixel text-[8px] px-1.5 py-0.5 rounded">
+                  <span className="bg-blue-950 border border-blue-500/70 text-blue-200 font-pixel text-[12px] px-1.5 py-0.5 rounded">
                     +{joker.stats.accumulatedChips} Chips accumulati
                   </span>
                 ) : null}
               </div>
             ) : null}
-            <div className="flex items-center justify-between text-[8px] font-pixel text-slate-400 pt-1 border-t border-slate-800">
+            <div className="flex items-center justify-between text-[12px] font-pixel text-slate-400 pt-1 border-t border-slate-800">
               <span>{joker.italianTitle}</span>
               {!isShopItem && <span className="text-amber-300">Vendi: ${joker.sellValue}</span>}
             </div>

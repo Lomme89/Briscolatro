@@ -121,7 +121,7 @@ export const CardInspectorModal: React.FC<CardInspectorModalProps> = ({
               </motion.div>
             </div>
 
-            <span className="font-pixel text-[7.5px] text-slate-500 uppercase tracking-wide">
+            <span className="font-pixel text-[11px] text-slate-500 uppercase tracking-wide">
               Trascina per girarla
             </span>
 
@@ -130,7 +130,7 @@ export const CardInspectorModal: React.FC<CardInspectorModalProps> = ({
               <h3 className="font-pixel text-xs sm:text-sm text-amber-300 font-bold">
                 {info.name} di {getSuitDisplayName(card.suit)}
               </h3>
-              <p className="font-retro text-[11px] text-slate-400 mt-0.5">
+              <p className="font-retro text-[15px] text-slate-400 mt-0.5">
                 Vale {info.points} punti Briscola · {info.points * 3 + 20} Chips base
               </p>
             </div>
@@ -138,7 +138,7 @@ export const CardInspectorModal: React.FC<CardInspectorModalProps> = ({
             {/* What it does */}
             <div className="w-full flex flex-col gap-1.5">
               {powers.length === 0 ? (
-                <p className="font-retro text-[11px] text-slate-400 text-center bg-slate-950/70 border border-slate-800 rounded-lg px-3 py-2">
+                <p className="font-retro text-[15px] text-slate-400 text-center bg-slate-950/70 border border-slate-800 rounded-lg px-3 py-2">
                   Carta liscia, nessun potenziamento. Vale per i suoi punti e per il seme.
                 </p>
               ) : (
@@ -147,8 +147,8 @@ export const CardInspectorModal: React.FC<CardInspectorModalProps> = ({
                     key={power.label}
                     className={`border rounded-lg px-2.5 py-1.5 ${power.className}`}
                   >
-                    <div className="font-pixel text-[9px] font-bold uppercase">{power.label}</div>
-                    <div className="font-retro text-[11px] leading-snug mt-0.5 opacity-90">
+                    <div className="font-pixel text-[13px] font-bold uppercase">{power.label}</div>
+                    <div className="font-retro text-[15px] leading-snug mt-0.5 opacity-90">
                       {power.description}
                     </div>
                   </div>
@@ -161,7 +161,7 @@ export const CardInspectorModal: React.FC<CardInspectorModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-pixel text-[10px] py-2.5 rounded-xl pixel-box cursor-pointer"
+                className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-pixel text-[14px] py-2.5 rounded-xl pixel-box cursor-pointer"
               >
                 CHIUDI
               </button>
@@ -172,7 +172,7 @@ export const CardInspectorModal: React.FC<CardInspectorModalProps> = ({
                     sound.playCashChime();
                     onConfirm();
                   }}
-                  className="flex-1 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 text-slate-950 font-pixel text-[10px] font-bold py-2.5 rounded-xl pixel-box shadow cursor-pointer"
+                  className="flex-1 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 text-slate-950 font-pixel text-[14px] font-bold py-2.5 rounded-xl pixel-box shadow cursor-pointer"
                 >
                   {confirmLabel}
                 </button>

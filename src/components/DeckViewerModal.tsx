@@ -8,14 +8,12 @@ interface DeckViewerProps {
   isOpen: boolean;
   onClose: () => void;
   deck: PlayingCard[];
-  briscolaSuit: Suit;
 }
 
 export const DeckViewerModal: React.FC<DeckViewerProps> = ({
   isOpen,
   onClose,
   deck,
-  briscolaSuit,
 }) => {
   const [filterSuit, setFilterSuit] = useState<Suit | 'all'>('all');
 
@@ -33,7 +31,10 @@ export const DeckViewerModal: React.FC<DeckViewerProps> = ({
 
   const suits: Suit[] = ['denari', 'coppe', 'spade', 'bastoni'];
 
-  const filteredCards = deck.filter((card) => {
+  // Ordinate per seme e valore: in bottega serve vedere cosa hai, non l'ordine
+  // in cui e' stato mescolato l'ultimo tallone.
+  const suitOrder = (s: Suit) => suits.indexOf(s);
+  const filteredCards = [...deck].sort((a, b) => suitOrder(a.suit) - suitOrder(b.suit) || a.rank - b.rank).filter((card) => {
     if (filterSuit === 'all') return true;
     return card.suit === filterSuit;
   });
@@ -41,7 +42,6 @@ export const DeckViewerModal: React.FC<DeckViewerProps> = ({
   // Calculate deck statistics
   const totalPoints = deck.reduce((acc, c) => acc + c.points, 0);
   const totalFoils = deck.filter((c) => c.edition !== 'standard').length;
-  const briscolaCards = deck.filter((c) => c.suit === briscolaSuit).length;
 
   return (
     <div
@@ -64,17 +64,17 @@ export const DeckViewerModal: React.FC<DeckViewerProps> = ({
             <span className="text-xl sm:text-2xl">🎴</span>
             <div>
               <h2 className="font-pixel text-xs sm:text-sm text-amber-400 font-bold uppercase tracking-wide">
-                ISPETTORE MAZZO ({deck.length} CARTE)
+                Il tuo mazzo ({deck.length} carte)
               </h2>
-              <p className="font-retro text-[10px] sm:text-xs text-slate-300">
-                Punti: {totalPoints} pt • Speciali: {totalFoils} • Briscole: {briscolaCards}
+              <p className="font-retro text-[14px] sm:text-[14px] text-slate-300">
+                Punti: {totalPoints} pt • Speciali: {totalFoils}
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-white font-pixel text-[10px] sm:text-xs px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded-lg pixel-box cursor-pointer min-h-[36px] flex items-center justify-center transition-colors"
+            className="text-slate-400 hover:text-white font-pixel text-[14px] sm:text-[14px] px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded-lg pixel-box cursor-pointer min-h-[36px] flex items-center justify-center transition-colors"
           >
             ✕ CHIUDI
           </button>
@@ -85,7 +85,7 @@ export const DeckViewerModal: React.FC<DeckViewerProps> = ({
           <button
             type="button"
             onClick={() => setFilterSuit('all')}
-            className={`font-pixel text-[9px] sm:text-[10px] px-2.5 sm:px-3 py-1.5 rounded-lg pixel-box cursor-pointer min-h-[32px] transition-colors ${
+            className={`font-pixel text-[13px] sm:text-[14px] px-2.5 sm:px-3 py-1.5 rounded-lg pixel-box cursor-pointer min-h-[32px] transition-colors ${
               filterSuit === 'all'
                 ? 'bg-amber-500 text-slate-950 font-bold'
                 : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
@@ -101,7 +101,7 @@ export const DeckViewerModal: React.FC<DeckViewerProps> = ({
                 type="button"
                 key={suit}
                 onClick={() => setFilterSuit(suit)}
-                className={`font-pixel text-[9px] sm:text-[10px] px-2 sm:px-3 py-1.5 rounded-lg pixel-box flex items-center gap-1 cursor-pointer min-h-[32px] transition-colors ${
+                className={`font-pixel text-[13px] sm:text-[14px] px-2 sm:px-3 py-1.5 rounded-lg pixel-box flex items-center gap-1 cursor-pointer min-h-[32px] transition-colors ${
                   filterSuit === suit
                     ? 'bg-amber-500 text-slate-950 font-bold'
                     : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
@@ -123,7 +123,6 @@ export const DeckViewerModal: React.FC<DeckViewerProps> = ({
                 <PixelCard
                   card={card}
                   size="sm"
-                  isBriscola={card.suit === briscolaSuit}
                 />
               </div>
             ))

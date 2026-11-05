@@ -2,6 +2,13 @@ import { Joker } from '../types/game';
 import { instantiateJoker } from '../game/itemInstances';
 import { randomRun, shuffleWith } from '../game/runRng';
 
+export const RARITY_LABEL: Record<Joker['rarity'], string> = {
+  common: 'Comune',
+  uncommon: 'Non comune',
+  rare: 'Raro',
+  legendary: 'Leggendario',
+};
+
 export const ALL_JOKERS: Joker[] = [
   // COMMON JOKERS
   {

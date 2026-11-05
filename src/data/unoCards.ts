@@ -184,11 +184,11 @@ export const ALL_UNO_CARDS: UnoCard[] = [
   },
   {
     id: 'uno_wild_joker',
-    name: 'Jolly Misterioso (Crea Personaggio)',
+    name: 'Jolly Misterioso',
     symbol: '🎭',
     unoColor: 'wild',
     badgeText: 'JOLLY',
-    description: 'Genera istantaneamente 1 Jolly Personaggio casuale per la tua squadra.',
+    description: 'Ti dà subito 1 Jolly casuale (non leggendario).',
     cost: 4,
     icon: '🤹',
     color: '#a855f7',
@@ -221,7 +221,7 @@ export const ALL_BOOSTER_PACKS: BoosterPack[] = [
   },
   {
     id: 'b_joker',
-    name: 'Bustina dei Personaggi',
+    name: 'Bustina dei Jolly',
     subtitle: 'Scegli 1 di 3 Jolly per la tua squadra',
     cost: 6,
     type: 'joker',

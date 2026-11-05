@@ -21,7 +21,7 @@ import { ALL_BOSS_BLINDS } from '../data/bosses';
 import { CAMPAIGN_FINAL_ANTE, getEndlessTier } from '../game/endless';
 import { BossBlind } from '../types/game';
 import { sound } from '../services/soundEngine';
-import { SlateBoard, ChalkRule, PaperScrap } from './diegetic/Slate';
+import { MenuCard, MenuRule, PaperScrap } from './diegetic/Paper';
 
 interface BlindSelectViewProps {
   ante: number;
@@ -149,10 +149,9 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
           className="blind-intro-venue flex items-center justify-between gap-3 shrink-0"
         >
           {/* L'insegna del posto in cui sei appena entrato: legno e vernice,
-              come quella fuori dalla porta. Il nome e' dipinto, quello che
-              cambia stasera e' a gesso. */}
-          <div className="slate-frame rounded-[6px] px-3 py-1.5 sm:px-4 sm:py-2 min-w-0">
-            <div className="font-pixel painted-sign text-[11px] sm:text-[13px] tracking-[0.1em] truncate leading-tight">
+              come quella fuori dalla porta. */}
+          <div className="wood-sign rounded-[6px] px-3 py-1.5 sm:px-4 sm:py-2 min-w-0">
+            <div className="font-pixel painted-sign text-[15px] sm:text-[15px] tracking-[0.1em] truncate leading-tight">
               {theme.name}
             </div>
             <div className="font-condensed text-[14px] sm:text-[16px] text-[#c9a878] leading-tight truncate">
@@ -190,7 +189,7 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
                   foto appese al muro del locale. Il Boss la fa scaldare, ma
                   resta la stessa cornice: cambia la luce, non il mobile. */}
               <div
-                className="blind-intro-portrait slate-frame relative rounded-[8px] p-2"
+                className="blind-intro-portrait wood-sign relative rounded-[8px] p-2"
                 style={
                   opponent.isBoss
                     ? { boxShadow: '0 22px 40px -10px rgba(0,0,0,0.82), 0 0 26px rgba(158,58,46,0.35), inset 0 2px 0 rgba(255,226,178,0.3)' }
@@ -207,7 +206,7 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
                   <motion.span
                     animate={reduceMotion ? undefined : { scale: [1, 1.12, 1] }}
                     transition={reduceMotion ? undefined : { repeat: Infinity, duration: 1.4 }}
-                    className="slate-frame absolute -top-3 left-1/2 -translate-x-1/2 painted-sign font-pixel text-[8px] sm:text-[9px] px-2 py-1 rounded-[3px] uppercase whitespace-nowrap"
+                    className="wood-sign absolute -top-3 left-1/2 -translate-x-1/2 painted-sign font-pixel text-[12px] sm:text-[13px] px-2 py-1 rounded-[3px] uppercase whitespace-nowrap"
                   >
                     Boss dell'Ante
                   </motion.span>
@@ -234,15 +233,13 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: revealed ? 1 : 0 }}
-              className={`blind-intro-quote slate-board grid w-full rounded-[3px] px-3 py-2 font-condensed text-[19px] sm:text-[23px] leading-snug text-center ${opponent.isBoss ? 'chalk-red' : 'chalk'}`}
+              className={`blind-intro-quote menu-card bar-paper grid w-full rounded-[3px] px-3 py-2 font-condensed text-[19px] sm:text-[23px] leading-snug text-center ${opponent.isBoss ? 'chalk-red' : 'chalk'}`}
             >
               {/* Reserve the final line breaks before the typewriter starts. */}
               <p className="invisible col-start-1 row-start-1" aria-hidden="true">
                 &ldquo;{opponent.quote}&rdquo;
               </p>
-              {/* Quello che dice l'avversario e' scritto a gesso come tutto
-                  il resto del locale: e' una battuta di stasera, domani la
-                  lavagna e' gia' passata dallo straccio. */}
+              {/* La battuta dell'avversario, su carta come il programma. */}
               <p className="col-start-1 row-start-1">
                 <span className="sr-only">&ldquo;{opponent.quote}&rdquo;</span>
                 <span aria-hidden="true">&ldquo;{typedQuote}&rdquo;</span>
@@ -263,16 +260,15 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
 
         {/* IL PROGRAMMA DELLA SERATA
             Le due mani dell'Ante, quello che serve per portarle a casa e
-            quanto pagano non sono tre pannelli: sono la lista che l'oste
-            scrive sulla lavagna prima di aprire. Una lavagna, incassata nel
-            layout, quindi dritta e senza bacinella. */}
+            quanto pagano non sono tre pannelli: sono il menù della serata,
+            stampato. Incassato nel layout, quindi dritto. */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25, duration: 0.35 }}
           className="blind-intro-program shrink-0"
         >
-          <SlateBoard tilt={0} ledge={false} compact>
+          <MenuCard tilt={0} compact>
             <div className="flex items-baseline justify-between gap-2 flex-wrap">
               <span className="font-condensed chalk-dim text-[16px] sm:text-[18px] uppercase tracking-[0.12em]">
                 Stasera
@@ -281,7 +277,7 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
                 {modeInfo.blindHint} · {modeInfo.label}
               </span>
             </div>
-            <ChalkRule className="mt-1.5 mb-2.5" />
+            <MenuRule className="mt-1.5 mb-2.5" />
 
             <div className="flex flex-col gap-2">
               {[1, 2].map((blindRound) => {
@@ -328,7 +324,7 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
                 );
               })}
             </div>
-          </SlateBoard>
+          </MenuCard>
         </motion.div>
 
         {/* IL MALUS DEL BOSS
@@ -342,7 +338,7 @@ export const BlindSelectView: React.FC<BlindSelectViewProps> = ({
         >
           <PaperScrap tilt={isBossEncounter(round) ? -1.6 : 1.1} className="w-full max-w-md">
             <div
-              className={`font-pixel text-[8px] sm:text-[9.5px] uppercase tracking-[0.12em] ${
+              className={`font-pixel text-[12px] sm:text-[13px] uppercase tracking-[0.12em] ${
                 isBossEncounter(round) ? 'ink-red' : 'ink-dim'
               }`}
             >

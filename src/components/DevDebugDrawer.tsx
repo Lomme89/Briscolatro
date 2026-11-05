@@ -58,7 +58,7 @@ export const DevDebugDrawer: React.FC<DevDebugDrawerProps> = ({
             </button>
           </div>
 
-          <div className="space-y-2 text-[9px]">
+          <div className="space-y-2 text-[13px]">
             {/* Quick Cheats */}
             <div className="grid grid-cols-2 gap-1">
               <button
@@ -118,7 +118,7 @@ export const DevDebugDrawer: React.FC<DevDebugDrawerProps> = ({
                   if (j) onAddJoker(j);
                   e.target.value = '';
                 }}
-                className="w-full bg-slate-900 border border-slate-700 text-amber-300 p-1 rounded text-[8px]"
+                className="w-full bg-slate-900 border border-slate-700 text-amber-300 p-1 rounded text-[12px]"
                 defaultValue=""
               >
                 <option value="" disabled>
@@ -141,7 +141,7 @@ export const DevDebugDrawer: React.FC<DevDebugDrawerProps> = ({
                   if (u) onAddUnoCard(u);
                   e.target.value = '';
                 }}
-                className="w-full bg-slate-900 border border-slate-700 text-red-300 p-1 rounded text-[8px]"
+                className="w-full bg-slate-900 border border-slate-700 text-red-300 p-1 rounded text-[12px]"
                 defaultValue=""
               >
                 <option value="" disabled>
@@ -161,7 +161,7 @@ export const DevDebugDrawer: React.FC<DevDebugDrawerProps> = ({
               <select
                 value={victoryMode}
                 onChange={(e) => onSetVictoryMode(e.target.value as VictoryMode)}
-                className="w-full bg-slate-900 border border-slate-700 text-sky-300 p-1 rounded text-[8px]"
+                className="w-full bg-slate-900 border border-slate-700 text-sky-300 p-1 rounded text-[12px]"
               >
                 {ALL_VICTORY_MODES.map((mode) => (
                   <option key={mode.id} value={mode.id}>
@@ -181,7 +181,7 @@ export const DevDebugDrawer: React.FC<DevDebugDrawerProps> = ({
                   <button
                     key={label}
                     onClick={() => onForceOutcome(chips, briscola)}
-                    className="bg-slate-900 border border-slate-700 text-sky-300 py-1 rounded text-[8px] cursor-pointer hover:border-sky-500"
+                    className="bg-slate-900 border border-slate-700 text-sky-300 py-1 rounded text-[12px] cursor-pointer hover:border-sky-500"
                   >
                     {label}
                   </button>
@@ -197,7 +197,7 @@ export const DevDebugDrawer: React.FC<DevDebugDrawerProps> = ({
                   <button
                     key={id}
                     onClick={() => onGiveSpecial(id)}
-                    className="bg-slate-900 border border-slate-700 text-amber-300 py-1 rounded text-[8px] cursor-pointer hover:border-amber-500"
+                    className="bg-slate-900 border border-slate-700 text-amber-300 py-1 rounded text-[12px] cursor-pointer hover:border-amber-500"
                   >
                     {SPECIAL_INFO[id].badge}
                   </button>
@@ -214,7 +214,7 @@ export const DevDebugDrawer: React.FC<DevDebugDrawerProps> = ({
                   if (b) onSetBoss(b);
                   e.target.value = '';
                 }}
-                className="w-full bg-slate-900 border border-slate-700 text-red-400 p-1 rounded text-[8px]"
+                className="w-full bg-slate-900 border border-slate-700 text-red-400 p-1 rounded text-[12px]"
                 defaultValue=""
               >
                 <option value="" disabled>
@@ -232,7 +232,7 @@ export const DevDebugDrawer: React.FC<DevDebugDrawerProps> = ({
       ) : (
         <button
           onClick={() => setIsOpen(true)}
-          className="bg-slate-900/90 border border-emerald-500/70 hover:border-emerald-400 text-emerald-400 p-1.5 rounded-lg shadow-lg text-[9px] cursor-pointer flex items-center gap-1"
+          className="bg-slate-900/90 border border-emerald-500/70 hover:border-emerald-400 text-emerald-400 p-1.5 rounded-lg shadow-lg text-[13px] cursor-pointer flex items-center gap-1"
           title="Apri Debug Menu"
         >
           <span>🛠️</span>

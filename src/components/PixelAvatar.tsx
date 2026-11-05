@@ -762,7 +762,7 @@ export const PixelAvatar: React.FC<PixelAvatarProps> = ({
         <motion.span
           initial={{ scale: 0 }}
           animate={{ scale: [0, 1.2, 1] }}
-          className="absolute -top-1.5 -right-1.5 text-[10px]"
+          className="absolute -top-1.5 -right-1.5 text-[14px]"
         >
           💧
         </motion.span>
@@ -771,7 +771,7 @@ export const PixelAvatar: React.FC<PixelAvatarProps> = ({
         <motion.span
           initial={{ scale: 0 }}
           animate={{ scale: [0, 1.2, 1] }}
-          className="absolute -top-1.5 -right-1.5 text-[10px]"
+          className="absolute -top-1.5 -right-1.5 text-[14px]"
         >
           💢
         </motion.span>
@@ -780,7 +780,7 @@ export const PixelAvatar: React.FC<PixelAvatarProps> = ({
         <motion.span
           initial={{ scale: 0 }}
           animate={{ scale: [0, 1.2, 1] }}
-          className="absolute -top-1.5 -right-1.5 text-[10px]"
+          className="absolute -top-1.5 -right-1.5 text-[14px]"
         >
           ✨
         </motion.span>

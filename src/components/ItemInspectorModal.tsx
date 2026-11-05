@@ -99,7 +99,7 @@ export const ItemInspectorModal: React.FC<ItemInspectorModalProps> = ({
                 {entry.item.name}
               </h3>
               <span
-                className={`inline-block font-pixel text-[7.5px] px-2 py-0.5 rounded uppercase mt-1 border ${
+                className={`inline-block font-pixel text-[11px] px-2 py-0.5 rounded uppercase mt-1 border ${
                   isJoker
                     ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
                     : 'bg-red-600/20 text-red-300 border-red-500/40'
@@ -109,12 +109,12 @@ export const ItemInspectorModal: React.FC<ItemInspectorModalProps> = ({
               </span>
             </div>
 
-            <p className="font-retro text-[11px] sm:text-xs text-slate-200 leading-relaxed text-center">
+            <p className="font-retro text-[15px] sm:text-[15px] text-slate-200 leading-relaxed text-center">
               {entry.item.description}
             </p>
 
             {footnote && (
-              <span className="font-retro text-[10px] text-slate-500 italic text-center">
+              <span className="font-retro text-[14px] text-slate-500 italic text-center">
                 {footnote}
               </span>
             )}
@@ -123,7 +123,7 @@ export const ItemInspectorModal: React.FC<ItemInspectorModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-pixel text-[10px] py-2.5 rounded-xl pixel-box cursor-pointer"
+                className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-pixel text-[14px] py-2.5 rounded-xl pixel-box cursor-pointer"
               >
                 CHIUDI
               </button>
@@ -134,7 +134,7 @@ export const ItemInspectorModal: React.FC<ItemInspectorModalProps> = ({
                     sound.playCashChime();
                     onConfirm();
                   }}
-                  className="flex-1 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 text-slate-950 font-pixel text-[10px] font-bold py-2.5 rounded-xl pixel-box shadow cursor-pointer"
+                  className="flex-1 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 text-slate-950 font-pixel text-[14px] font-bold py-2.5 rounded-xl pixel-box shadow cursor-pointer"
                 >
                   {confirmLabel}
                 </button>

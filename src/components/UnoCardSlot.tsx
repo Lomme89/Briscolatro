@@ -36,9 +36,9 @@ export const UnoCardSlot: React.FC<UnoCardSlotProps> = ({
 
   const isSmall = size !== 'md';
   const sizeClasses = {
-    hud: 'w-11 h-14 p-1 text-[8px]',
-    sm: 'w-11 sm:w-16 h-15 sm:h-22 p-1 text-[8px]',
-    pick: `${PICKER_CARD_BOX} p-1 text-[8px]`,
+    hud: 'w-11 h-14 p-1 text-[12px]',
+    sm: 'w-11 sm:w-16 h-15 sm:h-22 p-1 text-[12px]',
+    pick: `${PICKER_CARD_BOX} p-1 text-[12px]`,
     md: 'w-16 sm:w-20 h-22 sm:h-28 p-1.5 text-xs',
   }[size];
 
@@ -49,7 +49,7 @@ export const UnoCardSlot: React.FC<UnoCardSlotProps> = ({
         className={`${sizeClasses} border-2 border-dashed border-red-900/40 rounded-xl flex flex-col items-center justify-center text-red-900/60 bg-red-950/20 select-none shrink-0`}
       >
         <span className={`${isSmall ? 'text-sm sm:text-base' : 'text-lg sm:text-xl'} opacity-40`}>🔴</span>
-        <span className="text-[6.5px] sm:text-[7.5px] font-pixel mt-0.5 opacity-50 font-bold tracking-wider">SOLA</span>
+        <span className="text-[10px] sm:text-[11px] font-pixel mt-0.5 opacity-50 font-bold tracking-wider">SOLA</span>
       </div>
     );
   }
@@ -179,10 +179,10 @@ export const UnoCardSlot: React.FC<UnoCardSlotProps> = ({
         <div
           className={`flex items-center justify-between z-10 leading-none ${bareFace ? 'hidden' : ''}`}
         >
-          <span className="font-pixel text-[7px] sm:text-[8px] font-black tracking-tighter drop-shadow-sm px-0.5 sm:px-1 py-0.2 rounded bg-black/40 border border-white/20">
+          <span className="font-pixel text-[11px] sm:text-[12px] font-black tracking-tighter drop-shadow-sm px-0.5 sm:px-1 py-0.2 rounded bg-black/40 border border-white/20">
             {unoCard.badgeText || unoCard.symbol}
           </span>
-          {!artUrl && <span className="text-[9px] sm:text-[10px]">{unoCard.icon}</span>}
+          {!artUrl && <span className="text-[13px] sm:text-[14px]">{unoCard.icon}</span>}
         </div>
 
         {/* Center: Iconic Oval Emblem */}
@@ -206,7 +206,7 @@ export const UnoCardSlot: React.FC<UnoCardSlotProps> = ({
 
         {/* Bottom Bar: Action / Name */}
         <div
-          className={`z-10 flex items-center justify-between text-[6px] sm:text-[6.5px] font-pixel pt-0.5 border-t border-white/20 text-white/90 ${
+          className={`z-10 flex items-center justify-between text-[10px] sm:text-[10px] font-pixel pt-0.5 border-t border-white/20 text-white/90 ${
             bareFace ? 'hidden' : ''
           }`}
         >
@@ -229,7 +229,7 @@ export const UnoCardSlot: React.FC<UnoCardSlotProps> = ({
                 onUse();
               }}
               disabled={!canUse}
-              className={`font-pixel text-[7.5px] px-2 py-0.5 rounded shadow-md pixel-box cursor-pointer transition-transform hover:scale-105 ${
+              className={`font-pixel text-[11px] px-2 py-0.5 rounded shadow-md pixel-box cursor-pointer transition-transform hover:scale-105 ${
                 canUse 
                   ? 'bg-gradient-to-r from-red-600 to-rose-500 hover:from-red-500 hover:to-rose-400 text-white font-bold' 
                   : 'bg-slate-800 text-slate-500 cursor-not-allowed'
@@ -246,7 +246,7 @@ export const UnoCardSlot: React.FC<UnoCardSlotProps> = ({
                 sound.playCashChime();
                 onSell();
               }}
-              className="bg-amber-600 hover:bg-amber-500 text-white font-pixel text-[7.5px] px-1.5 py-0.5 rounded shadow pixel-box cursor-pointer"
+              className="bg-amber-600 hover:bg-amber-500 text-white font-pixel text-[11px] px-1.5 py-0.5 rounded shadow pixel-box cursor-pointer"
             >
               +$1
             </button>
@@ -268,11 +268,11 @@ export const UnoCardSlot: React.FC<UnoCardSlotProps> = ({
             <div className="flex items-center justify-between border-b border-red-900/50 pb-1.5 mb-1.5">
               <div className="flex items-center gap-1.5">
                 <span className="text-sm">{unoCard.icon}</span>
-                <span className="font-pixel text-[9px] font-bold text-amber-300">
+                <span className="font-pixel text-[13px] font-bold text-amber-300">
                   {unoCard.name}
                 </span>
               </div>
-              <span className={`text-[7px] font-pixel px-1.5 py-0.5 rounded uppercase font-bold ${theme.badgeBg}`}>
+              <span className={`text-[11px] font-pixel px-1.5 py-0.5 rounded uppercase font-bold ${theme.badgeBg}`}>
                 {unoCard.unoColor}
               </span>
             </div>
@@ -283,7 +283,7 @@ export const UnoCardSlot: React.FC<UnoCardSlotProps> = ({
             </p>
 
             {/* Tooltip Footer */}
-            <div className="flex items-center justify-between text-[8px] font-pixel pt-1 border-t border-slate-800 text-slate-400">
+            <div className="flex items-center justify-between text-[12px] font-pixel pt-1 border-t border-slate-800 text-slate-400">
               <span>Tipo: {unoCard.targetType === 'card_in_hand' ? 'Mira Carta' : 'Istantanea'}</span>
               <span className="text-amber-400">Valore: ${unoCard.cost}</span>
             </div>

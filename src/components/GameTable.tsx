@@ -75,7 +75,6 @@ interface GameTableActions {
   onPlayCard: (card: PlayingCard) => void;
   onDiscardCard: (card: PlayingCard) => void;
   onUseUnoCard: (card: UnoCard, targetCard?: PlayingCard, chosenSuit?: Suit) => void;
-  onOpenDeckViewer: () => void;
   onOpenTutorial: () => void;
   onOpenSettings: () => void;
 }
@@ -166,7 +165,6 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
     onPlayCard,
     onDiscardCard,
     onUseUnoCard,
-    onOpenDeckViewer,
     onOpenTutorial,
     onOpenSettings,
   } = actions;
@@ -548,7 +546,6 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
               <div className="game-hud-menu absolute right-0 top-full mt-1 p-1 rounded-md z-40 min-w-44">
                 <div className="flex flex-col p-1" onClick={(event) => { event.currentTarget.closest('details')?.removeAttribute('open'); }}>
                   {[
-                    { label: 'Ispettore Mazzo', Icon: Layers, action: onOpenDeckViewer },
                     { label: 'Guida', Icon: BookOpen, action: onOpenTutorial },
                     { label: 'Impostazioni', Icon: Settings, action: onOpenSettings },
                   ].map(({ label, Icon, action }) => (
@@ -560,15 +557,6 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
               </div>
             </details>
             <div className="hidden sm:flex items-center gap-0.5 shrink-0 -mr-1.5">
-              <button
-                type="button"
-                onClick={onOpenDeckViewer}
-                className="chalk-dim hover:text-[#ece5d6] p-2 cursor-pointer bg-transparent transition-colors"
-                title="Ispettore Mazzo"
-                aria-label="Ispettore Mazzo"
-              >
-                <Layers size={17} strokeWidth={1.7} />
-              </button>
               <button
                 type="button"
                 onClick={onOpenTutorial}
@@ -691,14 +679,14 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
           >
             <div className="flex items-center gap-1.5">
               <span className="text-sm">🃏</span>
-              <span className="text-[8.5px] sm:text-[9.5px] font-pixel text-red-200">
+              <span className="text-[12px] sm:text-[13px] font-pixel text-red-200">
                 <strong>{activeUnoToApply.name} ({activeUnoToApply.symbol}):</strong> Tocca una carta nella tua mano per applicare!
               </span>
             </div>
             <button
               type="button"
               onClick={() => setActiveUnoToApply(null)}
-              className="font-pixel text-[7.5px] sm:text-[8px] text-yellow-300 bg-red-900 hover:bg-red-800 px-1.5 py-0.5 rounded cursor-pointer ml-2"
+              className="font-pixel text-[11px] sm:text-[12px] text-yellow-300 bg-red-900 hover:bg-red-800 px-1.5 py-0.5 rounded cursor-pointer ml-2"
             >
               Annulla ✕
             </button>
@@ -730,7 +718,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
 
         {/* Felt Watermark Venue Stamp (Top-Right) */}
         <div
-          className={`game-theme absolute top-2 right-2.5 z-10 pointer-events-none hidden md:flex items-center gap-1.5 font-pixel text-[8px] sm:text-[9px] ${tableTheme.accentBadge.text} bg-black/40 px-2 py-0.5 rounded-lg border border-white/10 backdrop-blur-xs`}
+          className={`game-theme absolute top-2 right-2.5 z-10 pointer-events-none hidden md:flex items-center gap-1.5 font-pixel text-[12px] sm:text-[13px] ${tableTheme.accentBadge.text} bg-black/40 px-2 py-0.5 rounded-lg border border-white/10 backdrop-blur-xs`}
         >
           <span>{tableTheme.icon}</span>
           <span className="uppercase font-bold tracking-wider">{tableTheme.name}</span>
@@ -752,7 +740,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                 className="flex items-center gap-2.5 bg-slate-950/95 border-3 border-orange-500 px-4 py-2.5 rounded-2xl pixel-box shadow-2xl">
                 <PixelSuitIcon suit={briscolaSuit} size={26} />
                 <div className="text-left leading-tight">
-                  <div className="font-pixel text-[7.5px] text-orange-300/80 uppercase tracking-widest">
+                  <div className="font-pixel text-[11px] text-orange-300/80 uppercase tracking-widest">
                     Briscola
                   </div>
                   <div className="font-pixel text-sm text-orange-400 font-bold uppercase">
@@ -815,11 +803,11 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
               </motion.div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 leading-none min-w-0">
-                  <span className="font-pixel text-[9px] sm:text-[11px] lg:text-[15px] text-amber-300 font-bold truncate sm:whitespace-normal">
+                  <span className="font-pixel text-[13px] sm:text-[15px] lg:text-[15px] text-amber-300 font-bold truncate sm:whitespace-normal">
                     {currentBoss ? currentBoss.name : regular.name}
                   </span>
                   {currentBoss && (
-                    <span className={`hidden sm:inline text-[7.5px] lg:text-[9px] bg-red-900 border border-red-500 text-red-200 px-1 lg:px-1.5 py-0.5 rounded font-pixel uppercase font-bold ${reduceMotion ? '' : 'animate-pulse'}`}>
+                    <span className={`hidden sm:inline text-[11px] lg:text-[13px] bg-red-900 border border-red-500 text-red-200 px-1 lg:px-1.5 py-0.5 rounded font-pixel uppercase font-bold ${reduceMotion ? '' : 'animate-pulse'}`}>
                       BOSS
                     </span>
                   )}
@@ -845,7 +833,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                 <motion.span
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="bg-sky-950/90 border border-sky-400 text-sky-200 font-pixel text-[6.5px] sm:text-[7.5px] px-1 py-0.5 rounded uppercase whitespace-nowrap"
+                  className="bg-sky-950/90 border border-sky-400 text-sky-200 font-pixel text-[10px] sm:text-[11px] px-1 py-0.5 rounded uppercase whitespace-nowrap"
                   title="Lo Specchietto del Baro: solo per questa presa"
                 >
                   🪞 1ª presa
@@ -889,7 +877,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                 style={{ transform: 'rotate(-0.4deg)' }}
               >
                 <div className="flex-1 min-w-0 text-left">
-                  <div className="font-pixel text-[8px] sm:text-[9px] ink-red uppercase tracking-[0.12em] flex items-center gap-1.5 flex-wrap">
+                  <div className="font-pixel text-[12px] sm:text-[13px] ink-red uppercase tracking-[0.12em] flex items-center gap-1.5 flex-wrap">
                     <span>Regola della casa · {currentBoss.name}</span>
                     {bossDebuffNeutralized && (
                       <span className="ink-green">
@@ -963,20 +951,12 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
             on the real centre of the felt, with the stock hanging off its own
             side. */}
         <div className="game-arena min-h-0 my-1 py-1 grid grid-cols-[1fr_auto_1fr] items-center gap-1 sm:gap-3 z-10 relative px-1 min-w-0">
-          {/* Left: Deck & Briscola Face-Up Card */}
-          <div 
-            className="col-start-1 flex flex-col items-center cursor-pointer group shrink-0 justify-self-start"
-            onClick={onOpenDeckViewer}
-            role="button"
-            tabIndex={0}
-            aria-label="Apri il mazzo"
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                onOpenDeckViewer();
-              }
-            }}
-            title="Ispettore Mazzo (Tocca per vedere)"
+          {/* Left: Deck & Briscola Face-Up Card. Non si apre piu': mostrare cosa resta
+              nel tallone contava le carte al posto tuo, e nella Briscola contare
+              e' la bravura. Basta il numero sul dorso, come al tavolo vero. */}
+          <div
+            className="col-start-1 flex flex-col items-center group shrink-0 justify-self-start"
+            aria-label={`Tallone: ${deckCount} carte`}
           >
             <div className="relative flex items-center justify-center min-w-[70px] sm:min-w-[80px] lg:min-w-[150px]">
               {/* Deck top face-down card (in background) */}
@@ -987,12 +967,12 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
                     faceDown={true}
                     size={deckCardSize}
                   />
-                  <div className="absolute -top-1.5 -left-1 bg-amber-500 text-slate-950 font-pixel text-[7px] sm:text-[8px] lg:text-[11px] px-1 lg:px-1.5 py-0.2 rounded shadow font-bold pixel-box whitespace-nowrap z-15">
+                  <div className="absolute -top-1.5 -left-1 bg-amber-500 text-slate-950 font-pixel text-[11px] sm:text-[12px] lg:text-[15px] px-1 lg:px-1.5 py-0.2 rounded shadow font-bold pixel-box whitespace-nowrap z-15">
                     {deckCount}
                   </div>
                 </div>
               ) : (
-                <div className="w-11 sm:w-13 lg:w-26 h-16 sm:h-18 lg:h-38 border border-dashed border-slate-700/60 rounded-lg flex items-center justify-center text-slate-500 font-pixel text-[6.5px] lg:text-[9px] text-center p-0.5 z-10 mr-1">
+                <div className="w-11 sm:w-13 lg:w-26 h-16 sm:h-18 lg:h-38 border border-dashed border-slate-700/60 rounded-lg flex items-center justify-center text-slate-500 font-pixel text-[10px] lg:text-[13px] text-center p-0.5 z-10 mr-1">
                   FINE
                 </div>
               )}
@@ -1051,7 +1031,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
             {/* Briscola Suit Pill Under Deck */}
             <div className="mt-1.5 lg:mt-2.5 flex items-center gap-1 lg:gap-1.5 bg-slate-950/90 border border-orange-500/80 px-1.5 lg:px-3 py-0.5 lg:py-1 rounded-full pixel-box shadow">
               <PixelSuitIcon suit={briscolaSuit} size={wideTable ? 16 : 10} />
-              <span className="font-pixel text-[6.5px] sm:text-[7.5px] lg:text-[10px] text-orange-400 font-bold uppercase">
+              <span className="font-pixel text-[10px] sm:text-[11px] lg:text-[14px] text-orange-400 font-bold uppercase">
                 {briscolaSuit}
               </span>
             </div>
@@ -1330,21 +1310,21 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
               reads the price here rather than discovering it afterwards. */}
           {selectedCard && selectedCard.special !== 'none' && (
             <div className="w-full max-w-xs sm:max-w-sm text-center mb-1 px-2">
-              <span className="font-pixel text-[7px] text-amber-300">
+              <span className="font-pixel text-[11px] text-amber-300">
                 {SPECIAL_INFO[selectedCard.special].badge}
               </span>
               {/* With an empty till A Debito simply does not fire: the player
                   has to know that before playing it, not after. */}
               {selectedCard.special === 'debito' && money < 1 ? (
-                <span className="font-retro text-[10px] text-slate-400 ml-1.5">
+                <span className="font-retro text-[14px] text-slate-400 ml-1.5">
                   Non hai $1: la carta si gioca normalmente, senza bonus e senza costo.
                 </span>
               ) : (
                 <>
-                  <span className="font-retro text-[10px] text-slate-300 ml-1.5">
+                  <span className="font-retro text-[14px] text-slate-300 ml-1.5">
                     {SPECIAL_INFO[selectedCard.special].bonus}
                   </span>
-                  <span className="font-retro text-[10px] text-rose-300 block leading-tight">
+                  <span className="font-retro text-[14px] text-rose-300 block leading-tight">
                     {SPECIAL_INFO[selectedCard.special].cost}
                   </span>
                 </>

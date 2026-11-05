@@ -201,12 +201,12 @@ export const UnoCastOverlay: React.FC<UnoCastOverlayProps> = ({
               className="mt-3 flex flex-col items-center gap-1"
             >
               <span
-                className="font-pixel text-[8px] px-2 py-0.5 rounded uppercase font-black border"
+                className="font-pixel text-[12px] px-2 py-0.5 rounded uppercase font-black border"
                 style={{ color: card.color, borderColor: `${card.color}90`, backgroundColor: `${card.color}22` }}
               >
                 {card.badgeText || 'SOLA'}
               </span>
-              <span className="font-pixel text-[11px] sm:text-xs text-amber-300 font-bold text-center px-6 [text-shadow:0_2px_6px_rgb(2_6_23)]">
+              <span className="font-pixel text-[15px] sm:text-[15px] text-amber-300 font-bold text-center px-6 [text-shadow:0_2px_6px_rgb(2_6_23)]">
                 {card.name}
               </span>
             </motion.div>

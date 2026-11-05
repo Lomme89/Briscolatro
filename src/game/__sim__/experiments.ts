@@ -257,11 +257,6 @@ function wildExperiment(options: BatchOptions): string[] {
     '',
     '  Nota: il confronto non e a parita di carta - le Wild arrivano da un upgrade,',
     '  quindi la carta sotto e gia stata scelta dalla bustina. Va letto come segnale.',
-    '',
-    '  SEGNALAZIONE (non corretta qui): oggi le bustine non offrono mai Wild.',
-    "  cardUpgrades.ts propone solo bonus/mult/steel/stone, quindi l'enhancement",
-    '  Wild esiste nei tipi e nello scoring ma non e raggiungibile in una run.',
-    '  Questo e un dato da decidere altrove, non un bilanciamento da toccare qui.',
   ];
 }
 

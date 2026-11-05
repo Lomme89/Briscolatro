@@ -2,7 +2,7 @@ import { motion } from 'motion/react';
 import { Armchair, BookOpen, Download, Eraser, Lamp, WalletCards } from 'lucide-react';
 import { PlayingCard } from '../types/game';
 import { PixelCard } from './PixelCard';
-import { ChalkEntry, ChalkRule, PaperScrap, SlateBoard } from './diegetic/Slate';
+import { MenuCard, MenuEntry, MenuRule, PaperScrap } from './diegetic/Paper';
 
 interface TitleScreenProps {
   titleHand: PlayingCard[];
@@ -24,8 +24,8 @@ interface TitleScreenProps {
  * Prima era un pannello scuro con dei bottoni sfumati, appoggiato sopra un
  * tavolo che il gioco aveva gia' costruito: due mondi, uno sopra l'altro.
  * Adesso il tavolo e' uno solo - lo stesso su cui si gioca, sotto la stessa
- * lampadina - e sopra c'e' la lavagna dell'osteria: il nome dipinto in alto
- * anni fa, la lista della serata scritta a gesso sotto.
+ * lampadina - e sopra c'e' il menù dell'osteria, su carta: inchiostro scuro su
+ * fondo chiaro, perche' il menu principale e' la prima cosa che si legge.
  */
 export function TitleScreen({
   titleHand,
@@ -81,81 +81,75 @@ export function TitleScreen({
           ))}
         </div>
 
-        <SlateBoard tilt={-1.2} className="relative z-10">
+        <MenuCard tilt={-0.8} className="relative z-10">
           {/* Il nome del locale: dipinto sulla lavagna una volta sola, e da
               allora sbiadisce. Non e' gesso, quindi non si cancella. */}
           <div className="text-center pt-5 sm:pt-6">
-            <h1 className="font-pixel painted-sign text-[15px] sm:text-[19px] leading-tight tracking-[0.14em]">
+            <h1 className="font-pixel painted-sign text-[34px] sm:text-[42px] leading-none tracking-[0.06em]">
               BRISCOLATRO
             </h1>
-            <p className="font-pixel painted-sign text-[6.5px] sm:text-[7.5px] tracking-[0.22em] mt-2 opacity-70">
+            <p className="font-retro ink-dim text-[14px] sm:text-[15px] tracking-[0.2em] mt-2">
               OSTERIA · CARTE · SCOMMESSE
             </p>
           </div>
 
-          <ChalkRule className="my-4 sm:my-5" />
+          <MenuRule className="my-4 sm:my-5" />
 
           <div className="space-y-3.5 sm:space-y-4">
             {hasResumableRun && (
-              <ChalkEntry
+              <MenuEntry
                 label="Riprendi la partita"
                 note={`Ante ${resumableAnte}`}
                 icon={<Armchair {...stroke} />}
-                tone="yellow"
+                tone="accent"
                 size="lg"
-                delay={0.18}
                 onClick={onResume}
               />
             )}
 
-            <ChalkEntry
-              label="Carte nuove"
-              note={hasResumableRun ? 'Da capo' : 'Nuova partita'}
+            <MenuEntry
+              label="Nuova partita"
+              note="Carte nuove"
               icon={<WalletCards {...stroke} />}
-              tone={hasResumableRun ? 'chalk' : 'yellow'}
+              tone={hasResumableRun ? 'ink' : 'accent'}
               size={hasResumableRun ? 'md' : 'lg'}
-              delay={hasResumableRun ? 0.3 : 0.18}
               onClick={onNewRun}
             />
 
-            <ChalkEntry
-              label="Le regole della casa"
-              note="Briscola"
+            <MenuEntry
+              label="Come si gioca"
+              note="Le regole della casa"
               icon={<BookOpen {...stroke} />}
               size="sm"
-              delay={hasResumableRun ? 0.42 : 0.3}
               onClick={onOpenTutorial}
             />
 
-            <ChalkEntry
-              label="Luci e musica"
-              note="Impostazioni"
+            <MenuEntry
+              label="Impostazioni"
+              note="Luci e musica"
               icon={<Lamp {...stroke} />}
               size="sm"
-              delay={hasResumableRun ? 0.52 : 0.4}
               onClick={onOpenSettings}
             />
 
             {hasResumableRun && (
-              <ChalkEntry
-                label="Passa lo straccio"
-                note="Abbandona la run"
+              <MenuEntry
+                label="Abbandona la run"
+                note="Passa lo straccio"
                 icon={<Eraser {...stroke} />}
                 tone="red"
                 size="sm"
-                delay={0.62}
                 onClick={onAbandon}
               />
             )}
 
             {!isStandalone && (
-              <ChalkEntry
-                label="Portatela a casa"
-                note="Installa"
+              <MenuEntry
+                label="Installa l'app"
+                note="Portatela a casa"
                 icon={<Download {...stroke} />}
                 tone="dim"
                 size="sm"
-                delay={hasResumableRun ? 0.72 : 0.5}
                 onClick={onInstall}
               />
             )}
@@ -165,7 +159,7 @@ export function TitleScreen({
               non aveva piu' spazio sulla lavagna. */}
           <div className="mt-6 sm:mt-7 flex justify-end">
             <div
-              className="px-3 py-1.5 border border-[rgba(236,229,214,0.32)] rounded-[2px]"
+              className="px-3 py-1.5 border border-[rgba(47,36,24,0.35)] rounded-[2px]"
               style={{ transform: 'rotate(-1.6deg)' }}
             >
               <span className="font-condensed chalk-dim text-[14px] sm:text-[17px] uppercase">
@@ -176,7 +170,7 @@ export function TitleScreen({
               </span>
             </div>
           </div>
-        </SlateBoard>
+        </MenuCard>
 
         {/* Cio' che non ha scritto l'oste sta su carta, incastrata nella
             cornice. */}

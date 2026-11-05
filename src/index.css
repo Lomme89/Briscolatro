@@ -2,14 +2,17 @@
 
 @layer base {
   :root {
-    --font-pixel: 'Press Start 2P', monospace;
-    --font-condensed: 'VT323', monospace;
-    --font-retro: 'Silkscreen', monospace;
-    --font-display: 'Cabinet Grotesk', system-ui, sans-serif;
+    /* Una sola voce: Jersey 15, pixel font a lettere miste con C, B e 8 ben
+       distinti anche a 13px (il parente piu' stretto su Google Fonts dell'm6x11
+       di Balatro, che usa un font solo per tutto). I tre nomi restano come
+       ruoli: titoli, testo corrente, numeri e tabellone. */
+    --font-pixel: 'Jersey 15', system-ui, sans-serif;
+    --font-condensed: 'Jersey 15', system-ui, sans-serif;
+    --font-retro: 'Jersey 15', system-ui, sans-serif;
   }
 
   body {
-    font-family: var(--font-retro), monospace;
+    font-family: var(--font-retro);
     background-color: #0d1117;
     color: #f3f4f6;
     user-select: none;
@@ -20,20 +23,25 @@
   }
 }
 
+/* font-pixel: titoli ed etichette (peso pieno). font-retro: testo corrente. */
 .font-pixel {
-  font-family: 'Press Start 2P', monospace;
+  font-family: var(--font-pixel);
+  font-weight: 600;
+  /* Le misure del codice erano tarate su Press Start 2P, che a pari px e'
+     molto piu' grande: si scala sull'altezza della x, non classe per classe. */
+  font-size-adjust: 0.6;
+  letter-spacing: 0.01em;
 }
 
 .font-condensed {
-  font-family: 'VT323', monospace;
+  font-family: var(--font-condensed);
+  font-size-adjust: none;
 }
 
 .font-retro {
-  font-family: 'Silkscreen', monospace;
-}
-
-.font-display {
-  font-family: 'Cabinet Grotesk', system-ui, sans-serif;
+  font-family: var(--font-retro);
+  font-size-adjust: 0.56;
+  letter-spacing: 0.01em;
 }
 
 /* The phone's usable screen includes the browser chrome and safe areas. */
@@ -56,14 +64,12 @@ button:focus-visible, [role='button']:focus-visible, input:focus-visible {
   padding-right: max(12px, env(safe-area-inset-right));
 }
 .mobile-dialog input[type='range'] { min-height: 44px; min-width: 0; }
-.shop-inventory[open] > summary { margin-bottom: 12px; }
-.shop-inventory[open] > summary > svg { transform: rotate(180deg); }
 
 @media (max-height: 740px) {
   .title-screen { padding-block: 16px; }
   /* The decorative fan yields to the menu on short screens. */
   .title-screen > div:first-child > div:first-child { display: none; }
-  .title-screen .slate-board { padding-block: 12px; }
+  .title-screen .menu-card-inner { padding-block: 12px; }
   .title-screen > div:last-child { margin-top: 24px; }
 }
 
@@ -77,8 +83,8 @@ button:focus-visible, [role='button']:focus-visible, input:focus-visible {
   [data-opponent-band] summary { min-height: 44px; }
   .game-hand > div:first-child { flex-wrap: wrap; text-align: center; }
   .title-screen { padding-inline: 20px; }
-  .title-screen .slate-board { padding-inline: 16px; }
-  .title-screen .chalk-write { min-height: 48px; }
+  .title-screen .menu-card-inner { padding-inline: 16px; }
+  .title-screen .menu-entry { min-height: 48px; }
   .title-screen > div:last-child { margin-top: 32px; }
   .blind-intro-content { gap: 16px; }
   .blind-intro-opponent { flex: 1 0 auto; padding-block: 20px; }
@@ -91,7 +97,6 @@ button:focus-visible, [role='button']:focus-visible, input:focus-visible {
   .mobile-dialog { max-height: 100dvh; }
   .mobile-dialog button { min-height: 44px; }
   .mobile-dialog button:has(> svg:only-child) { min-width: 44px; }
-  .mobile-dialog .font-retro { font-family: var(--font-condensed); font-size: 18px; line-height: 1.25; }
   .mobile-dialog input[type='range'] { width: clamp(80px, 26vw, 128px); }
   .shop-screen { padding-inline: 12px; gap: 4px; }
   .shop-header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30; }
@@ -99,10 +104,7 @@ button:focus-visible, [role='button']:focus-visible, input:focus-visible {
   .shop-header > div > div:first-child { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
   .shop-header > div > div:last-child { justify-content: space-between; width: 100%; gap: 12px; }
   .shop-header h2 { flex-shrink: 0; }
-  .shop-inventory > summary { gap: 6px; }
-  .shop-tabs button { min-height: 48px; font-size: 8px; line-height: 1.6; }
   .shop-screen button { min-height: 44px; }
-  .shop-screen .font-retro { font-family: var(--font-condensed); font-size: 18px; line-height: 1.25; }
 }
 
 /* In landscape the hand sits beside the trick, with both controls in reach. */
@@ -438,155 +440,61 @@ button:focus-visible, [role='button']:focus-visible, input:focus-visible {
   background: #f59e0b;
 }
 
-/* --- La lavagna dell'osteria ------------------------------------------------
-   Ogni bar italiano ha una lavagna: il nome del locale dipinto in alto una
-   volta per tutte, e sotto la lista del giorno, scritta a gesso e cancellata
-   ogni sera. Il menu del gioco non e' un pannello sopra il tavolo: e' quella
-   lavagna, appoggiata sullo stesso tavolo su cui poi si gioca.
-
-   Due materiali, tenuti onesti e separati: l'ardesia e' gesso e legno, il
-   gioco resta pixel art. Nessuna texture: una PWA paga ogni immagine che
-   spedisce, e l'ardesia e' abbastanza irregolare da essere fatta di gradienti. */
+/* --- Toni di testo sul panno ----------------------------------------------
+   Testo chiaro sul tavolo scuro. Niente alone: il glow ammorbidisce i bordi
+   di un pixel font proprio dove servono netti. Un'ombra di 1px basta a
+   staccarlo dal panno. */
 
 :root {
-  --chalk: #ece5d6;
-  --chalk-dim: #b9b3a3;
-  --chalk-yellow: #e8c766;
-  --chalk-red: #d4756a;
-  --chalk-green: #9ec98a;
-  --slate: #20231f;
-  --frame-wood: #4a2f1a;
+  --chalk: #f1ebdd;
+  --chalk-dim: #c9c2b0;
+  --chalk-yellow: #f0cf6c;
+  --chalk-red: #ec8a7e;
+  --chalk-green: #a9d895;
 }
 
-.slate-board {
-  background-color: var(--slate);
-  background-image:
-    /* Le passate dello straccio: archi larghi, mai concentrici, perche' il
-       braccio di chi pulisce non ripassa mai dallo stesso punto. */
-    radial-gradient(ellipse 60% 26% at 22% 30%, rgba(236, 229, 214, 0.085) 0%, transparent 70%),
-    radial-gradient(ellipse 52% 22% at 74% 44%, rgba(236, 229, 214, 0.065) 0%, transparent 72%),
-    radial-gradient(ellipse 70% 18% at 45% 72%, rgba(236, 229, 214, 0.055) 0%, transparent 75%),
-    radial-gradient(ellipse 30% 40% at 88% 14%, rgba(236, 229, 214, 0.05) 0%, transparent 70%),
-    /* Il grano minerale dell'ardesia. */
-    repeating-linear-gradient(114deg, rgba(255, 255, 255, 0.014) 0 1px, transparent 1px 4px),
-    repeating-linear-gradient(31deg, rgba(0, 0, 0, 0.10) 0 1px, transparent 1px 7px),
-    /* La lampadina sta sopra il tavolo, quindi la lavagna la prende in pieno
-       sull'orlo alto: caldo e slavato in cima, freddo e sporco in fondo. */
-    radial-gradient(ellipse 90% 55% at 50% -12%, rgba(255, 206, 140, 0.14) 0%, transparent 68%),
-    linear-gradient(178deg, #33362e 0%, #22251f 48%, #14160f 100%);
-}
+.chalk { color: var(--chalk); text-shadow: 0 1px 0 rgba(0, 0, 0, 0.55); }
+.chalk-dim { color: var(--chalk-dim); text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5); }
+.chalk-yellow { color: var(--chalk-yellow); text-shadow: 0 1px 0 rgba(0, 0, 0, 0.55); }
+.chalk-red { color: var(--chalk-red); text-shadow: 0 1px 0 rgba(0, 0, 0, 0.55); }
+.chalk-green { color: var(--chalk-green); text-shadow: 0 1px 0 rgba(0, 0, 0, 0.55); }
 
-/* Il legno della cornice: stessa quercia del tavolo, ma tagliata piu' chiara,
-   perche' la lavagna e' l'oggetto che il locale tiene meglio. */
-.slate-frame {
+/* L'insegna di legno in cima allo schermo: ottone su legno scuro. */
+.wood-sign {
   background-color: #3d2615;
-  background-image:
-    repeating-linear-gradient(91deg, rgba(0, 0, 0, 0.24) 0 2px, rgba(255, 236, 200, 0.03) 2px 3px, transparent 3px 11px),
-    linear-gradient(180deg, #6b4526 0%, #452b18 38%, #24150a 100%);
-  box-shadow:
-    /* Appoggiata, non incollata: l'ombra ha un offset e una sfocatura vera. */
-    0 22px 40px -10px rgba(0, 0, 0, 0.82),
-    0 5px 12px rgba(0, 0, 0, 0.55),
-    inset 0 2px 0 rgba(255, 226, 178, 0.3),
-    inset 0 -3px 5px rgba(0, 0, 0, 0.6);
+  background-image: linear-gradient(180deg, #5e3c20 0%, #3f2715 55%, #2a190c 100%);
+  box-shadow: 0 8px 18px -6px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 226, 178, 0.25);
 }
+.painted-sign { color: #f0cf8e; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.7); }
 
-/* La bacinella del gesso: il bordo inferiore dove finiscono i gessetti e la
-   polvere di tutte le liste cancellate. */
-.slate-ledge {
-  background-image:
-    linear-gradient(180deg, #4d3018 0%, #35200f 55%, #1d1108 100%);
-  box-shadow:
-    inset 0 2px 3px rgba(0, 0, 0, 0.6),
-    inset 0 -1px 0 rgba(255, 226, 178, 0.08);
+/* --- Il menù --------------------------------------------------------------
+   Carta da trattoria: doppio filetto rosso, inchiostro scuro, voce attiva
+   evidenziata come col pennarello. Contrasto ink su carta > 11:1. */
+
+.menu-card { color: #2f2418; }
+.menu-card-inner {
+  border: 2px solid rgba(158, 58, 46, 0.55);
+  outline: 1px solid rgba(158, 58, 46, 0.35);
+  outline-offset: -6px;
 }
+/* Dentro la carta i toni "da panno" diventano inchiostro. */
+.menu-card .chalk { color: #2f2418; text-shadow: none; }
+.menu-card .chalk-dim { color: #5f4f3a; text-shadow: none; }
+.menu-card .chalk-yellow { color: #8a4b0f; text-shadow: none; }
+.menu-card .chalk-red { color: #9e3a2e; text-shadow: none; }
+.menu-card .chalk-green { color: #2f5d4a; text-shadow: none; }
+.menu-card .painted-sign { color: #9e3a2e; text-shadow: none; }
 
-/* --- Il gesso -------------------------------------------------------------- */
-
-.chalk {
-  color: var(--chalk);
-  /* Il gesso non ha un bordo: lascia un alone di polvere intorno al tratto. */
-  text-shadow:
-    0 0 7px rgba(236, 229, 214, 0.28),
-    0 0 2px rgba(236, 229, 214, 0.45),
-    0 1px 0 rgba(0, 0, 0, 0.4);
-}
-
-.chalk-dim {
-  color: var(--chalk-dim);
-  text-shadow: 0 0 6px rgba(185, 179, 163, 0.2), 0 1px 0 rgba(0, 0, 0, 0.4);
-}
-
-.chalk-yellow {
-  color: var(--chalk-yellow);
-  text-shadow: 0 0 7px rgba(232, 199, 102, 0.3), 0 1px 0 rgba(0, 0, 0, 0.45);
-}
-
-.chalk-red {
-  color: var(--chalk-red);
-  text-shadow: 0 0 7px rgba(212, 117, 106, 0.3), 0 1px 0 rgba(0, 0, 0, 0.45);
-}
-
-.chalk-green {
-  color: var(--chalk-green);
-  text-shadow: 0 0 7px rgba(158, 201, 138, 0.3), 0 1px 0 rgba(0, 0, 0, 0.45);
-}
-
-/* Il nome del locale non e' scritto a gesso: e' dipinto sulla cornice una volta
-   sola, anni fa, e da allora sbiadisce. */
-.painted-sign {
-  color: #e3b877;
-  text-shadow:
-    0 1px 0 rgba(0, 0, 0, 0.7),
-    0 0 12px rgba(227, 184, 119, 0.18);
-}
-
-/* Una riga tirata a mano non e' mai dritta: due tratti sfalsati la fanno
-   tremare quel tanto che basta. */
-.chalk-rule {
+.menu-rule {
   height: 3px;
-  background-image:
-    linear-gradient(92deg, transparent 0%, rgba(236, 229, 214, 0.62) 5%, rgba(236, 229, 214, 0.78) 46%, rgba(236, 229, 214, 0.5) 88%, transparent 100%),
-    linear-gradient(89.4deg, transparent 2%, rgba(236, 229, 214, 0.22) 12%, rgba(236, 229, 214, 0.3) 70%, transparent 97%);
-  background-size: 100% 1px, 100% 2px;
-  background-position: 0 0, 0 2px;
-  background-repeat: no-repeat;
-  filter: drop-shadow(0 0 4px rgba(236, 229, 214, 0.2));
+  border-top: 1px solid rgba(158, 58, 46, 0.5);
+  border-bottom: 1px solid rgba(158, 58, 46, 0.5);
 }
 
-/* Il tratto che si tira sotto la voce scelta, mentre la scegli. */
-.chalk-underline {
-  transform-origin: left center;
-  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* --- La lista che si scrive ------------------------------------------------
-   L'unico momento coreografato dello schermo: la lista non compare, viene
-   scritta. `steps()` perche' una mano che scrive avanza a scatti, non a
-   interpolazione. */
-
-@keyframes chalk-write {
-  from { clip-path: inset(0 100% 0 0); }
-  to { clip-path: inset(0 -6% 0 0); }
-}
-
-.chalk-write {
-  /* `backwards`, non `both`: la voce e' nascosta solo durante il proprio
-     ritardo, poi torna al suo stato normale, che e' visibile. Con `both` una
-     lista che per qualunque motivo non anima resta una lavagna vuota, e la
-     lavagna vuota e' il menu principale del gioco. */
-  animation: chalk-write 460ms steps(13, end) backwards;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .chalk-write {
-    animation: none;
-    clip-path: none;
-  }
-  .chalk-underline {
-    transition: none;
-  }
-}
+.menu-entry { transition: background-color 140ms ease-out; min-height: 44px; }
+.menu-entry:hover, .menu-entry:focus-visible { background-color: rgba(232, 190, 80, 0.38); }
+.menu-entry:focus-visible { outline: 2px solid #9e3a2e; outline-offset: 1px; }
+.menu-entry-primary { background-color: rgba(232, 190, 80, 0.22); }
 
 /* --- La carta --------------------------------------------------------------
    Quello che non sta sulla lavagna sta su carta: il conto, gli scontrini, i
@@ -725,7 +633,7 @@ button:focus-visible, [role='button']:focus-visible, input:focus-visible {
 .game-hud-score > span:last-child, .game-hud-target-label { font-size: 12px; line-height: 1.3; }
 .game-hud-resources { gap: 14px; }
 .game-hud-resources > span { font-size: 16px; font-weight: 600; }
-.game-hud-suit-name { font-size: 11px; }
+.game-hud-suit-name { font-size: 15px; }
 .game-hud-briscola > span { font-size: 12px; line-height: 1.3; }
 .game-hud-briscola > .chalk, .game-hud-briscola > .chalk-red { font-size: 18px; font-weight: 600; }
 .game-hud-briscola-primary > .chalk, .game-hud-briscola-primary > .chalk-red { font-size: 26px; }
@@ -737,7 +645,7 @@ button:focus-visible, [role='button']:focus-visible, input:focus-visible {
   .game-hud-score > span:first-child { font-size: 28px; }
   .game-hud-resources { gap: 10px; }
   .game-hud-resources > span { font-size: 15px; }
-  .game-hud-briscola > span { font-size: 11px; }
+  .game-hud-briscola > span { font-size: 15px; }
   .game-hud-briscola > .chalk, .game-hud-briscola > .chalk-red { font-size: 15px; }
 }
 @media (min-width: 640px) and (max-height: 500px) {
@@ -814,3 +722,34 @@ button:focus-visible, [role='button']:focus-visible, input:focus-visible {
   .game-hand .table-card-drawer-trigger { grid-column: 2; margin-top: 0; min-width: 44px; padding: 4px; border: 1px solid #75613d; border-radius: 5px; }
   .game-hand .table-card-drawer-trigger span, .game-hand .table-card-drawer-trigger svg:last-child { display: none; }
 }
+
+/* --- La bottega -------------------------------------------------------------
+   Panno verde scuro come il tavolo, carte su un verde ancora piu' scuro.
+   Un solo tasto prezzo per tutto (crema e inchiostro): il colore resta alle
+   etichette di categoria, la gerarchia la fa "Torna al tavolo". */
+
+.shop-panel {
+  background: #16241c;
+  border: 1px solid #2c3b31;
+  box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+.shop-item {
+  background: #0f1913;
+  border: 1px solid #26352b;
+  transition: border-color 140ms ease-out;
+}
+.shop-item:hover { border-color: #4a5e4f; }
+
+.price-btn {
+  background: #e9dfc6;
+  color: #2f2418;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+  transition: background-color 120ms ease-out, transform 80ms ease-out;
+}
+.price-btn:hover:enabled { background: #f6eedb; }
+.price-btn:active:enabled { transform: translateY(1px); }
+.price-btn:disabled { background: #222e26; color: #75806f; box-shadow: none; cursor: not-allowed; }
+.price-btn-ghost { background: transparent; color: var(--chalk-yellow); border: 1px solid rgba(240, 207, 108, 0.6); box-shadow: none; }
+.price-btn-ghost:hover:enabled { background: rgba(240, 207, 108, 0.12); }
+.price-btn-ghost:disabled { background: transparent; border-color: #2c3b31; }

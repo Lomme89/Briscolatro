@@ -208,7 +208,7 @@ export const CaricoParticles: React.FC<CaricoParticlesProps> = ({
         className="absolute -top-3 z-40 whitespace-nowrap"
       >
         <div
-          className={`px-2 py-0.5 rounded-md font-pixel text-[8px] sm:text-[9.5px] font-black border-2 pixel-box shadow-xl flex items-center gap-1 ${
+          className={`px-2 py-0.5 rounded-md font-pixel text-[12px] sm:text-[13px] font-black border-2 pixel-box shadow-xl flex items-center gap-1 ${
             isBriscola
               ? 'bg-gradient-to-r from-orange-600 via-amber-500 to-red-600 border-yellow-200 text-yellow-100 shadow-orange-500/50'
               : isAce

@@ -495,7 +495,8 @@ const UNO_EFFECT_HANDLERS: Record<
     let msg = 'Slot Jolly pieni, nessun Jolly aggiunto.';
     if (nextJokers.length < ctx.maxJokers) {
       const existingIds = new Set(nextJokers.map((j) => j.id));
-      const pool = ALL_JOKERS.filter((j) => !existingIds.has(j.id));
+      // A $4 card must not roll a $14 legendary: those stay a shop purchase.
+      const pool = ALL_JOKERS.filter((j) => !existingIds.has(j.id) && j.rarity !== 'legendary');
       const chosen = pickRun(pool) || ALL_JOKERS[0];
       nextJokers.push(instantiateJoker(chosen));
       msg = `Nuovo Jolly creato: ${chosen.name}!`;

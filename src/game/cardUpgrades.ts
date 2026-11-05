@@ -48,7 +48,7 @@ const ALL_SPECIALS: Array<Exclude<CardSpecial, 'none'>> = [
   'traditrice',
 ];
 
-const OFFERED_ENHANCEMENTS: Array<Exclude<Enhancement, 'none'>> = ['bonus', 'mult', 'steel', 'stone'];
+const OFFERED_ENHANCEMENTS: Array<Exclude<Enhancement, 'none'>> = ['bonus', 'mult', 'wild', 'steel', 'stone'];
 
 /** The Azzardi this card could take without contradicting what it already is. */
 export function allowedSpecialsFor(card: PlayingCard): Array<Exclude<CardSpecial, 'none'>> {

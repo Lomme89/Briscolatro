@@ -113,7 +113,7 @@ export const RoundSummaryModal: React.FC<RoundSummaryModalProps> = ({
 
           {/* Le due condizioni, sempre tutte e due: il confronto fra le due
               anime del gioco e' il motivo per cui esistono le modalita'. */}
-          <div className="font-pixel ink-dim text-[8px] uppercase tracking-[0.14em] mb-1.5">
+          <div className="font-pixel ink-dim text-[12px] uppercase tracking-[0.14em] mb-1.5">
             Come si chiudeva
           </div>
           <div className="space-y-1.5">

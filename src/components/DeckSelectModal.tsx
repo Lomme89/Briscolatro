@@ -58,7 +58,7 @@ export const DeckSelectModal: React.FC<DeckSelectProps> = ({
                 <h2 className="font-pixel text-xs sm:text-sm md:text-base text-amber-400 font-bold uppercase tracking-wide">
                   SCEGLI IL TUO MAZZO
                 </h2>
-                <p className="font-retro text-[10px] sm:text-xs text-slate-300">
+                <p className="font-retro text-[14px] sm:text-[14px] text-slate-300">
                   Ogni mazzo modifica le carte di partenza, fondi iniziali e bonus
                 </p>
               </div>
@@ -111,31 +111,31 @@ export const DeckSelectModal: React.FC<DeckSelectProps> = ({
                     <div className="flex items-center justify-between mb-2 mt-0.5">
                       <span className="text-2xl sm:text-3xl filter drop-shadow">{deck.icon}</span>
                       {isUnlocked ? (
-                        <span className="font-pixel text-[8px] bg-emerald-700/80 border border-emerald-500/50 text-emerald-100 px-2 py-0.5 rounded-full font-bold">
+                        <span className="font-pixel text-[12px] bg-emerald-700/80 border border-emerald-500/50 text-emerald-100 px-2 py-0.5 rounded-full font-bold">
                           ✓ DISPONIBILE
                         </span>
                       ) : (
-                        <span className="font-pixel text-[8px] bg-red-950/90 border border-red-700/80 text-red-300 px-2 py-0.5 rounded-full flex items-center gap-1 font-bold">
+                        <span className="font-pixel text-[12px] bg-red-950/90 border border-red-700/80 text-red-300 px-2 py-0.5 rounded-full flex items-center gap-1 font-bold">
                           🔒 BLOCCATO
                         </span>
                       )}
                     </div>
 
-                    <h3 className="font-pixel text-[11px] sm:text-xs text-amber-300 font-bold leading-snug">
+                    <h3 className="font-pixel text-[19px] text-amber-300 leading-tight">
                       {deck.name}
                     </h3>
-                    <p className="font-retro text-[10px] text-slate-400 font-medium">
+                    <p className="font-retro text-[14px] text-slate-400 font-medium">
                       {deck.subtitle}
                     </p>
 
-                    <p className="text-[11px] text-slate-200 font-retro leading-relaxed mt-2 bg-slate-900/60 p-2 rounded border border-slate-800/60">
+                    <p className="text-[15px] text-slate-200 font-retro leading-relaxed mt-2 bg-slate-900/60 p-2 rounded border border-slate-800/60">
                       {deck.description}
                     </p>
                   </div>
 
                   {/* Bottom: Starting Stats & Selection Button */}
                   <div className="mt-3 pt-2.5 border-t border-slate-800">
-                    <div className="flex items-center justify-between text-[9px] font-pixel text-slate-400 mb-2.5">
+                    <div className="flex items-center justify-between text-[13px] font-pixel text-slate-400 mb-2.5">
                       <span className="flex items-center gap-1">
                         Soldi: <strong className="text-amber-400 font-bold">${deck.startingMoney}</strong>
                       </span>
@@ -152,13 +152,13 @@ export const DeckSelectModal: React.FC<DeckSelectProps> = ({
                           sound.playCardFlick();
                           onSelectDeck(deck);
                         }}
-                        className="w-full bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-pixel text-[10px] sm:text-xs font-bold py-2.5 rounded-lg pixel-box shadow-md flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-[0.98] min-h-[40px]"
+                        className="w-full bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-pixel text-[14px] sm:text-[14px] font-bold py-2.5 rounded-lg pixel-box shadow-md flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-[0.98] min-h-[40px]"
                       >
                         <span>GIOCA QUESTO MAZZO</span>
                         <span>➔</span>
                       </button>
                     ) : (
-                      <div className="bg-slate-900/90 border border-slate-800 p-2 rounded text-[10px] text-slate-400 text-center font-retro min-h-[38px] flex items-center justify-center">
+                      <div className="bg-slate-900/90 border border-slate-800 p-2 rounded text-[14px] text-slate-400 text-center font-retro min-h-[38px] flex items-center justify-center">
                         🔒 Requisito: {deck.unlockRequirement}
                       </div>
                     )}

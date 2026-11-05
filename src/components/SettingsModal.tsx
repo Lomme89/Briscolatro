@@ -21,7 +21,7 @@ const Section: React.FC<{
   children: React.ReactNode;
 }> = ({ icon, title, children }) => (
   <div className="bg-slate-950/80 p-3 rounded-xl border border-slate-800 space-y-3">
-    <div className="font-pixel text-[11px] sm:text-xs text-slate-300 flex items-center gap-1.5">
+    <div className="font-pixel text-[15px] sm:text-[15px] text-slate-300 flex items-center gap-1.5">
       <span>{icon}</span>
       <span>{title}</span>
     </div>
@@ -36,8 +36,8 @@ const Row: React.FC<{
 }> = ({ label, hint, children }) => (
   <div className="flex items-center justify-between gap-3">
     <div className="min-w-0">
-      <div className="font-pixel text-[10px] sm:text-[11px] text-slate-300">{label}</div>
-      {hint && <div className="text-[10px] text-slate-400 font-retro leading-snug">{hint}</div>}
+      <div className="font-pixel text-[14px] sm:text-[15px] text-slate-300">{label}</div>
+      {hint && <div className="text-[14px] text-slate-400 font-retro leading-snug">{hint}</div>}
     </div>
     <div className="shrink-0">{children}</div>
   </div>
@@ -52,7 +52,7 @@ const Toggle: React.FC<{
   <button
     type="button"
     onClick={onClick}
-    className={`font-pixel text-[9px] sm:text-[10px] px-3 py-1.5 rounded-lg pixel-box font-bold cursor-pointer transition-colors min-h-[34px] min-w-[74px] ${
+    className={`font-pixel text-[13px] sm:text-[14px] px-3 py-1.5 rounded-lg pixel-box font-bold cursor-pointer transition-colors min-h-[34px] min-w-[74px] ${
       on ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-slate-800 text-slate-400 border border-slate-700'
     }`}
   >
@@ -87,7 +87,7 @@ const VolumeSlider: React.FC<{
       className="w-32 sm:w-40 accent-amber-400 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
     />
     <span
-      className={`font-pixel text-[9px] w-8 text-right ${disabled ? 'text-slate-600' : 'text-amber-300'}`}
+      className={`font-pixel text-[13px] w-8 text-right ${disabled ? 'text-slate-600' : 'text-amber-300'}`}
     >
       {value}
     </span>
@@ -173,7 +173,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <h2 className="font-pixel text-xs sm:text-sm text-slate-200 font-bold uppercase tracking-wide">
                 IMPOSTAZIONI
               </h2>
-              <p className="text-[10px] text-slate-400 font-retro">Audio, ritmo di gioco e app</p>
+              <p className="text-[14px] text-slate-400 font-retro">Audio, ritmo di gioco e app</p>
             </div>
           </div>
           <button
@@ -277,14 +277,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <Section icon="🏆" title="PROGRESSI">
             <div className="flex items-center gap-2">
               <div className="flex-1 bg-slate-900/90 border border-slate-800 rounded-lg px-2.5 py-2">
-                <div className="font-pixel text-[8px] text-slate-500 uppercase">Record</div>
-                <div className="font-pixel text-[11px] text-amber-300 font-bold">
+                <div className="font-pixel text-[12px] text-slate-500 uppercase">Record</div>
+                <div className="font-pixel text-[15px] text-amber-300 font-bold">
                   {highScore.toLocaleString('it-IT')}
                 </div>
               </div>
               <div className="flex-1 bg-slate-900/90 border border-slate-800 rounded-lg px-2.5 py-2">
-                <div className="font-pixel text-[8px] text-slate-500 uppercase">Mazzi sbloccati</div>
-                <div className="font-pixel text-[11px] text-amber-300 font-bold">
+                <div className="font-pixel text-[12px] text-slate-500 uppercase">Mazzi sbloccati</div>
+                <div className="font-pixel text-[15px] text-amber-300 font-bold">
                   {unlockedDeckCount}/{totalDeckCount}
                 </div>
               </div>
@@ -292,7 +292,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
             {confirmReset ? (
               <div className="bg-red-950/50 border border-red-700 rounded-lg p-2.5 space-y-2">
-                <div className="font-retro text-[11px] text-red-200 leading-snug">
+                <div className="font-retro text-[15px] text-red-200 leading-snug">
                   Cancella il record e i mazzi sbloccati. Non si torna indietro.
                 </div>
                 <div className="flex gap-2">
@@ -302,14 +302,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       onResetProgress();
                       setConfirmReset(false);
                     }}
-                    className="flex-1 bg-red-600 hover:bg-red-500 text-white font-pixel text-[9px] py-2 rounded-lg pixel-box font-bold cursor-pointer"
+                    className="flex-1 bg-red-600 hover:bg-red-500 text-white font-pixel text-[13px] py-2 rounded-lg pixel-box font-bold cursor-pointer"
                   >
                     SÌ, AZZERA
                   </button>
                   <button
                     type="button"
                     onClick={() => setConfirmReset(false)}
-                    className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-pixel text-[9px] py-2 rounded-lg pixel-box cursor-pointer"
+                    className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-pixel text-[13px] py-2 rounded-lg pixel-box cursor-pointer"
                   >
                     ANNULLA
                   </button>
@@ -320,7 +320,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setConfirmReset(true)}
-                  className="font-pixel text-[9px] sm:text-[10px] px-3 py-1.5 rounded-lg pixel-box cursor-pointer min-h-[34px] min-w-[74px] bg-slate-800 hover:bg-red-900 text-red-300 border border-red-900/70 transition-colors"
+                  className="font-pixel text-[13px] sm:text-[14px] px-3 py-1.5 rounded-lg pixel-box cursor-pointer min-h-[34px] min-w-[74px] bg-slate-800 hover:bg-red-900 text-red-300 border border-red-900/70 transition-colors"
                 >
                   AZZERA
                 </button>
@@ -338,35 +338,35 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   className="w-8 h-8 rounded-lg border border-amber-500/50 shadow-md shrink-0"
                 />
                 <div className="min-w-0">
-                  <div className="font-pixel text-[11px] sm:text-xs text-amber-300 font-bold">
+                  <div className="font-pixel text-[15px] sm:text-[15px] text-amber-300 font-bold">
                     INSTALLA COME APP
                   </div>
-                  <div className="text-[10px] text-slate-400 font-retro leading-snug">
+                  <div className="text-[14px] text-slate-400 font-retro leading-snug">
                     Gioca a schermo intero senza barre del browser
                   </div>
                 </div>
               </div>
               {isInstalled ? (
-                <span className="font-pixel text-[8px] bg-emerald-900/80 text-emerald-200 border border-emerald-500/60 px-2 py-1 rounded shrink-0">
+                <span className="font-pixel text-[12px] bg-emerald-900/80 text-emerald-200 border border-emerald-500/60 px-2 py-1 rounded shrink-0">
                   ✓ INSTALLATA
                 </span>
               ) : deferredPrompt ? (
                 <button
                   type="button"
                   onClick={handleInstallPWA}
-                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-pixel text-[9.5px] px-3 py-1.5 rounded-lg font-bold shadow-lg cursor-pointer shrink-0"
+                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-pixel text-[13px] px-3 py-1.5 rounded-lg font-bold shadow-lg cursor-pointer shrink-0"
                 >
                   📲 INSTALLA
                 </button>
               ) : (
-                <span className="font-pixel text-[8px] bg-slate-800 text-amber-300/80 border border-slate-700 px-2 py-1 rounded shrink-0">
+                <span className="font-pixel text-[12px] bg-slate-800 text-amber-300/80 border border-slate-700 px-2 py-1 rounded shrink-0">
                   PWA ATTIVA
                 </span>
               )}
             </div>
 
             {!isInstalled && !deferredPrompt && (
-              <div className="bg-slate-900/90 p-2 rounded-lg border border-slate-800 text-[10px] text-slate-400 font-retro leading-relaxed">
+              <div className="bg-slate-900/90 p-2 rounded-lg border border-slate-800 text-[14px] text-slate-400 font-retro leading-relaxed">
                 Su <strong className="text-slate-300">Chrome / Brave Android</strong>: menu{' '}
                 <strong className="text-slate-300">⋮</strong> →{' '}
                 <strong className="text-slate-300">Installa app</strong>.

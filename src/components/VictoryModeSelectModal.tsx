@@ -65,10 +65,10 @@ export const VictoryModeSelectModal: React.FC<VictoryModeSelectModalProps> = ({
           className="bg-slate-900 border-3 border-amber-400 rounded-2xl pixel-box flex flex-col w-full max-w-lg mx-auto my-auto min-h-0 max-h-full overflow-hidden"
         >
           <div className="shrink-0 px-3 pt-3 pb-2 text-center border-b-2 border-slate-700">
-            <h3 className="font-pixel text-[10px] sm:text-sm text-amber-300 font-bold">
+            <h3 className="font-pixel text-[14px] sm:text-sm text-amber-300 font-bold">
               COME SI VINCE IL TAVOLO
             </h3>
-            <p className="font-retro text-[10px] sm:text-xs text-slate-400 mt-0.5">
+            <p className="font-retro text-[14px] sm:text-[14px] text-slate-400 mt-0.5">
               {deck ? `${deck.icon} ${deck.name}` : 'Scegli la regola della run'}
             </p>
           </div>
@@ -84,31 +84,31 @@ export const VictoryModeSelectModal: React.FC<VictoryModeSelectModalProps> = ({
                 className="text-left bg-slate-950/70 hover:bg-slate-800 border-2 border-slate-700 hover:border-amber-400 rounded-xl pixel-box px-3 py-2.5 cursor-pointer transition-colors"
               >
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-pixel text-[10px] sm:text-xs text-white font-bold uppercase">
+                  <span className="font-pixel text-[14px] sm:text-[14px] text-white font-bold uppercase">
                     {info.label}
                   </span>
                   <span
-                    className={`font-pixel text-[6.5px] sm:text-[7.5px] px-1.5 py-0.5 rounded border ${info.badgeClass}`}
+                    className={`font-pixel text-[10px] sm:text-[11px] px-1.5 py-0.5 rounded border ${info.badgeClass}`}
                   >
                     {info.badge}
                   </span>
                   {highScores[info.id] > 0 && (
-                    <span className="font-retro text-[9px] text-slate-500 ml-auto">
+                    <span className="font-retro text-[13px] text-slate-500 ml-auto">
                       record {highScores[info.id].toLocaleString('it-IT')}
                     </span>
                   )}
                 </div>
-                <p className="font-retro text-[11px] text-slate-300 mt-1 leading-snug">
+                <p className="font-retro text-[15px] text-slate-300 mt-1 leading-snug">
                   {info.description}
                 </p>
-                <div className="font-pixel text-[7px] sm:text-[8px] mt-1.5 flex items-center flex-wrap">
+                <div className="font-pixel text-[11px] sm:text-[12px] mt-1.5 flex items-center flex-wrap">
                   <Requirement info={info} />
                 </div>
               </button>
             ))}
 
-            <p className="font-retro text-[10px] text-slate-500 text-center leading-snug mt-1 px-2">
-              Non è una scala di difficoltà: sono quattro regole diverse. I 61 punti
+            <p className="font-retro text-[14px] text-slate-500 text-center leading-snug mt-1 px-2">
+              Prima volta? Scegli Briscolatro. I 61 punti
               non crescono con l'Ante, il target Chips sì.
             </p>
           </div>
@@ -116,7 +116,7 @@ export const VictoryModeSelectModal: React.FC<VictoryModeSelectModalProps> = ({
           <div className="shrink-0 px-3 py-2.5 border-t-2 border-slate-700">
             <button
               onClick={onBack}
-              className="font-pixel text-[9px] text-slate-400 hover:text-white px-3 py-2 border border-slate-700 rounded-lg pixel-box cursor-pointer"
+              className="font-pixel text-[13px] text-slate-400 hover:text-white px-3 py-2 border border-slate-700 rounded-lg pixel-box cursor-pointer"
             >
               ← CAMBIA MAZZO
             </button>
