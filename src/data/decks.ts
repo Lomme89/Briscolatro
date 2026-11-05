@@ -5,7 +5,7 @@ export const ALL_DECKS: DeckDefinition[] = [
     id: 'deck_napoletano',
     name: 'Mazzo Napoletano Tradizionale',
     subtitle: 'Il Classico Senza Tempo',
-    description: 'Il mazzo tradizionale per eccellenza. Inizia con $4 e 1 Scarto per round. Equilibrato e versatile.',
+    description: 'Il mazzo tradizionale per eccellenza. Inizia con $4. Equilibrato e versatile.',
     icon: '☕',
     color: '#3b82f6',
     unlocked: true,
@@ -13,7 +13,7 @@ export const ALL_DECKS: DeckDefinition[] = [
     startingMoney: 4,
     startingJokers: [],
     startingVouchers: [],
-    startingDiscards: 1,
+    startingDiscards: 0,
   },
   {
     id: 'deck_bastoni',
@@ -27,7 +27,7 @@ export const ALL_DECKS: DeckDefinition[] = [
     startingMoney: 5,
     startingJokers: ['j_carrettiere'],
     startingVouchers: [],
-    startingDiscards: 1,
+    startingDiscards: 0,
     specialDeckPerk: 'bastoni_foil',
   },
   {
@@ -42,7 +42,7 @@ export const ALL_DECKS: DeckDefinition[] = [
     startingMoney: 14,
     startingJokers: ['j_orafo'],
     startingVouchers: [],
-    startingDiscards: 1,
+    startingDiscards: 0,
     specialDeckPerk: 'denari_start',
   },
   {
@@ -71,7 +71,7 @@ export const ALL_DECKS: DeckDefinition[] = [
     startingMoney: 6,
     startingJokers: [],
     startingVouchers: [],
-    startingDiscards: 1,
+    startingDiscards: 0,
     specialDeckPerk: 'holo_figures',
   },
   {
@@ -86,7 +86,7 @@ export const ALL_DECKS: DeckDefinition[] = [
     startingMoney: 6,
     startingJokers: ['j_specchietto_baro'],
     startingVouchers: [],
-    startingDiscards: 2,
+    startingDiscards: 0,
     specialDeckPerk: 'high_stakes_vision',
   },
 ];

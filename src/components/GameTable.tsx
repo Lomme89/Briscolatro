@@ -608,13 +608,15 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
               <span className="font-condensed chalk-yellow text-[20px] sm:text-[24px] leading-none tabular-nums">
                 ${money}
               </span>
-              <span
-                className="flex items-center gap-1 font-condensed chalk-dim text-[20px] sm:text-[24px] leading-none tabular-nums"
-                title="Scarti rimasti"
-              >
-                <RotateCcw size={14} strokeWidth={1.8} />
-                {discardsLeft}
-              </span>
+              {discardsLeft > 0 && (
+                <span
+                  className="flex items-center gap-1 font-condensed chalk-dim text-[20px] sm:text-[24px] leading-none tabular-nums"
+                  title="Scarti rimasti"
+                >
+                  <RotateCcw size={14} strokeWidth={1.8} />
+                  {discardsLeft}
+                </span>
+              )}
             </div>
             {/* La Briscola vera, che al tavolo si conta comunque. */}
             <div className={`game-hud-briscola ${hud.showChipsObjective ? '' : 'game-hud-briscola-primary'} sm:order-2 flex items-baseline gap-1 sm:gap-2 font-condensed tabular-nums sm:flex-wrap pb-0.5`}>
@@ -1351,6 +1353,11 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
               <ArrowUp size={19} strokeWidth={1.9} />
             </button>
 
+            {/* Lo Scarta non e' piu' di serie: compare solo se un Jolly, un
+                tagliando, un sigillo o una Carta Sola te ne ha dato uno. Uno
+                scambio alla cieca col tallone, uguale ogni round, era un gesto
+                obbligato e non una scelta. */}
+            {discardsLeft > 0 && (
             <button
               type="button"
               onClick={handleDiscardSelected}
@@ -1364,6 +1371,7 @@ export const GameTable: React.FC<GameTableProps> = ({ model, actions }) => {
               <RotateCcw size={17} strokeWidth={1.9} />
               <span>Scarta {discardsLeft}</span>
             </button>
+            )}
           </div>
           <button
             type="button"

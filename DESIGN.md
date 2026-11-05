@@ -156,3 +156,12 @@ telefono metà stava dietro una linguetta.
 Mostrare il tallone rimasto contava le carte al posto del giocatore: per
 esclusione dava anche la mano avversaria. Nella Briscola contare è la bravura.
 Al tavolo resta il numero sul dorso; il mazzo si guarda in bottega, ordinato.
+
+### Lo Scarta non è più di serie
+
+Era uno scambio alla cieca col tallone, uno per round, e la mossa giusta era
+quasi sempre la stessa (via la liscia peggiore, subito): un gesto, non una
+scelta. Nessuna policy del simulatore lo usava. Ora i mazzi partono da 0 scarti
+(tranne il Mazzo delle Spade, che lo ha come vantaggio dichiarato) e il tasto
+compare solo quando un Jolly, un tagliando, un sigillo o una Carta Sola te ne
+dà uno: lo Scarta diventa una ricompensa della build, non un tasto spento.

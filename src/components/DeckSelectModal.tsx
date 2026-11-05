@@ -140,7 +140,7 @@ export const DeckSelectModal: React.FC<DeckSelectProps> = ({
                         Soldi: <strong className="text-amber-400 font-bold">${deck.startingMoney}</strong>
                       </span>
                       <span className="flex items-center gap-1">
-                        Scarti: <strong className="text-cyan-400 font-bold">{deck.startingDiscards}</strong>
+                        {deck.startingDiscards > 0 && <>Scarti: <strong className="text-cyan-400 font-bold">{deck.startingDiscards}</strong></>}
                       </span>
                     </div>
 
